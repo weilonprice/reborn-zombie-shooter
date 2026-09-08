@@ -1,7 +1,8 @@
 REBORN - DEVELOPMENT ROADMAP
 Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
 Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 56 weeks.
-Status:  Phase 0 nearly complete. Impact feedback and first audio in.
+Status:  Phase 0 tasks all complete. Gate 0 not yet attempted - it needs an
+         outside player, not you.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -29,6 +30,24 @@ PROGRESS LOG
             placeholders rather than sourced. AudioListener moved from the
             camera to the player: 20 units up, every ground-level sound sat
             at the far end of its distance rolloff.
+2026-09-08  Screen shake in. Trauma-based with a squared response curve, so
+            sustained fire stays subtle while kills and hits punctuate it.
+            Camera split into a follow rig with the camera as its child, so
+            shake is a local offset and cannot fight the follow logic.
+2026-09-08  Player damage shake added, scaled by fraction of the health bar
+            lost rather than a flat amount, so it stays correct as enemy
+            damage and player max health change.
+2026-09-08  Fixed: point-blank shots passed through zombies. The muzzle sits
+            1.35 units out, an attacking zombie's surface at 1.18, so the ray
+            began inside the target's collider - which Unity never reports as
+            a hit. Hit test now starts at the player's centre; the tracer is
+            still drawn from the barrel.
+2026-09-08  Shell ejection and camera recoil kick in. Recoil lives on
+            CameraShake rather than a second component, so nothing else
+            competes for the camera's local transform.
+2026-09-08  Ambient bed in. 12-second loop, tonal frequencies snapped to exact
+            multiples of the loop fundamental and the noise layer wrap-
+            crossfaded, so the seam is inaudible. Phase 0 tasks complete.
 
 
 ===============================================================================
@@ -41,13 +60,15 @@ PHASE 0 - PROVE IT'S FUN WITH ZERO ART            Weeks 1-2
     damage, die, and recycle. Wave counter and score both advance.
 [x] Hit feedback - DONE 2026-09-08. White flash on every hit, knockback along
     the bullet path, 50ms hit-stop gated to kills and behind a toggle.
-[~] Weapon feedback - muzzle flash and impact sparks DONE 2026-09-08.
-    STILL TO DO: shell ejection, camera recoil kick.
-[ ] Screen shake on fire and kill, with an intensity curve.
+[x] Weapon feedback - DONE 2026-09-08. Muzzle flash with a real light pop,
+    impact sparks, tumbling brass that bounces off the floor, and a directional
+    camera recoil kick that springs back.
+[x] Screen shake - DONE 2026-09-08. Trauma-based, squared response curve, on
+    firing, kills and taking damage. Perlin noise rather than random jitter.
 [x] Death moments - DONE 2026-09-08. Body squashes, spreads and spins out over
     0.2s. Pop chosen over dissolve or gibs as the only zero-asset option.
-[~] First audio - gunshot, impact and death DONE 2026-09-08 (synthesized
-    placeholders in Assets/_Project/Audio). STILL TO DO: low ambient bed.
+[x] First audio - DONE 2026-09-08. Gunshot, impact, death and a looping low
+    ambient bed, all synthesized placeholders in Assets/_Project/Audio.
 
 GATE 0: A stranger keeps shooting for 30 seconds without being told to.
 
@@ -210,21 +231,33 @@ KNOWN DEBT IN THE CURRENT BUILD
    Easy to forget, and the symptom is silent (see item 7). Goes away when the
    builder is retired at Phase 2.
 
+9. HIT TEST IS A RAY, NOT A SPHERECAST.
+   Shots are correct now that the ray starts at the player's centre, but an
+   enemy that closes inside that centre would still be missed. Cannot happen
+   at current values - zombies stop at 1.6 units - but a fast archetype in
+   Phase 1 could. Switch to SphereCast when that enemy exists.
+
+10. VFX SIZES ARE TUNED TO ONE CAMERA DISTANCE.
+   Sparks and shell casings are sized in world units for a camera 22.8 units
+   out (~45 px per unit). Any change to camera height or FOV silently changes
+   how readable they are. Revisit if the camera framing moves in Phase 2.
+
 
 ===============================================================================
 START HERE - THIS WEEK
 ===============================================================================
 
-1. Screen shake on fire and kill.
-   With an intensity curve, and subtle enough to survive a long session.
-   The last big missing piece of impact.
+1. Run Gate 0.
+   Hand the build to someone who has never seen it. Say nothing - no controls,
+   no explanation. If they keep shooting for 30 seconds unprompted, the gate
+   passes. Your own opinion does not count here; you have been tuning this for
+   hours and cannot judge it cold.
 
-2. Shell ejection and camera recoil kick.
-   The remainder of the weapon feedback task. Recoil kick matters more than
-   shells - it ties the camera to the act of firing.
+2. If Gate 0 passes, start Phase 1 with weapons as data.
+   Move weapon stats into ScriptableObjects before building more weapons, or
+   every new one is another copy of the same component.
 
-3. Low ambient bed.
-   The three event sounds sit on silence right now. An ambient layer is what
-   makes the arena feel like a place rather than a test scene.
-
-THEN: Gate 0. Hand it to someone who has never seen it and say nothing.
+3. Write the hook sentence early, not at the end of Phase 1.
+   One sentence on why someone picks this over the dozen alternatives. Write
+   a draft now and let Phase 1 prove or kill it - it is the single highest
+   risk in the whole project.

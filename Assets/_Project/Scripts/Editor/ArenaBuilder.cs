@@ -44,6 +44,7 @@ namespace ZombieShooter.EditorTools
             CreateMaterial("M_Zombie", new Color(0.35f, 0.70f, 0.28f));
             CreateUnlitMaterial("M_Tracer", new Color(1.00f, 0.85f, 0.35f));
             CreateUnlitMaterial("M_Spark", new Color(1.00f, 0.82f, 0.35f));
+            CreateUnlitMaterial("M_Brass", new Color(0.85f, 0.64f, 0.24f));
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
@@ -60,10 +61,11 @@ namespace ZombieShooter.EditorTools
             var gunMat = LoadMaterial("M_Gun");
             var tracerMat = LoadMaterial("M_Tracer");
             var sparkMat = LoadMaterial("M_Spark");
+            var brassMat = LoadMaterial("M_Brass");
             var zombiePrefab = LoadZombiePrefab();
 
             BuildEnvironment(groundMat, wallMat);
-            var player = BuildPlayer(playerMat, gunMat, tracerMat, sparkMat);
+            var player = BuildPlayer(playerMat, gunMat, tracerMat, sparkMat, brassMat);
             BuildCamera(player.transform);
             var waves = BuildManagers(player, zombiePrefab, sparkMat);
             BuildHud(player, waves);
@@ -133,7 +135,7 @@ namespace ZombieShooter.EditorTools
 
         // ---------------------------------------------------------------- player
 
-        static GameObject BuildPlayer(Material bodyMat, Material gunMat, Material tracerMat, Material sparkMat)
+        static GameObject BuildPlayer(Material bodyMat, Material gunMat, Material tracerMat, Material sparkMat, Material brassMat)
         {
             var player = new GameObject("Player") { tag = "Player" };
             player.transform.position = new Vector3(0f, 1.1f, 0f);
@@ -165,6 +167,14 @@ namespace ZombieShooter.EditorTools
 
             var health = player.AddComponent<Health>();
             using (var f = new Fields(health)) f.F("maxHealth", 100f);
+
+            var damageShake = player.AddComponent<DamageShake>();
+            using (var f = new Fields(damageShake))
+            {
+                f.Obj("health", health)
+                 .F("traumaAtFullHealthLoss", 4.6f)
+                 .F("minTrauma", 0.45f).F("maxTrauma", 0.85f);
+            }
 
             var move = player.AddComponent<PlayerController>();
             using (var f = new Fields(move))
@@ -206,16 +216,29 @@ namespace ZombieShooter.EditorTools
                  .F("lightIntensity", 12f).F("duration", 0.035f).I("particlesPerShot", 4);
             }
 
+            // Right-hand side of the gun, angled out, up and slightly back - roughly where
+            // a real ejection port throws brass.
+            var ejectPort = new GameObject("EjectPort").transform;
+            ejectPort.SetParent(player.transform, false);
+            ejectPort.localPosition = new Vector3(0.2f, 0.08f, 0.85f);
+            ejectPort.localRotation = Quaternion.Euler(-35f, 110f, 0f);
+
+            var shells = CreateBurstSystem(ejectPort, "Shells", brassMat,
+                new Color(0.9f, 0.7f, 0.3f), 2.5f, 4.5f, 1.2f, 1.8f, 0.035f, 0.055f, 12f, 2.5f);
+            ConfigureAsShellCasing(shells);
+
             var weapon = player.AddComponent<Weapon>();
             using (var f = new Fields(weapon))
             {
                 f.F("damage", 25f).F("fireRate", 480f).F("range", 60f).F("spread", 1.5f)
                  .I("pelletsPerShot", 1).I("magazineSize", 30).F("reloadTime", 1.4f)
-                 .Obj("muzzle", muzzle).Obj("tracer", tracer).F("tracerDuration", 0.03f)
+                 .Obj("rayOrigin", player.transform).Obj("muzzle", muzzle).Obj("tracer", tracer).F("tracerDuration", 0.03f)
                  .Obj("muzzleFlash", muzzleFlash)
+                 .Obj("shellEject", shells).I("shellsPerShot", 1)
+                 .F("recoilKick", 0.06f)
                  .Obj("fireClip", LoadClip("SFX_Gunshot"))
                  .Obj("impactClip", LoadClip("SFX_Impact"))
-                 .F("fireVolume", 0.45f).F("impactVolume", 0.4f);
+                 .F("fireVolume", 0.45f).F("impactVolume", 0.4f).F("fireTrauma", 0.085f);
             }
 
             return player;
@@ -223,7 +246,26 @@ namespace ZombieShooter.EditorTools
 
         static GameObject BuildCamera(Transform target)
         {
+            var offset = new Vector3(0f, 20f, -11f);
+
+            // Two objects, not one: the rig does the following, and the camera hangs off it
+            // so shake can be a purely local offset. That makes the shake independent of
+            // LateUpdate ordering between the two scripts, which is otherwise unspecified.
+            var rig = new GameObject("Camera Rig");
+            rig.transform.position = target.position + offset;
+            rig.transform.rotation = Quaternion.LookRotation(-offset.normalized, Vector3.up);
+
+            var follow = rig.AddComponent<CameraFollow>();
+            using (var f = new Fields(follow))
+            {
+                f.Obj("target", target)
+                 .V3("offset", offset)
+                 .F("smoothTime", 0.12f).F("aimLead", 0.18f).F("maxLead", 5f);
+            }
+
             var go = new GameObject("Main Camera") { tag = "MainCamera" };
+            go.transform.SetParent(rig.transform, false);
+
             var cam = go.AddComponent<Camera>();
             // Solid dark clear reads better top-down than a skybox you never see.
             cam.clearFlags = CameraClearFlags.SolidColor;
@@ -231,17 +273,16 @@ namespace ZombieShooter.EditorTools
             cam.fieldOfView = 55f;
             cam.nearClipPlane = 0.3f;
             cam.farClipPlane = 200f;
-            var follow = go.AddComponent<CameraFollow>();
-            using (var f = new Fields(follow))
+
+            var shake = go.AddComponent<CameraShake>();
+            using (var f = new Fields(shake))
             {
-                f.Obj("target", target)
-                 .V3("offset", new Vector3(0f, 20f, -11f))
-                 .F("smoothTime", 0.12f).F("aimLead", 0.18f).F("maxLead", 5f);
+                f.F("maxOffset", 0.4f).F("maxRoll", 1.84f).F("decay", 1.6f)
+                 .F("frequency", 22f).F("responseCurve", 2f)
+                 .F("recoilDecay", 9f).F("maxRecoil", 0.25f);
             }
 
-            go.transform.position = target.position + new Vector3(0f, 20f, -11f);
-            go.transform.rotation = Quaternion.LookRotation(new Vector3(0f, -20f, 11f).normalized, Vector3.up);
-            return go;
+            return rig;
         }
 
         // ---------------------------------------------------------------- zombie
@@ -288,7 +329,7 @@ namespace ZombieShooter.EditorTools
                  .F("knockbackForce", 4f).F("knockbackDecay", 14f)
                  .F("deathLinger", 0.22f)
                  .Obj("deathClip", LoadClip("SFX_Death"))
-                 .F("deathVolume", 0.55f);
+                 .F("deathVolume", 0.55f).F("killTrauma", 0.22f);
             }
 
             var pop = zombie.AddComponent<DeathPop>();
@@ -323,6 +364,13 @@ namespace ZombieShooter.EditorTools
 
             var impactSparks = CreateBurstSystem(go.transform, "ImpactSparks", sparkMat,
                 new Color(1f, 0.8f, 0.35f), 3f, 8f, 0.12f, 0.3f, 0.05f, 0.11f, 32f, 1.6f);
+
+            var ambient = go.AddComponent<AmbientBed>();
+            using (var f = new Fields(ambient))
+            {
+                f.Obj("clip", LoadClip("SFX_Ambient"))
+                 .F("volume", 0.35f).F("fadeInSeconds", 2.5f);
+            }
 
             var sfx = go.AddComponent<SfxPlayer>();
             using (var f = new Fields(sfx))
@@ -563,6 +611,48 @@ namespace ZombieShooter.EditorTools
             renderer.receiveShadows = false;
 
             return ps;
+        }
+
+        /// <summary>
+        /// Turns a generic burst system into tumbling brass: casings keep their size (they
+        /// are objects, not sparks), spin as they fly, and bounce off the floor so they come
+        /// to rest instead of vanishing in mid-air.
+        /// </summary>
+        static void ConfigureAsShellCasing(ParticleSystem ps)
+        {
+            var sizeOverLifetime = ps.sizeOverLifetime;
+            sizeOverLifetime.enabled = false;
+
+            var main = ps.main;
+
+            // Elongated rather than cubic, so a tumbling casing reads as brass and not as
+            // a stray voxel. Deliberately oversized: at 45 px per world unit, a physically
+            // accurate ~1cm shell would be well under a pixel. Readability wins here.
+            main.startSize3D = true;
+            main.startSizeX = new ParticleSystem.MinMaxCurve(0.07f, 0.09f);
+            main.startSizeY = new ParticleSystem.MinMaxCurve(0.07f, 0.09f);
+            main.startSizeZ = new ParticleSystem.MinMaxCurve(0.18f, 0.24f);
+
+            main.startRotation3D = true;
+            // Particle rotation is radians when set from script, not degrees.
+            main.startRotationX = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.startRotationY = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.startRotationZ = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+
+            var rotation = ps.rotationOverLifetime;
+            rotation.enabled = true;
+            rotation.separateAxes = true;
+            rotation.x = new ParticleSystem.MinMaxCurve(-7f, 7f);
+            rotation.y = new ParticleSystem.MinMaxCurve(-7f, 7f);
+            rotation.z = new ParticleSystem.MinMaxCurve(-7f, 7f);
+
+            var collision = ps.collision;
+            collision.enabled = true;
+            collision.type = ParticleSystemCollisionType.World;
+            collision.mode = ParticleSystemCollisionMode.Collision3D;
+            collision.bounce = new ParticleSystem.MinMaxCurve(0.3f, 0.45f);
+            collision.dampen = 0.45f;
+            collision.lifetimeLoss = 0f;
         }
 
         static Material LoadMaterial(string name)

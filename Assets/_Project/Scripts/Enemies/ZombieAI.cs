@@ -44,6 +44,8 @@ namespace ZombieShooter
         [SerializeField] float deathLinger = 0.22f;
         [SerializeField] AudioClip deathClip;
         [SerializeField] float deathVolume = 0.55f;
+        [Tooltip("Trauma on death. Larger than a shot so kills punctuate sustained fire.")]
+        [SerializeField] float killTrauma = 0.22f;
 
         CharacterController controller;
         Health health;
@@ -189,6 +191,7 @@ namespace ZombieShooter
             GameManager.Instance?.AddScore(scoreValue);
             HitStop.Instance?.FreezeForKill();
             SfxPlayer.Instance?.PlayAt(deathClip, transform.position, deathVolume);
+            CameraShake.Instance?.AddTrauma(killTrauma);
 
             // Stop the collapsing body soaking bullets or pushing its neighbours around.
             controller.enabled = false;
