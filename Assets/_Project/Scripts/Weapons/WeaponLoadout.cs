@@ -41,7 +41,7 @@ namespace ZombieShooter
             for (int i = 0; i < slots.Length; i++)
             {
                 if (slots[i] == null) continue;
-                ammoInSlot[i] = slots[i].MagazineSize;
+                ammoInSlot[i] = ArmoryManager.EffectiveMagazineSize(slots[i]);
                 reserveAmmo[i] = slots[i].MaxReserveAmmo;
             }
         }
@@ -106,7 +106,7 @@ namespace ZombieShooter
                 if (slots[i] != null && slots[i].MaxReserveAmmo > 0)
                 {
                     reserveAmmo[i] = slots[i].MaxReserveAmmo;
-                    ammoInSlot[i] = slots[i].MagazineSize;
+                    ammoInSlot[i] = ArmoryManager.EffectiveMagazineSize(slots[i]);
                     ReserveAmmoChanged?.Invoke(i, reserveAmmo[i]);
                 }
             }

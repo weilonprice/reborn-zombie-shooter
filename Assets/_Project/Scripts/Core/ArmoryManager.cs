@@ -54,6 +54,24 @@ namespace ZombieShooter
 
         public bool HasMod(ModCoreType mod) => installedMods.Contains(mod);
 
+        /// <summary>
+        /// Magazine capacity for a definition with installed mods applied.
+        /// <para>
+        /// Single source of truth, and it has to stay that way: Weapon and WeaponLoadout
+        /// both ask here, so a magazine can never be refilled to a different size than the
+        /// weapon can actually hold. Computing it in two places is exactly how the Armory
+        /// ended up topping an upgraded rifle to 30 rounds while it held 45.
+        /// </para>
+        /// Safe before the Armory exists - with no instance, nothing is installed.
+        /// </summary>
+        public static int EffectiveMagazineSize(WeaponDefinition definition)
+        {
+            if (definition == null) return 0;
+
+            float mult = Instance != null && Instance.HasMod(ModCoreType.ExtendedDrumMags) ? 1.5f : 1f;
+            return Mathf.RoundToInt(definition.MagazineSize * mult);
+        }
+
         public bool CanAfford(int cost) =>
             GameManager.Instance != null && GameManager.Instance.Gold >= cost;
 

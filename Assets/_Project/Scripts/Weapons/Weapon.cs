@@ -33,15 +33,7 @@ namespace ZombieShooter
         WeaponLoadout loadout;
 
         public WeaponDefinition Definition => definition;
-        public int MagazineSize
-        {
-            get
-            {
-                if (definition == null) return 0;
-                float mult = ArmoryManager.Instance != null && ArmoryManager.Instance.HasMod(ModCoreType.ExtendedDrumMags) ? 1.5f : 1f;
-                return Mathf.RoundToInt(definition.MagazineSize * mult);
-            }
-        }
+        public int MagazineSize => ArmoryManager.EffectiveMagazineSize(definition);
 
         public int Ammo { get; private set; }
         public bool IsReloading => reloadRoutine != null;

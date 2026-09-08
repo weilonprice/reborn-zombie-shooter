@@ -779,7 +779,7 @@ namespace ZombieShooter.EditorTools
                  .Obj("rangedPrefab", rangedPrefab)
                  .Obj("player", player.transform)
                  .F("spawnRadius", 24f).F("minDistanceFromPlayer", 12f).F("spawnHeight", 1f)
-                 .I("firstWaveCount", 5).F("countGrowth", 2.5f).I("maxAliveAtOnce", 60)
+                 .I("firstWaveCount", 5).F("countGrowth", 2.5f).I("maxAliveAtOnce", 60).I("finalWave", 15)
                  .F("timeBetweenSpawns", 0.45f)
                  .I("bruteStartWave", 2).I("runnerStartWave", 3).I("rangedStartWave", 4);
             }

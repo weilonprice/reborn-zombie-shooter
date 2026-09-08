@@ -191,12 +191,24 @@ namespace ZombieShooter
         void RefreshWaveLabel()
         {
             if (waveLabel == null || waves == null) return;
-            waveLabel.text = $"WAVE {waves.WaveNumber}    LEFT {waves.Remaining}";
+            // Showing the total is what makes a run read as an arc rather than a treadmill.
+            waveLabel.text = waves.FinalWave > 0
+                ? $"WAVE {waves.WaveNumber} / {waves.FinalWave}    LEFT {waves.Remaining}"
+                : $"WAVE {waves.WaveNumber}    LEFT {waves.Remaining}";
         }
 
         void RefreshCentreLabel()
         {
             if (centreLabel == null) return;
+
+            if (GameManager.Instance != null && GameManager.Instance.State == GameState.Victory)
+            {
+                int wonScore = GameManager.Instance.Score;
+                int wonGold = GameManager.Instance.Gold;
+                int lastWave = waves != null ? waves.WaveNumber : 0;
+                centreLabel.text = $"YOU SURVIVED\nAll {lastWave} waves cleared  ·  Score {wonScore}  ·  Gold ${wonGold}\n\nPress SPACE to play again";
+                return;
+            }
 
             if (GameManager.Instance != null && GameManager.Instance.State == GameState.GameOver)
             {
