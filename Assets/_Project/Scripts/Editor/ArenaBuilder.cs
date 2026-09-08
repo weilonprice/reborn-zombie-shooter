@@ -16,6 +16,7 @@ namespace ZombieShooter.EditorTools
         const string ZombiePrefabPath = Root + "/Prefabs/Zombie.prefab";
         const string MaterialDir = Root + "/Materials";
         const string AudioDir = Root + "/Audio";
+        const string WeaponDir = Root + "/Weapons";
 
         const float ArenaHalfSize = 30f;
         const float WallHeight = 3f;
@@ -184,16 +185,6 @@ namespace ZombieShooter.EditorTools
             muzzle.SetParent(player.transform, false);
             muzzle.localPosition = new Vector3(0f, 0f, 1.35f);
 
-            var tracer = muzzle.gameObject.AddComponent<LineRenderer>();
-            tracer.useWorldSpace = true;
-            tracer.widthMultiplier = 0.06f;
-            tracer.numCapVertices = 2;
-            tracer.sharedMaterial = tracerMat;
-            tracer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            tracer.receiveShadows = false;
-            tracer.positionCount = 0;
-            tracer.enabled = false;
-
             // Light does most of the work: it throws real illumination on nearby geometry
             // for a few frames, which sells a shot far better than a billboard.
             var flashLightGo = new GameObject("FlashLight");
@@ -227,18 +218,25 @@ namespace ZombieShooter.EditorTools
                 new Color(0.9f, 0.7f, 0.3f), 2.5f, 4.5f, 1.2f, 1.8f, 0.035f, 0.055f, 12f, 2.5f);
             ConfigureAsShellCasing(shells);
 
+            // Stats now live entirely in the definition asset; only scene wiring is set here.
+            var arsenal = LoadOrCreateWeapons();
+
             var weapon = player.AddComponent<Weapon>();
             using (var f = new Fields(weapon))
             {
-                f.F("damage", 25f).F("fireRate", 480f).F("range", 60f).F("spread", 1.5f)
-                 .I("pelletsPerShot", 1).I("magazineSize", 30).F("reloadTime", 1.4f)
-                 .Obj("rayOrigin", player.transform).Obj("muzzle", muzzle).Obj("tracer", tracer).F("tracerDuration", 0.03f)
+                // Slot 0 up front so Weapon.Awake has something to equip; WeaponLoadout
+                // re-equips it on Start and owns the choice from then on.
+                f.Obj("definition", arsenal[0])
+                 .Obj("rayOrigin", player.transform)
+                 .Obj("muzzle", muzzle)
                  .Obj("muzzleFlash", muzzleFlash)
-                 .Obj("shellEject", shells).I("shellsPerShot", 1)
-                 .F("recoilKick", 0.06f)
-                 .Obj("fireClip", LoadClip("SFX_Gunshot"))
-                 .Obj("impactClip", LoadClip("SFX_Impact"))
-                 .F("fireVolume", 0.45f).F("impactVolume", 0.4f).F("fireTrauma", 0.085f);
+                 .Obj("shellEject", shells);
+            }
+
+            var loadout = player.AddComponent<WeaponLoadout>();
+            using (var f = new Fields(loadout))
+            {
+                f.Obj("weapon", weapon).F("swapCooldown", 0.25f).Arr("slots", arsenal);
             }
 
             return player;
@@ -372,6 +370,12 @@ namespace ZombieShooter.EditorTools
                  .F("volume", 0.35f).F("fadeInSeconds", 2.5f);
             }
 
+            var tracers = go.AddComponent<TracerPool>();
+            using (var f = new Fields(tracers))
+            {
+                f.I("lines", 16).Obj("material", LoadMaterial("M_Tracer"));
+            }
+
             var sfx = go.AddComponent<SfxPlayer>();
             using (var f = new Fields(sfx))
             {
@@ -445,7 +449,11 @@ namespace ZombieShooter.EditorTools
                 Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, "100 / 100");
 
             var ammoLabel = CreateText(canvasGo.transform, "AmmoLabel", font, 44, TextAnchor.LowerRight,
-                new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 40f), new Vector2(340f, 60f), "30 / 30");
+                new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 40f), new Vector2(340f, 60f), "12 / 12");
+
+            var weaponLabel = CreateText(canvasGo.transform, "WeaponLabel", font, 22, TextAnchor.LowerRight,
+                new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 106f), new Vector2(340f, 32f), "PISTOL");
+            weaponLabel.color = new Color(0.78f, 0.80f, 0.84f);
 
             var waveLabel = CreateText(canvasGo.transform, "WaveLabel", font, 30, TextAnchor.UpperLeft,
                 new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -40f), new Vector2(520f, 44f), "WAVE 1");
@@ -462,9 +470,11 @@ namespace ZombieShooter.EditorTools
                 f.Obj("playerHealth", player.GetComponent<Health>())
                  .Obj("weapon", player.GetComponent<Weapon>())
                  .Obj("waves", waves)
+                 .Obj("loadout", player.GetComponent<WeaponLoadout>())
                  .Obj("healthFill", fill)
                  .Obj("healthLabel", healthLabel)
                  .Obj("ammoLabel", ammoLabel)
+                 .Obj("weaponLabel", weaponLabel)
                  .Obj("waveLabel", waveLabel)
                  .Obj("scoreLabel", scoreLabel)
                  .Obj("centreLabel", centreLabel);
@@ -663,6 +673,95 @@ namespace ZombieShooter.EditorTools
             return mat;
         }
 
+        /// <summary>
+        /// The four starting weapons, created once and then left alone. Unlike the scene and
+        /// the materials, a weapon definition is design data a human will hand-tune, so
+        /// regenerating it on every build would quietly discard that work. Delete an asset to
+        /// get its defaults back.
+        /// </summary>
+        static WeaponDefinition[] LoadOrCreateWeapons()
+        {
+            var gunshot = LoadClip("SFX_Gunshot");
+            var impact = LoadClip("SFX_Impact");
+
+            // Zombies have 100 HP, so the damage column reads as: pistol 5 shots, rifle 5 but
+            // in half a second, shotgun a point-blank one-shot, sniper a one-shot plus a lance
+            // through whatever is lined up behind it.
+            var pistol = LoadOrCreateWeapon("WPN_Pistol", f => f
+                .Str("displayName", "Pistol")
+                .F("damage", 20f).F("fireRate", 200f).F("range", 45f).F("spread", 1.2f)
+                .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.SemiAuto)
+                .I("pierceCount", 0).F("penetrationFalloff", 0.65f)
+                .I("magazineSize", 12).F("reloadTime", 1.0f)
+                .F("fireTrauma", 0.07f).F("recoilKick", 0.05f).F("knockbackMultiplier", 0.6f)
+                .Obj("fireClip", gunshot).Obj("impactClip", impact)
+                .F("fireVolume", 0.4f).F("impactVolume", 0.4f)
+                .F("tracerWidth", 0.07f).F("tracerDuration", 0.05f).I("shellsPerShot", 1));
+
+            // Slowest cycle of the four, and short ranged: the trade for one-shotting at
+            // touching distance is having to stand somewhere dangerous to do it.
+            var shotgun = LoadOrCreateWeapon("WPN_Shotgun", f => f
+                .Str("displayName", "Shotgun")
+                .F("damage", 22f).F("fireRate", 75f).F("range", 30f).F("spread", 7f)
+                .I("pelletsPerShot", 5).E("fireMode", (int)FireMode.SemiAuto)
+                .I("pierceCount", 1).F("penetrationFalloff", 0.6f)
+                .I("magazineSize", 15).F("reloadTime", 2.4f)
+                .F("fireTrauma", 0.3f).F("recoilKick", 0.18f).F("knockbackMultiplier", 2.2f)
+                .Obj("fireClip", gunshot).Obj("impactClip", impact)
+                .F("fireVolume", 0.6f).F("impactVolume", 0.45f)
+                .F("tracerWidth", 0.085f).F("tracerDuration", 0.07f).I("shellsPerShot", 1));
+
+            var assault = LoadOrCreateWeapon("WPN_AssaultRifle", f => f
+                .Str("displayName", "Assault Rifle")
+                .F("damage", 22f).F("fireRate", 600f).F("range", 60f).F("spread", 2.2f)
+                .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.Automatic)
+                .I("pierceCount", 2).F("penetrationFalloff", 0.6f)
+                .I("magazineSize", 35).F("reloadTime", 1.7f)
+                .F("fireTrauma", 0.085f).F("recoilKick", 0.06f).F("knockbackMultiplier", 1f)
+                .Obj("fireClip", gunshot).Obj("impactClip", impact)
+                .F("fireVolume", 0.45f).F("impactVolume", 0.4f)
+                .F("tracerWidth", 0.075f).F("tracerDuration", 0.045f).I("shellsPerShot", 1));
+
+            // Range 200 against a 60-unit arena: it genuinely crosses the map. High
+            // penetration retention is what makes it a line rather than a single kill.
+            var sniper = LoadOrCreateWeapon("WPN_Sniper", f => f
+                .Str("displayName", "Sniper Rifle")
+                .F("damage", 150f).F("fireRate", 45f).F("range", 200f).F("spread", 0.1f)
+                .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.SemiAuto)
+                .I("pierceCount", 6).F("penetrationFalloff", 0.85f)
+                .I("magazineSize", 10).F("reloadTime", 2.8f)
+                .F("fireTrauma", 0.42f).F("recoilKick", 0.26f).F("knockbackMultiplier", 3f)
+                .Obj("fireClip", gunshot).Obj("impactClip", impact)
+                .F("fireVolume", 0.7f).F("impactVolume", 0.5f)
+                .F("tracerWidth", 0.13f).F("tracerDuration", 0.1f).I("shellsPerShot", 1));
+
+            return new[] { pistol, shotgun, assault, sniper };
+        }
+
+        static WeaponDefinition LoadOrCreateWeapon(string fileName, System.Action<Fields> configure)
+        {
+            string path = $"{WeaponDir}/{fileName}.asset";
+
+            var existing = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(path);
+            if (existing != null) return existing;
+
+            EnsureFolder(WeaponDir);
+
+            var weapon = ScriptableObject.CreateInstance<WeaponDefinition>();
+            using (var f = new Fields(weapon)) configure(f);
+
+            AssetDatabase.CreateAsset(weapon, path);
+            return weapon;
+        }
+
+        static void EnsureFolder(string assetPath)
+        {
+            if (AssetDatabase.IsValidFolder(assetPath)) return;
+
+            int split = assetPath.LastIndexOf('/');
+            AssetDatabase.CreateFolder(assetPath[..split], assetPath[(split + 1)..]);
+        }
+
         static AudioClip LoadClip(string name)
         {
             string path = $"{AudioDir}/{name}.wav";
@@ -743,6 +842,19 @@ namespace ZombieShooter.EditorTools
             public Fields V3(string n, Vector3 v) { var p = Find(n); if (p != null) p.vector3Value = v; return this; }
             public Fields B(string n, bool v) { var p = Find(n); if (p != null) p.boolValue = v; return this; }
             public Fields Col(string n, Color v) { var p = Find(n); if (p != null) p.colorValue = v; return this; }
+            public Fields Str(string n, string v) { var p = Find(n); if (p != null) p.stringValue = v; return this; }
+            public Fields E(string n, int v) { var p = Find(n); if (p != null) p.enumValueIndex = v; return this; }
+
+            public Fields Arr(string n, Object[] values)
+            {
+                var p = Find(n);
+                if (p == null) return this;
+
+                p.arraySize = values.Length;
+                for (int i = 0; i < values.Length; i++)
+                    p.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+                return this;
+            }
 
             public void Dispose() => so.ApplyModifiedPropertiesWithoutUndo();
         }

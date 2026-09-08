@@ -37,11 +37,11 @@ namespace ZombieShooter
             if (health != null) health.Damaged -= OnDamaged;
         }
 
-        void OnDamaged(float amount, Vector3 hitPoint, Vector3 hitNormal)
+        void OnDamaged(DamageInfo info)
         {
             if (CameraShake.Instance == null) return;
 
-            float fraction = health != null && health.Max > 0f ? amount / health.Max : 0f;
+            float fraction = health != null && health.Max > 0f ? info.Amount / health.Max : 0f;
             float trauma = Mathf.Clamp(fraction * traumaAtFullHealthLoss, minTrauma, maxTrauma);
 
             CameraShake.Instance.AddTrauma(trauma);

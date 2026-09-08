@@ -4,6 +4,6 @@ namespace ZombieShooter
     public interface IDamageable
     {
         bool IsAlive { get; }
-        void TakeDamage(float amount, UnityEngine.Vector3 hitPoint, UnityEngine.Vector3 hitNormal);
+        void TakeDamage(in DamageInfo info);
     }
 }

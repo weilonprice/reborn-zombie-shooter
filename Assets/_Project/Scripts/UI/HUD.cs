@@ -12,11 +12,13 @@ namespace ZombieShooter
         [SerializeField] Health playerHealth;
         [SerializeField] Weapon weapon;
         [SerializeField] WaveManager waves;
+        [SerializeField] WeaponLoadout loadout;
 
         [Header("Widgets")]
         [SerializeField] Image healthFill;
         [SerializeField] Text healthLabel;
         [SerializeField] Text ammoLabel;
+        [SerializeField] Text weaponLabel;
         [SerializeField] Text waveLabel;
         [SerializeField] Text scoreLabel;
         [SerializeField] Text centreLabel;
@@ -45,6 +47,14 @@ namespace ZombieShooter
                 waves.RemainingChanged += OnRemainingChanged;
             }
 
+            if (loadout != null)
+            {
+                loadout.WeaponChanged += OnWeaponChanged;
+                // Covers either execution order: if the loadout already picked a weapon we
+                // read it, and if it has not, the event above delivers it.
+                OnWeaponChanged(loadout.CurrentDefinition);
+            }
+
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.ScoreChanged += OnScoreChanged;
@@ -66,6 +76,8 @@ namespace ZombieShooter
                 waves.WaveStarted -= OnWaveStarted;
                 waves.RemainingChanged -= OnRemainingChanged;
             }
+
+            if (loadout != null) loadout.WeaponChanged -= OnWeaponChanged;
 
             if (GameManager.Instance != null)
             {
@@ -99,6 +111,15 @@ namespace ZombieShooter
             ammoLabel.text = weapon != null && weapon.IsReloading
                 ? "RELOADING..."
                 : $"{ammo} / {magazine}";
+        }
+
+        void OnWeaponChanged(WeaponDefinition weaponDefinition)
+        {
+            if (weaponLabel == null) return;
+
+            weaponLabel.text = weaponDefinition != null
+                ? weaponDefinition.DisplayName.ToUpperInvariant()
+                : string.Empty;
         }
 
         void OnWaveStarted(int wave)

@@ -68,7 +68,7 @@ namespace ZombieShooter
                 if (m != null) Destroy(m);
         }
 
-        void OnDamaged(float amount, Vector3 hitPoint, Vector3 hitNormal)
+        void OnDamaged(DamageInfo info)
         {
             if (!isActiveAndEnabled) return;
 

@@ -57,9 +57,41 @@ namespace ZombieShooter
             (Mouse.current != null && Mouse.current.leftButton.isPressed) ||
             (Gamepad.current != null && Gamepad.current.rightTrigger.isPressed);
 
+        /// <summary>Trigger pulled this frame. Semi-automatic weapons read this, not FireHeld.</summary>
+        public static bool FirePressed =>
+            (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame) ||
+            (Gamepad.current != null && Gamepad.current.rightTrigger.wasPressedThisFrame);
+
         public static bool ReloadPressed =>
             (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) ||
             (Gamepad.current != null && Gamepad.current.buttonWest.wasPressedThisFrame);
+
+        /// <summary>Weapon slot requested this frame, 0-3, or -1 for none.</summary>
+        public static int WeaponSlotPressed
+        {
+            get
+            {
+                var kb = Keyboard.current;
+                if (kb != null)
+                {
+                    if (kb.digit1Key.wasPressedThisFrame) return 0;
+                    if (kb.digit2Key.wasPressedThisFrame) return 1;
+                    if (kb.digit3Key.wasPressedThisFrame) return 2;
+                    if (kb.digit4Key.wasPressedThisFrame) return 3;
+                }
+
+                var pad = Gamepad.current;
+                if (pad != null)
+                {
+                    if (pad.dpad.up.wasPressedThisFrame) return 0;
+                    if (pad.dpad.right.wasPressedThisFrame) return 1;
+                    if (pad.dpad.down.wasPressedThisFrame) return 2;
+                    if (pad.dpad.left.wasPressedThisFrame) return 3;
+                }
+
+                return -1;
+            }
+        }
 
         public static bool RestartPressed =>
             (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame) ||
