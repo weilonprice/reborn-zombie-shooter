@@ -25,9 +25,18 @@ namespace ZombieShooter
         [SerializeField] float reloadTime = 1.4f;
 
         [Header("Feedback")]
+        [Tooltip("Where the hit test starts. Defaults to this object, which sits at the " +
+                 "player's centre. Must NOT be the muzzle: at melee range the barrel is " +
+                 "inside the zombie's collider, and a ray starting inside a collider never " +
+                 "reports hitting it, so point-blank shots pass straight through.")]
+        [SerializeField] Transform rayOrigin;
         [SerializeField] Transform muzzle;
         [SerializeField] LineRenderer tracer;
         [SerializeField] MuzzleFlash muzzleFlash;
+        [Tooltip("Brass ejected per shot. World-space, so casings stay where they land " +
+                 "instead of being dragged along by the player.")]
+        [SerializeField] ParticleSystem shellEject;
+        [SerializeField] int shellsPerShot = 1;
 
         [Header("Audio")]
         [SerializeField] AudioClip fireClip;
@@ -35,6 +44,11 @@ namespace ZombieShooter
         [Tooltip("Kept well under 1: this fires eight times a second and will dominate the mix.")]
         [SerializeField] float fireVolume = 0.45f;
         [SerializeField] float impactVolume = 0.4f;
+        [Tooltip("Trauma per shot. Tiny on purpose - this fires eight times a second, so " +
+                 "anything larger saturates the shake into a permanent rumble.")]
+        [SerializeField] float fireTrauma = 0.085f;
+        [Tooltip("Camera kick per shot, in world units, directed opposite the barrel.")]
+        [SerializeField] float recoilKick = 0.06f;
         [SerializeField] float tracerDuration = 0.03f;
 
         float nextFireTime;
@@ -88,6 +102,10 @@ namespace ZombieShooter
 
             if (muzzleFlash != null) muzzleFlash.Play();
             SfxPlayer.Instance?.PlayFlat(fireClip, fireVolume);
+            CameraShake.Instance?.AddTrauma(fireTrauma);
+            CameraShake.Instance?.AddRecoil(-muzzle.forward, recoilKick);
+
+            if (shellEject != null) shellEject.Emit(shellsPerShot);
 
             for (int i = 0; i < pelletsPerShot; i++)
                 FireOnePellet();
@@ -98,7 +116,7 @@ namespace ZombieShooter
         void FireOnePellet()
         {
             var direction = ApplySpread(muzzle.forward);
-            var origin = muzzle.position;
+            var origin = rayOrigin != null ? rayOrigin.position : transform.position;
             var endPoint = origin + direction * range;
 
             if (Physics.Raycast(origin, direction, out var hit, range, hitMask, QueryTriggerInteraction.Ignore))
@@ -113,7 +131,9 @@ namespace ZombieShooter
                 SfxPlayer.Instance?.PlayAt(impactClip, hit.point, impactVolume);
             }
 
-            if (tracer != null) StartCoroutine(ShowTracer(origin, endPoint));
+            // Tracer is drawn from the barrel even though the hit test starts at the body,
+            // so the shot still looks like it came out of the gun.
+            if (tracer != null) StartCoroutine(ShowTracer(muzzle.position, endPoint));
         }
 
         Vector3 ApplySpread(Vector3 forward)
