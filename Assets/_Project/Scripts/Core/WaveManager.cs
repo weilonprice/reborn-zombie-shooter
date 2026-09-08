@@ -32,6 +32,9 @@ namespace ZombieShooter
         [SerializeField] int maxAliveAtOnce = 60;
         [SerializeField] float timeBetweenSpawns = 0.45f;
 
+        [Tooltip("Wave that ends the run. Clearing it wins. 0 or less means endless.")]
+        [SerializeField] int finalWave = 15;
+
         [Header("Archetypes")]
         [Tooltip("Wave index at which brutes begin spawning (1-indexed).")]
         [SerializeField] int bruteStartWave = 2;
@@ -51,6 +54,7 @@ namespace ZombieShooter
         public int WaveNumber { get; private set; }
         public int Remaining { get; private set; }
         public bool OnBreak { get; private set; }
+        public int FinalWave => finalWave;
         public bool WaitingForPlayerReady { get; private set; }
 
         public event Action<int> WaveStarted;
@@ -117,6 +121,15 @@ namespace ZombieShooter
                     yield return null;
 
                 WaveCompleted?.Invoke(WaveNumber);
+
+                // The run ends here rather than opening another Armory break: clearing the
+                // final wave is the win, so there is nothing left to shop for.
+                if (finalWave > 0 && WaveNumber >= finalWave)
+                {
+                    GameManager.Instance?.Win();
+                    yield break;
+                }
+
                 OnBreak = true;
                 WaitingForPlayerReady = true;
                 BreakStarted?.Invoke();

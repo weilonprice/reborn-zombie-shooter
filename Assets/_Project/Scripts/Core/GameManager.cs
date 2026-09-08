@@ -3,7 +3,13 @@ using UnityEngine;
 
 namespace ZombieShooter
 {
-    public enum GameState { Playing, GameOver }
+    public enum GameState
+    {
+        Playing,
+        GameOver,
+        /// <summary>Final wave cleared. A run now has an ending it can reach.</summary>
+        Victory,
+    }
 
     /// <summary>
     /// Owns global run state: score, current wave and win/lose. Deliberately thin —
@@ -56,9 +62,12 @@ namespace ZombieShooter
             if (Instance == this) Instance = null;
         }
 
+        /// <summary>True once the run has ended, whether won or lost.</summary>
+        public bool IsRunOver => State != GameState.Playing;
+
         void Update()
         {
-            if (State == GameState.GameOver && InputReader.RestartPressed)
+            if (IsRunOver && InputReader.RestartPressed)
                 Restart();
         }
 
@@ -90,9 +99,24 @@ namespace ZombieShooter
 
         void OnPlayerDied(Health _)
         {
-            if (State == GameState.GameOver) return;
+            if (IsRunOver) return;
 
             State = GameState.GameOver;
+            StateChanged?.Invoke();
+        }
+
+        /// <summary>
+        /// Called by WaveManager when the final wave is cleared. Every system already gates
+        /// on State == Playing, so setting this stops the arena without any further wiring.
+        /// </summary>
+        public void Win()
+        {
+            if (IsRunOver) return;
+
+            // A kill freeze may still be running from the last zombie of the last wave.
+            Time.timeScale = 1f;
+
+            State = GameState.Victory;
             StateChanged?.Invoke();
         }
 
