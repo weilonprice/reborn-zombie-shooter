@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -26,17 +27,29 @@ namespace ZombieShooter
         [SerializeField] float separationRadius = 1.1f;
         [SerializeField] float separationStrength = 2.2f;
 
+        [Header("Knockback")]
+        [Tooltip("Impulse speed applied away from the bullet on every hit.")]
+        [SerializeField] float knockbackForce = 4f;
+        [Tooltip("How fast that impulse bleeds off, in units/sec^2. Higher is snappier.")]
+        [SerializeField] float knockbackDecay = 14f;
+
         [Header("Combat")]
         [SerializeField] float attackRange = 1.6f;
         [SerializeField] float attackDamage = 12f;
         [SerializeField] float attackCooldown = 1.1f;
         [SerializeField] int scoreValue = 10;
+        [Tooltip("Seconds the body stays up after dying, so the kill flash and hit-stop " +
+                 "have something on screen to land on. Not a death animation - just enough " +
+                 "frames for the impact to register.")]
+        [SerializeField] float deathLinger = 0.22f;
 
         CharacterController controller;
         Health health;
         Transform target;
         float verticalVelocity;
         float nextAttackTime;
+        Vector3 knockback;
+        bool dying;
 
         /// <summary>Raised when this zombie dies, so the spawner can recycle it.</summary>
         public event Action<ZombieAI> Died;
@@ -53,14 +66,19 @@ namespace ZombieShooter
         {
             Active.Add(this);
             health.Died += OnDied;
+            health.Damaged += OnDamaged;
             verticalVelocity = 0f;
             nextAttackTime = 0f;
+            knockback = Vector3.zero;
+            dying = false;
+            controller.enabled = true;
         }
 
         void OnDisable()
         {
             Active.Remove(this);
             health.Died -= OnDied;
+            health.Damaged -= OnDamaged;
         }
 
         public void SetTarget(Transform t) => target = t;
@@ -99,7 +117,8 @@ namespace ZombieShooter
 
             if (move.sqrMagnitude > 1f) move.Normalize();
 
-            var horizontal = move * moveSpeed;
+            var horizontal = move * moveSpeed + knockback;
+            knockback = Vector3.MoveTowards(knockback, Vector3.zero, knockbackDecay * Time.deltaTime);
 
             if (controller.isGrounded && verticalVelocity < 0f) verticalVelocity = -2f;
             else verticalVelocity += gravity * Time.deltaTime;
@@ -149,9 +168,37 @@ namespace ZombieShooter
             damageable.TakeDamage(attackDamage, transform.position, -transform.forward);
         }
 
+        void OnDamaged(float amount, Vector3 hitPoint, Vector3 hitNormal)
+        {
+            // The surface normal points back toward the shooter, so its inverse is the
+            // bullet's direction of travel. Flattened, that pushes the body away from you.
+            var away = -hitNormal;
+            away.y = 0f;
+            if (away.sqrMagnitude < 0.0001f) return;
+
+            knockback = away.normalized * knockbackForce;
+        }
+
         void OnDied(Health _)
         {
+            if (dying) return;
+            dying = true;
+
             GameManager.Instance?.AddScore(scoreValue);
+            HitStop.Instance?.FreezeForKill();
+
+            // Stop the collapsing body soaking bullets or pushing its neighbours around.
+            controller.enabled = false;
+
+            StartCoroutine(DespawnAfterLinger());
+        }
+
+        IEnumerator DespawnAfterLinger()
+        {
+            // Scaled time, so this stays in step with DeathPop's collapse - both pause
+            // together during the kill freeze and resume together after it.
+            yield return new WaitForSeconds(deathLinger);
+
             Died?.Invoke(this);
         }
     }

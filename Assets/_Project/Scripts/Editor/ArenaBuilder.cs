@@ -42,6 +42,7 @@ namespace ZombieShooter.EditorTools
             CreateMaterial("M_Gun", new Color(0.90f, 0.90f, 0.95f));
             CreateMaterial("M_Zombie", new Color(0.35f, 0.70f, 0.28f));
             CreateUnlitMaterial("M_Tracer", new Color(1.00f, 0.85f, 0.35f));
+            CreateUnlitMaterial("M_Spark", new Color(1.00f, 0.82f, 0.35f));
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
@@ -57,12 +58,13 @@ namespace ZombieShooter.EditorTools
             var playerMat = LoadMaterial("M_Player");
             var gunMat = LoadMaterial("M_Gun");
             var tracerMat = LoadMaterial("M_Tracer");
+            var sparkMat = LoadMaterial("M_Spark");
             var zombiePrefab = LoadZombiePrefab();
 
             BuildEnvironment(groundMat, wallMat);
-            var player = BuildPlayer(playerMat, gunMat, tracerMat);
+            var player = BuildPlayer(playerMat, gunMat, tracerMat, sparkMat);
             BuildCamera(player.transform);
-            var waves = BuildManagers(player, zombiePrefab);
+            var waves = BuildManagers(player, zombiePrefab, sparkMat);
             BuildHud(player, waves);
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -130,7 +132,7 @@ namespace ZombieShooter.EditorTools
 
         // ---------------------------------------------------------------- player
 
-        static GameObject BuildPlayer(Material bodyMat, Material gunMat, Material tracerMat)
+        static GameObject BuildPlayer(Material bodyMat, Material gunMat, Material tracerMat, Material sparkMat)
         {
             var player = new GameObject("Player") { tag = "Player" };
             player.transform.position = new Vector3(0f, 1.1f, 0f);
@@ -179,12 +181,35 @@ namespace ZombieShooter.EditorTools
             tracer.positionCount = 0;
             tracer.enabled = false;
 
+            // Light does most of the work: it throws real illumination on nearby geometry
+            // for a few frames, which sells a shot far better than a billboard.
+            var flashLightGo = new GameObject("FlashLight");
+            flashLightGo.transform.SetParent(muzzle, false);
+            var flashLight = flashLightGo.AddComponent<Light>();
+            flashLight.type = LightType.Point;
+            flashLight.color = new Color(1f, 0.87f, 0.55f);
+            flashLight.range = 8f;
+            flashLight.intensity = 12f;
+            flashLight.shadows = LightShadows.None;
+            flashLight.enabled = false;
+
+            var muzzleSparks = CreateBurstSystem(muzzle, "FlashSparks", sparkMat,
+                new Color(1f, 0.88f, 0.5f), 3f, 7f, 0.04f, 0.1f, 0.03f, 0.07f, 14f, 0.2f);
+
+            var muzzleFlash = muzzle.gameObject.AddComponent<MuzzleFlash>();
+            using (var f = new Fields(muzzleFlash))
+            {
+                f.Obj("flashLight", flashLight).Obj("spark", muzzleSparks)
+                 .F("lightIntensity", 12f).F("duration", 0.035f).I("particlesPerShot", 4);
+            }
+
             var weapon = player.AddComponent<Weapon>();
             using (var f = new Fields(weapon))
             {
                 f.F("damage", 25f).F("fireRate", 480f).F("range", 60f).F("spread", 1.5f)
                  .I("pelletsPerShot", 1).I("magazineSize", 30).F("reloadTime", 1.4f)
-                 .Obj("muzzle", muzzle).Obj("tracer", tracer).F("tracerDuration", 0.03f);
+                 .Obj("muzzle", muzzle).Obj("tracer", tracer).F("tracerDuration", 0.03f)
+                 .Obj("muzzleFlash", muzzleFlash);
             }
 
             return player;
@@ -255,7 +280,26 @@ namespace ZombieShooter.EditorTools
                 f.F("moveSpeed", 2.6f).F("turnSpeed", 360f)
                  .F("separationRadius", 1.1f).F("separationStrength", 2.2f)
                  .F("attackRange", 1.6f).F("attackDamage", 12f).F("attackCooldown", 1.1f)
-                 .I("scoreValue", 10);
+                 .I("scoreValue", 10)
+                 .F("knockbackForce", 4f).F("knockbackDecay", 14f)
+                 .F("deathLinger", 0.07f);
+            }
+
+            var pop = zombie.AddComponent<DeathPop>();
+            using (var f = new Fields(pop))
+            {
+                // body left null - DeathPop falls back to its own transform, scaling the
+                // whole zombie including the snout.
+                f.Obj("health", health).F("duration", 0.2f)
+                 .F("squash", 1.5f).F("spinDegrees", 110f);
+            }
+
+            var flash = zombie.AddComponent<HitFlash>();
+            using (var f = new Fields(flash))
+            {
+                f.Obj("health", health)
+                 .Col("flashColor", Color.white)
+                 .F("duration", 0.06f);
             }
 
             PrefabUtility.SaveAsPrefabAsset(zombie, ZombiePrefabPath);
@@ -264,12 +308,27 @@ namespace ZombieShooter.EditorTools
 
         // ---------------------------------------------------------------- managers
 
-        static WaveManager BuildManagers(GameObject player, ZombieAI zombiePrefab)
+        static WaveManager BuildManagers(GameObject player, ZombieAI zombiePrefab, Material sparkMat)
         {
             var go = new GameObject("--- Systems ---");
 
             var gm = go.AddComponent<GameManager>();
             using (var f = new Fields(gm)) f.Obj("playerHealth", player.GetComponent<Health>());
+
+            var impactSparks = CreateBurstSystem(go.transform, "ImpactSparks", sparkMat,
+                new Color(1f, 0.8f, 0.35f), 3f, 8f, 0.12f, 0.3f, 0.05f, 0.11f, 32f, 1.6f);
+
+            var impacts = go.AddComponent<ImpactEffects>();
+            using (var f = new Fields(impacts))
+            {
+                f.Obj("sparks", impactSparks).I("particlesPerHit", 7);
+            }
+
+            var hitStop = go.AddComponent<HitStop>();
+            using (var f = new Fields(hitStop))
+            {
+                f.B("enableHitStop", true).F("killFreeze", 0.05f).F("frozenTimeScale", 0f);
+            }
 
             var waves = go.AddComponent<WaveManager>();
             using (var f = new Fields(waves))
@@ -440,6 +499,60 @@ namespace ZombieShooter.EditorTools
             return mat;
         }
 
+        /// <summary>
+        /// A particle system that never emits on its own - every particle comes from an
+        /// explicit Emit() call. It loops and plays on awake purely so the simulation keeps
+        /// ticking; a stopped system would not advance particles pushed in by hand.
+        /// Renders cube meshes rather than billboards, which needs no texture and suits the
+        /// stylized-minimal direction.
+        /// </summary>
+        static ParticleSystem CreateBurstSystem(Transform parent, string name, Material mat,
+            Color color, float minSpeed, float maxSpeed, float minLife, float maxLife,
+            float minSize, float maxSize, float coneAngle, float gravity)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+
+            var ps = go.AddComponent<ParticleSystem>();
+
+            var main = ps.main;
+            main.loop = true;
+            main.playOnAwake = true;
+            main.duration = 1f;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(minLife, maxLife);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(minSpeed, maxSpeed);
+            main.startSize = new ParticleSystem.MinMaxCurve(minSize, maxSize);
+            main.startColor = color;
+            main.gravityModifier = gravity;
+            // World space, so repositioning the system between shots leaves sparks
+            // already in flight exactly where they were.
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 500;
+
+            var emission = ps.emission;
+            emission.enabled = false;
+
+            var shape = ps.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = coneAngle;
+            shape.radius = 0.02f;
+
+            var sizeOverLifetime = ps.sizeOverLifetime;
+            sizeOverLifetime.enabled = true;
+            sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(
+                1f, AnimationCurve.Linear(0f, 1f, 1f, 0f));
+
+            var renderer = ps.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Mesh;
+            renderer.mesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+            renderer.sharedMaterial = mat;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+
+            return ps;
+        }
+
         static Material LoadMaterial(string name)
         {
             string path = $"{MaterialDir}/{name}.mat";
@@ -518,6 +631,8 @@ namespace ZombieShooter.EditorTools
             public Fields F(string n, float v) { var p = Find(n); if (p != null) p.floatValue = v; return this; }
             public Fields I(string n, int v) { var p = Find(n); if (p != null) p.intValue = v; return this; }
             public Fields V3(string n, Vector3 v) { var p = Find(n); if (p != null) p.vector3Value = v; return this; }
+            public Fields B(string n, bool v) { var p = Find(n); if (p != null) p.boolValue = v; return this; }
+            public Fields Col(string n, Color v) { var p = Find(n); if (p != null) p.colorValue = v; return this; }
 
             public void Dispose() => so.ApplyModifiedPropertiesWithoutUndo();
         }

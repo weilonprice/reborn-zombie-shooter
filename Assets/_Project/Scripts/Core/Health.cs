@@ -20,6 +20,11 @@ namespace ZombieShooter
         public event Action<float, float> Changed;
         /// <summary>Raised once, the frame health first reaches zero.</summary>
         public event Action<Health> Died;
+        /// <summary>
+        /// Raised only on real damage: (amount, hitPoint, hitNormal). Distinct from
+        /// <see cref="Changed"/>, which also fires when a pooled object resets to full.
+        /// </summary>
+        public event Action<float, Vector3, Vector3> Damaged;
 
         void Awake()
         {
@@ -38,6 +43,7 @@ namespace ZombieShooter
             if (!IsAlive || amount <= 0f) return;
 
             Current = Mathf.Max(0f, Current - amount);
+            Damaged?.Invoke(amount, hitPoint, hitNormal);
             Changed?.Invoke(Current, maxHealth);
 
             if (Current <= 0f)
