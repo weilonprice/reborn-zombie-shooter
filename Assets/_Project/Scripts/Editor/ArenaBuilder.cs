@@ -14,6 +14,10 @@ namespace ZombieShooter.EditorTools
         const string Root = "Assets/_Project";
         const string ScenePath = Root + "/Scenes/Arena.unity";
         const string ZombiePrefabPath = Root + "/Prefabs/Zombie.prefab";
+        const string BrutePrefabPath = Root + "/Prefabs/Brute.prefab";
+        const string RunnerPrefabPath = Root + "/Prefabs/Runner.prefab";
+        const string RangedPrefabPath = Root + "/Prefabs/RangedZombie.prefab";
+        const string ProjectilePrefabPath = Root + "/Prefabs/EnemyProjectile.prefab";
         const string MaterialDir = Root + "/Materials";
         const string AudioDir = Root + "/Audio";
         const string WeaponDir = Root + "/Weapons";
@@ -24,11 +28,14 @@ namespace ZombieShooter.EditorTools
         [MenuItem("Tools/Zombie Shooter/Build Playable Arena")]
         public static void Build()
         {
-            bool confirmed = EditorUtility.DisplayDialog(
-                "Build Playable Arena",
-                $"This replaces {ScenePath} and {ZombiePrefabPath}, then opens the new scene.\n\nContinue?",
-                "Build", "Cancel");
-            if (!confirmed) return;
+            if (!Application.isBatchMode)
+            {
+                bool confirmed = EditorUtility.DisplayDialog(
+                    "Build Playable Arena",
+                    $"This replaces {ScenePath} and the enemy prefabs, then opens the new scene.\n\nContinue?",
+                    "Build", "Cancel");
+                if (!confirmed) return;
+            }
 
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
@@ -43,6 +50,10 @@ namespace ZombieShooter.EditorTools
             CreateMaterial("M_Player", new Color(0.25f, 0.65f, 1.00f));
             CreateMaterial("M_Gun", new Color(0.90f, 0.90f, 0.95f));
             CreateMaterial("M_Zombie", new Color(0.35f, 0.70f, 0.28f));
+            CreateMaterial("M_Brute", new Color(0.65f, 0.17f, 0.17f));
+            CreateMaterial("M_Runner", new Color(0.95f, 0.55f, 0.15f));
+            CreateMaterial("M_Ranged", new Color(0.55f, 0.20f, 0.75f));
+            CreateUnlitMaterial("M_Projectile", new Color(0.95f, 0.30f, 1.00f));
             CreateUnlitMaterial("M_Tracer", new Color(1.00f, 0.85f, 0.35f));
             CreateUnlitMaterial("M_Spark", new Color(1.00f, 0.82f, 0.35f));
             CreateUnlitMaterial("M_Brass", new Color(0.85f, 0.64f, 0.24f));
@@ -50,6 +61,13 @@ namespace ZombieShooter.EditorTools
             AssetDatabase.Refresh();
 
             BuildZombiePrefab();
+            BuildBrutePrefab();
+            BuildProjectilePrefab();
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            BuildRunnerPrefab();
+            BuildRangedPrefab();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
@@ -64,11 +82,14 @@ namespace ZombieShooter.EditorTools
             var sparkMat = LoadMaterial("M_Spark");
             var brassMat = LoadMaterial("M_Brass");
             var zombiePrefab = LoadZombiePrefab();
+            var brutePrefab = LoadBrutePrefab();
+            var runnerPrefab = LoadRunnerPrefab();
+            var rangedPrefab = LoadRangedPrefab();
 
             BuildEnvironment(groundMat, wallMat);
             var player = BuildPlayer(playerMat, gunMat, tracerMat, sparkMat, brassMat);
             BuildCamera(player.transform);
-            var waves = BuildManagers(player, zombiePrefab, sparkMat);
+            var waves = BuildManagers(player, zombiePrefab, brutePrefab, runnerPrefab, rangedPrefab, sparkMat);
             BuildHud(player, waves);
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -351,9 +372,247 @@ namespace ZombieShooter.EditorTools
             Object.DestroyImmediate(zombie);
         }
 
+        static void BuildBrutePrefab()
+        {
+            var mat = LoadMaterial("M_Brute");
+
+            var brute = new GameObject("Brute");
+            brute.transform.position = Vector3.zero;
+
+            // 1.4x scale over standard zombie: wider and taller silhouette that reads instantly.
+            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            body.name = "Body";
+            body.transform.SetParent(brute.transform, false);
+            body.transform.localScale = new Vector3(1.26f, 1.33f, 1.26f);
+            body.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(body.GetComponent<CapsuleCollider>());
+
+            var snout = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            snout.name = "Snout";
+            snout.transform.SetParent(brute.transform, false);
+            snout.transform.localPosition = new Vector3(0f, 0.49f, 0.63f);
+            snout.transform.localScale = new Vector3(0.42f, 0.42f, 0.56f);
+            snout.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(snout.GetComponent<BoxCollider>());
+
+            var controller = brute.AddComponent<CharacterController>();
+            controller.height = 2.5f;
+            controller.radius = 0.58f;
+            controller.center = Vector3.zero;
+            controller.stepOffset = 0.4f;
+
+            var health = brute.AddComponent<Health>();
+            using (var f = new Fields(health)) f.F("maxHealth", 300f);
+
+            var ai = brute.AddComponent<ZombieAI>();
+            using (var f = new Fields(ai))
+            {
+                // Slower movement, heavy knockback resistance (1.2 vs 4.0), and hard-hitting melee.
+                f.F("moveSpeed", 1.6f).F("turnSpeed", 240f)
+                 .F("separationRadius", 1.5f).F("separationStrength", 3.2f)
+                 .F("attackRange", 1.9f).F("attackDamage", 25f).F("attackCooldown", 1.4f)
+                 .I("scoreValue", 30)
+                 .F("knockbackForce", 1.2f).F("knockbackDecay", 16f)
+                 .F("deathLinger", 0.25f)
+                 .Obj("deathClip", LoadClip("SFX_Death"))
+                 .F("deathVolume", 0.75f).F("killTrauma", 0.40f);
+            }
+
+            var pop = brute.AddComponent<DeathPop>();
+            using (var f = new Fields(pop))
+            {
+                f.Obj("health", health).F("duration", 0.25f)
+                 .F("squash", 1.5f).F("spinDegrees", 90f);
+            }
+
+            var flash = brute.AddComponent<HitFlash>();
+            using (var f = new Fields(flash))
+            {
+                f.Obj("health", health)
+                 .Col("flashColor", Color.white)
+                 .F("duration", 0.06f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(brute, BrutePrefabPath);
+            Object.DestroyImmediate(brute);
+        }
+
+        static void BuildProjectilePrefab()
+        {
+            var mat = LoadMaterial("M_Projectile");
+
+            var go = new GameObject("EnemyProjectile");
+            var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            sphere.name = "Model";
+            sphere.transform.SetParent(go.transform, false);
+            sphere.transform.localScale = Vector3.one * 0.45f;
+            sphere.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(sphere.GetComponent<SphereCollider>());
+
+            var lightGo = new GameObject("Glow");
+            lightGo.transform.SetParent(go.transform, false);
+            var light = lightGo.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(0.95f, 0.35f, 1.0f);
+            light.range = 3.5f;
+            light.intensity = 4.0f;
+            light.shadows = LightShadows.None;
+
+            var proj = go.AddComponent<EnemyProjectile>();
+            using (var f = new Fields(proj))
+            {
+                f.F("speed", 12f).F("maxLifetime", 4.5f).F("radius", 0.25f)
+                 .Obj("impactClip", LoadClip("SFX_Impact")).F("impactVolume", 0.45f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(go, ProjectilePrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
+        static void BuildRunnerPrefab()
+        {
+            var mat = LoadMaterial("M_Runner");
+
+            var runner = new GameObject("Runner");
+            runner.transform.position = Vector3.zero;
+
+            // 0.75x scale: smaller, faster silhouette that swarms quickly.
+            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            body.name = "Body";
+            body.transform.SetParent(runner.transform, false);
+            body.transform.localScale = new Vector3(0.68f, 0.72f, 0.68f);
+            body.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(body.GetComponent<CapsuleCollider>());
+
+            var snout = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            snout.name = "Snout";
+            snout.transform.SetParent(runner.transform, false);
+            snout.transform.localPosition = new Vector3(0f, 0.26f, 0.34f);
+            snout.transform.localScale = new Vector3(0.23f, 0.23f, 0.30f);
+            snout.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(snout.GetComponent<BoxCollider>());
+
+            var controller = runner.AddComponent<CharacterController>();
+            controller.height = 1.5f;
+            controller.radius = 0.32f;
+            controller.center = Vector3.zero;
+            controller.stepOffset = 0.3f;
+
+            var health = runner.AddComponent<Health>();
+            using (var f = new Fields(health)) f.F("maxHealth", 40f);
+
+            var ai = runner.AddComponent<ZombieAI>();
+            using (var f = new Fields(ai))
+            {
+                // High speed (4.5), low health (40), and high knockback vulnerability (6.0).
+                f.F("moveSpeed", 4.5f).F("turnSpeed", 480f)
+                 .F("separationRadius", 0.9f).F("separationStrength", 2.0f)
+                 .F("attackRange", 1.3f).F("attackDamage", 6f).F("attackCooldown", 0.75f)
+                 .I("scoreValue", 15)
+                 .F("knockbackForce", 6.0f).F("knockbackDecay", 14f)
+                 .F("deathLinger", 0.18f)
+                 .Obj("deathClip", LoadClip("SFX_Death"))
+                 .F("deathVolume", 0.45f).F("killTrauma", 0.12f);
+            }
+
+            var pop = runner.AddComponent<DeathPop>();
+            using (var f = new Fields(pop))
+            {
+                f.Obj("health", health).F("duration", 0.16f)
+                 .F("squash", 1.6f).F("spinDegrees", 140f);
+            }
+
+            var flash = runner.AddComponent<HitFlash>();
+            using (var f = new Fields(flash))
+            {
+                f.Obj("health", health)
+                 .Col("flashColor", Color.white)
+                 .F("duration", 0.06f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(runner, RunnerPrefabPath);
+            Object.DestroyImmediate(runner);
+        }
+
+        static void BuildRangedPrefab()
+        {
+            var mat = LoadMaterial("M_Ranged");
+
+            var ranged = new GameObject("RangedZombie");
+            ranged.transform.position = Vector3.zero;
+
+            // 0.9x scale: purple, lean, stays back and fires projectiles.
+            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            body.name = "Body";
+            body.transform.SetParent(ranged.transform, false);
+            body.transform.localScale = new Vector3(0.82f, 0.86f, 0.82f);
+            body.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(body.GetComponent<CapsuleCollider>());
+
+            var snout = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            snout.name = "Snout";
+            snout.transform.SetParent(ranged.transform, false);
+            snout.transform.localPosition = new Vector3(0f, 0.32f, 0.41f);
+            snout.transform.localScale = new Vector3(0.28f, 0.28f, 0.36f);
+            snout.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(snout.GetComponent<BoxCollider>());
+
+            var shootPoint = new GameObject("ShootPoint").transform;
+            shootPoint.SetParent(ranged.transform, false);
+            shootPoint.localPosition = new Vector3(0f, 0.35f, 0.70f);
+
+            var controller = ranged.AddComponent<CharacterController>();
+            controller.height = 1.75f;
+            controller.radius = 0.38f;
+            controller.center = Vector3.zero;
+            controller.stepOffset = 0.35f;
+
+            var health = ranged.AddComponent<Health>();
+            using (var f = new Fields(health)) f.F("maxHealth", 60f);
+
+            var ai = ranged.AddComponent<ZombieAI>();
+            using (var f = new Fields(ai))
+            {
+                // Slower speed (1.8), preferred range (11.0), and ranged projectile attack.
+                f.F("moveSpeed", 1.8f).F("turnSpeed", 320f)
+                 .F("separationRadius", 1.4f).F("separationStrength", 2.5f)
+                 .F("attackRange", 13.5f).F("attackDamage", 15f).F("attackCooldown", 2.2f)
+                 .I("scoreValue", 25)
+                 .F("knockbackForce", 3.5f).F("knockbackDecay", 14f)
+                 .F("deathLinger", 0.20f)
+                 .Obj("deathClip", LoadClip("SFX_Death"))
+                 .F("deathVolume", 0.5f).F("killTrauma", 0.20f)
+                 .B("isRanged", true)
+                 .Obj("projectilePrefab", LoadProjectilePrefab())
+                 .F("preferredRange", 11.0f)
+                 .Obj("shootPoint", shootPoint)
+                 .Obj("shootClip", LoadClip("SFX_Gunshot"))
+                 .F("shootVolume", 0.4f);
+            }
+
+            var pop = ranged.AddComponent<DeathPop>();
+            using (var f = new Fields(pop))
+            {
+                f.Obj("health", health).F("duration", 0.20f)
+                 .F("squash", 1.5f).F("spinDegrees", 100f);
+            }
+
+            var flash = ranged.AddComponent<HitFlash>();
+            using (var f = new Fields(flash))
+            {
+                f.Obj("health", health)
+                 .Col("flashColor", Color.white)
+                 .F("duration", 0.06f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(ranged, RangedPrefabPath);
+            Object.DestroyImmediate(ranged);
+        }
+
         // ---------------------------------------------------------------- managers
 
-        static WaveManager BuildManagers(GameObject player, ZombieAI zombiePrefab, Material sparkMat)
+        static WaveManager BuildManagers(GameObject player, ZombieAI zombiePrefab, ZombieAI brutePrefab,
+            ZombieAI runnerPrefab, ZombieAI rangedPrefab, Material sparkMat)
         {
             var go = new GameObject("--- Systems ---");
 
@@ -397,10 +656,15 @@ namespace ZombieShooter.EditorTools
             var waves = go.AddComponent<WaveManager>();
             using (var f = new Fields(waves))
             {
-                f.Obj("zombiePrefab", zombiePrefab).Obj("player", player.transform)
+                f.Obj("zombiePrefab", zombiePrefab)
+                 .Obj("brutePrefab", brutePrefab)
+                 .Obj("runnerPrefab", runnerPrefab)
+                 .Obj("rangedPrefab", rangedPrefab)
+                 .Obj("player", player.transform)
                  .F("spawnRadius", 24f).F("minDistanceFromPlayer", 12f).F("spawnHeight", 1f)
                  .I("firstWaveCount", 5).F("countGrowth", 2.5f).I("maxAliveAtOnce", 60)
-                 .F("timeBetweenSpawns", 0.45f).F("timeBetweenWaves", 5f);
+                 .F("timeBetweenSpawns", 0.45f).F("timeBetweenWaves", 5f)
+                 .I("bruteStartWave", 2).I("runnerStartWave", 3).I("rangedStartWave", 4);
             }
 
             return waves;
@@ -784,24 +1048,87 @@ namespace ZombieShooter.EditorTools
             return ai;
         }
 
+        static ZombieAI LoadBrutePrefab()
+        {
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(BrutePrefabPath);
+            if (go == null)
+            {
+                Debug.LogError($"ArenaBuilder: no prefab at {BrutePrefabPath}.");
+                return null;
+            }
+
+            var ai = go.GetComponent<ZombieAI>();
+            if (ai == null) Debug.LogError($"ArenaBuilder: {BrutePrefabPath} has no ZombieAI component.");
+            return ai;
+        }
+
+        static ZombieAI LoadRunnerPrefab()
+        {
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(RunnerPrefabPath);
+            if (go == null)
+            {
+                Debug.LogError($"ArenaBuilder: no prefab at {RunnerPrefabPath}.");
+                return null;
+            }
+
+            var ai = go.GetComponent<ZombieAI>();
+            if (ai == null) Debug.LogError($"ArenaBuilder: {RunnerPrefabPath} has no ZombieAI component.");
+            return ai;
+        }
+
+        static ZombieAI LoadRangedPrefab()
+        {
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(RangedPrefabPath);
+            if (go == null)
+            {
+                Debug.LogError($"ArenaBuilder: no prefab at {RangedPrefabPath}.");
+                return null;
+            }
+
+            var ai = go.GetComponent<ZombieAI>();
+            if (ai == null) Debug.LogError($"ArenaBuilder: {RangedPrefabPath} has no ZombieAI component.");
+            return ai;
+        }
+
+        static EnemyProjectile LoadProjectilePrefab()
+        {
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(ProjectilePrefabPath);
+            if (go == null)
+            {
+                Debug.LogError($"ArenaBuilder: no prefab at {ProjectilePrefabPath}.");
+                return null;
+            }
+
+            var proj = go.GetComponent<EnemyProjectile>();
+            if (proj == null) Debug.LogError($"ArenaBuilder: {ProjectilePrefabPath} has no EnemyProjectile component.");
+            return proj;
+        }
+
         /// <summary>
         /// Confirms the references that cannot fail loudly on their own actually landed.
         /// A null prefab here means zero zombies at runtime with no other symptom.
         /// </summary>
         static void Validate(WaveManager waves)
         {
-            var prefab = new SerializedObject(waves).FindProperty("zombiePrefab");
+            var so = new SerializedObject(waves);
+            var zombie = so.FindProperty("zombiePrefab");
+            var brute = so.FindProperty("brutePrefab");
+            var runner = so.FindProperty("runnerPrefab");
+            var ranged = so.FindProperty("rangedPrefab");
 
-            if (prefab == null || prefab.objectReferenceValue == null)
+            if (zombie == null || zombie.objectReferenceValue == null ||
+                brute == null || brute.objectReferenceValue == null ||
+                runner == null || runner.objectReferenceValue == null ||
+                ranged == null || ranged.objectReferenceValue == null)
             {
-                Debug.LogError("<b>Zombie Shooter</b>: the zombie prefab did NOT serialize onto " +
-                               "WaveManager - no zombies will spawn. This is a builder bug, not a " +
+                Debug.LogError("<b>Zombie Shooter</b>: one or more enemy prefabs did NOT serialize onto " +
+                               "WaveManager - enemies will fail to spawn. This is a builder bug, not a " +
                                "setup mistake; re-run the builder.", waves);
                 return;
             }
 
-            Debug.Log($"<b>Zombie Shooter</b>: arena built at {ScenePath}, zombie prefab wired. " +
-                      "Press Play. WASD to move, mouse to aim, left click to fire, R to reload.");
+            Debug.Log($"<b>Zombie Shooter</b>: arena built at {ScenePath}, all 4 enemy archetypes wired. " +
+                      "Press Play. WASD to move, mouse to aim, left click to fire, 1-4 to switch weapons, R to reload.");
         }
 
         static void RegisterInBuildSettings()

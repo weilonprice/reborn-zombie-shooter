@@ -13,6 +13,9 @@ namespace ZombieShooter
     {
         [Header("Spawning")]
         [SerializeField] ZombieAI zombiePrefab;
+        [SerializeField] ZombieAI brutePrefab;
+        [SerializeField] ZombieAI runnerPrefab;
+        [SerializeField] ZombieAI rangedPrefab;
         [SerializeField] Transform player;
         [Tooltip("Zombies appear on a ring this far from the arena centre.")]
         [SerializeField] float spawnRadius = 22f;
@@ -30,7 +33,15 @@ namespace ZombieShooter
         [SerializeField] float timeBetweenSpawns = 0.45f;
         [SerializeField] float timeBetweenWaves = 5f;
 
-        readonly Queue<ZombieAI> pool = new();
+        [Header("Archetypes")]
+        [Tooltip("Wave index at which brutes begin spawning (1-indexed).")]
+        [SerializeField] int bruteStartWave = 2;
+        [Tooltip("Wave index at which runners begin spawning (1-indexed).")]
+        [SerializeField] int runnerStartWave = 3;
+        [Tooltip("Wave index at which ranged zombies begin spawning (1-indexed).")]
+        [SerializeField] int rangedStartWave = 4;
+
+        readonly Dictionary<ZombieAI, Queue<ZombieAI>> pools = new();
         readonly List<ZombieAI> alive = new();
 
         Transform poolRoot;
@@ -48,6 +59,11 @@ namespace ZombieShooter
         {
             poolRoot = new GameObject("ZombiePool").transform;
             poolRoot.SetParent(transform, false);
+
+            if (zombiePrefab != null) pools[zombiePrefab] = new Queue<ZombieAI>();
+            if (brutePrefab != null) pools[brutePrefab] = new Queue<ZombieAI>();
+            if (runnerPrefab != null) pools[runnerPrefab] = new Queue<ZombieAI>();
+            if (rangedPrefab != null) pools[rangedPrefab] = new Queue<ZombieAI>();
         }
 
         void Start()
@@ -106,11 +122,43 @@ namespace ZombieShooter
 
         void Spawn()
         {
-            var zombie = Rent();
+            var prefab = PickPrefabForWave();
+            var zombie = Rent(prefab);
             zombie.transform.SetPositionAndRotation(PickSpawnPoint(), Quaternion.identity);
             zombie.gameObject.SetActive(true);
             zombie.SetTarget(player);
             alive.Add(zombie);
+        }
+
+        ZombieAI PickPrefabForWave()
+        {
+            // Standard zombie serves as the horde baseline
+            float standardWeight = 10f;
+
+            float bruteWeight = (brutePrefab != null && WaveNumber >= bruteStartWave)
+                ? Mathf.Min(1.2f + (WaveNumber - bruteStartWave) * 0.7f, 4.5f)
+                : 0f;
+
+            float runnerWeight = (runnerPrefab != null && WaveNumber >= runnerStartWave)
+                ? Mathf.Min(1.8f + (WaveNumber - runnerStartWave) * 0.8f, 5.0f)
+                : 0f;
+
+            float rangedWeight = (rangedPrefab != null && WaveNumber >= rangedStartWave)
+                ? Mathf.Min(1.4f + (WaveNumber - rangedStartWave) * 0.6f, 4.0f)
+                : 0f;
+
+            float total = standardWeight + bruteWeight + runnerWeight + rangedWeight;
+            float roll = UnityEngine.Random.value * total;
+
+            if (roll < bruteWeight) return brutePrefab;
+            roll -= bruteWeight;
+
+            if (roll < runnerWeight) return runnerPrefab;
+            roll -= runnerWeight;
+
+            if (roll < rangedWeight) return rangedPrefab;
+
+            return zombiePrefab;
         }
 
         Vector3 PickSpawnPoint()
@@ -134,12 +182,16 @@ namespace ZombieShooter
             return point;
         }
 
-        ZombieAI Rent()
+        ZombieAI Rent(ZombieAI prefab)
         {
-            if (pool.Count > 0) return pool.Dequeue();
+            if (prefab == null) prefab = zombiePrefab;
 
-            var zombie = Instantiate(zombiePrefab, poolRoot);
+            if (pools.TryGetValue(prefab, out var queue) && queue.Count > 0)
+                return queue.Dequeue();
+
+            var zombie = Instantiate(prefab, poolRoot);
             zombie.gameObject.SetActive(false);
+            zombie.PrefabSource = prefab;
             zombie.Died += Recycle;   // subscribed once, for the object's whole lifetime
             return zombie;
         }
@@ -153,7 +205,17 @@ namespace ZombieShooter
 
             zombie.gameObject.SetActive(false);
             zombie.transform.SetParent(poolRoot, false);
-            pool.Enqueue(zombie);
+
+            var source = zombie.PrefabSource ?? zombiePrefab;
+            if (source != null)
+            {
+                if (!pools.TryGetValue(source, out var queue))
+                {
+                    queue = new Queue<ZombieAI>();
+                    pools[source] = queue;
+                }
+                queue.Enqueue(zombie);
+            }
         }
 
         void OnDrawGizmosSelected()
