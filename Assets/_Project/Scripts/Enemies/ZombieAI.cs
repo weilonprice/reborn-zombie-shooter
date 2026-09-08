@@ -48,6 +48,15 @@ namespace ZombieShooter
         [Tooltip("Trauma on death. Larger than a shot so kills punctuate sustained fire.")]
         [SerializeField] float killTrauma = 0.22f;
 
+        [Header("Ranged Combat")]
+        [SerializeField] bool isRanged;
+        [SerializeField] EnemyProjectile projectilePrefab;
+        [Tooltip("Distance the ranged enemy tries to maintain from the player.")]
+        [SerializeField] float preferredRange = 11f;
+        [SerializeField] Transform shootPoint;
+        [SerializeField] AudioClip shootClip;
+        [SerializeField, Range(0f, 1f)] float shootVolume = 0.45f;
+
         CharacterController controller;
         Health health;
         Transform target;
@@ -60,6 +69,8 @@ namespace ZombieShooter
         public event Action<ZombieAI> Died;
 
         public int ScoreValue => scoreValue;
+        /// <summary>The prefab this instance was instantiated from, for multi-type pooling.</summary>
+        public ZombieAI PrefabSource { get; set; }
 
         void Awake()
         {
@@ -115,8 +126,22 @@ namespace ZombieShooter
             var chase = distance > 0.001f ? toTarget / distance : Vector3.zero;
             var move = chase;
 
-            // Stop closing once in melee range, but keep separating so bodies don't stack.
-            if (distance <= attackRange) move = Vector3.zero;
+            if (isRanged)
+            {
+                // Ranged enemies try to stay in their preferred range window.
+                if (distance <= preferredRange)
+                {
+                    move = Vector3.zero;
+                    // If the player charges close, backpedal slightly to keep breathing room.
+                    if (distance < preferredRange * 0.55f)
+                        move = -chase * 0.55f;
+                }
+            }
+            else
+            {
+                // Stop closing once in melee range, but keep separating so bodies don't stack.
+                if (distance <= attackRange) move = Vector3.zero;
+            }
 
             move += Separation() * separationStrength;
 
@@ -165,13 +190,32 @@ namespace ZombieShooter
         void TryAttack()
         {
             if (Time.time < nextAttackTime) return;
-            nextAttackTime = Time.time + attackCooldown;
 
-            var damageable = target.GetComponentInParent<IDamageable>();
-            if (damageable == null || !damageable.IsAlive) return;
+            if (isRanged)
+            {
+                if (projectilePrefab == null) return;
+                nextAttackTime = Time.time + attackCooldown;
 
-            damageable.TakeDamage(new DamageInfo(
-                attackDamage, transform.position, -transform.forward, 1f, gameObject));
+                var origin = shootPoint != null ? shootPoint.position : transform.position + Vector3.up * 0.8f;
+                var aimTarget = target != null ? target.position + Vector3.up * 0.8f : origin + transform.forward * 10f;
+                var dir = (aimTarget - origin).normalized;
+                var rot = dir.sqrMagnitude > 0.0001f ? Quaternion.LookRotation(dir, Vector3.up) : transform.rotation;
+
+                EnemyProjectile.Spawn(projectilePrefab, origin, rot, attackDamage, gameObject);
+
+                if (shootClip != null)
+                    SfxPlayer.Instance?.PlayAt(shootClip, origin, shootVolume);
+            }
+            else
+            {
+                nextAttackTime = Time.time + attackCooldown;
+
+                var damageable = target.GetComponentInParent<IDamageable>();
+                if (damageable == null || !damageable.IsAlive) return;
+
+                damageable.TakeDamage(new DamageInfo(
+                    attackDamage, transform.position, -transform.forward, 1f, gameObject));
+            }
         }
 
         void OnDamaged(DamageInfo info)

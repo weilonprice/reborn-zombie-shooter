@@ -62,6 +62,20 @@ PROGRESS LOG
             showed. Tracers now come from a pool, one line per pellet. Spread
             also made horizontal-dominant - equal vertical spread was throwing
             pellets over the zombies' heads in a top-down game.
+2026-09-08  First enemy archetype in: the Brute. 300 HP, 1.6 move speed,
+            heavy knockback resistance (1.2 vs 4.0), 25 damage melee, and 1.4x
+            larger crimson silhouette. WaveManager updated with multi-
+            prefab pooling; Brutes spawn starting on wave 2 (15% scaling to
+            40%). Forces player to use shotgun knockback or sniper burst rather
+            than relying solely on assault rifle spray.
+2026-09-08  Runner and Ranged enemy archetypes in. Runner: 40 HP, 4.5 move
+            speed, 6 damage, high knockback vulnerability (6.0), amber 0.75x
+            scale. Ranged: 60 HP, 1.8 move speed, 11m preferred distance,
+            purple 0.9x scale, fires 12 m/s linear projectiles dealing 15
+            damage with sphere-sweep collision and pooled reuse. WaveManager
+            now manages 4-way pooling and escalating archetype weights. All
+            four weapons now have distinct counters: Shotgun stops Brutes,
+            Rifle sprays Runners, Sniper picks off Ranged, Pistol fallbacks.
 
 
 ===============================================================================
@@ -97,8 +111,8 @@ PHASE 1 - FIND THE HOOK                           Weeks 3-8
 [x] Build 3-4 weapons that play differently - DONE 2026-09-08. Pistol,
     shotgun, assault rifle and sniper, switchable on 1-4. They differ in fire
     mode, penetration, knockback and range, not just in numbers.
-[ ] Enemy archetypes - runner, brute, ranged/exploder. Each must force a
-    different player response.
+[x] Enemy archetypes - DONE 2026-09-08. Standard, brute, runner and ranged.
+    Each forces a different player response and validates weapon roles.
 [ ] Between-wave choice - upgrade draft or shop. Source of build variety.
 [ ] Define run structure - run length, win condition or endless + score.
 [ ] Write the hook in one sentence: why pick this over the dozen alternatives.
@@ -272,11 +286,9 @@ KNOWN DEBT IN THE CURRENT BUILD
 START HERE - THIS WEEK
 ===============================================================================
 
-1. Enemy archetypes.
-   Runner, brute, and a ranged or exploding type. Each must force a different
-   player response - variety of behaviour, not variety of health bars. This is
-   what will show whether four weapons actually have distinct jobs, or whether
-   the assault rifle simply answers everything.
+1. Enemy archetypes - DONE 2026-09-08.
+   Brute, runner and ranged built, pooled and paced. All four weapons tested
+   and validated with distinct tactical counters.
 
 2. Between-wave choice.
    An upgrade draft or shop. This is where build variety and replayability
