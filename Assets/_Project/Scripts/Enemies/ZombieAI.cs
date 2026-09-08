@@ -42,6 +42,8 @@ namespace ZombieShooter
                  "have something on screen to land on. Not a death animation - just enough " +
                  "frames for the impact to register.")]
         [SerializeField] float deathLinger = 0.22f;
+        [SerializeField] AudioClip deathClip;
+        [SerializeField] float deathVolume = 0.55f;
 
         CharacterController controller;
         Health health;
@@ -186,6 +188,7 @@ namespace ZombieShooter
 
             GameManager.Instance?.AddScore(scoreValue);
             HitStop.Instance?.FreezeForKill();
+            SfxPlayer.Instance?.PlayAt(deathClip, transform.position, deathVolume);
 
             // Stop the collapsing body soaking bullets or pushing its neighbours around.
             controller.enabled = false;

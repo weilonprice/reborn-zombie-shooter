@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2224152658170308496}
   - component: {fileID: 7291978224018689526}
   - component: {fileID: 1734398638042476842}
+  - component: {fileID: 3463674223647207757}
   - component: {fileID: 8940001357156359670}
   m_Layer: 0
   m_Name: Zombie
@@ -98,7 +99,26 @@ MonoBehaviour:
   attackDamage: 12
   attackCooldown: 1.1
   scoreValue: 10
-  deathLinger: 0.07
+  deathLinger: 0.22
+  deathClip: {fileID: 8300000, guid: 9e65ae5b350164ce98b50756f9b5882f, type: 3}
+  deathVolume: 0.55
+--- !u!114 &3463674223647207757
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4903519127198361394}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb70724378e244a568047f95b70def37, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.DeathPop
+  health: {fileID: 7291978224018689526}
+  body: {fileID: 0}
+  duration: 0.2
+  squash: 1.5
+  spinDegrees: 110
 --- !u!114 &8940001357156359670
 MonoBehaviour:
   m_ObjectHideFlags: 0

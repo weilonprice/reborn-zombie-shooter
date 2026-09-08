@@ -15,6 +15,7 @@ namespace ZombieShooter.EditorTools
         const string ScenePath = Root + "/Scenes/Arena.unity";
         const string ZombiePrefabPath = Root + "/Prefabs/Zombie.prefab";
         const string MaterialDir = Root + "/Materials";
+        const string AudioDir = Root + "/Audio";
 
         const float ArenaHalfSize = 30f;
         const float WallHeight = 3f;
@@ -153,6 +154,8 @@ namespace ZombieShooter.EditorTools
             gun.GetComponent<MeshRenderer>().sharedMaterial = gunMat;
             Object.DestroyImmediate(gun.GetComponent<BoxCollider>());
 
+            player.AddComponent<AudioListener>();
+
             var controller = player.AddComponent<CharacterController>();
             controller.height = 2f;
             controller.radius = 0.45f;
@@ -209,7 +212,10 @@ namespace ZombieShooter.EditorTools
                 f.F("damage", 25f).F("fireRate", 480f).F("range", 60f).F("spread", 1.5f)
                  .I("pelletsPerShot", 1).I("magazineSize", 30).F("reloadTime", 1.4f)
                  .Obj("muzzle", muzzle).Obj("tracer", tracer).F("tracerDuration", 0.03f)
-                 .Obj("muzzleFlash", muzzleFlash);
+                 .Obj("muzzleFlash", muzzleFlash)
+                 .Obj("fireClip", LoadClip("SFX_Gunshot"))
+                 .Obj("impactClip", LoadClip("SFX_Impact"))
+                 .F("fireVolume", 0.45f).F("impactVolume", 0.4f);
             }
 
             return player;
@@ -225,8 +231,6 @@ namespace ZombieShooter.EditorTools
             cam.fieldOfView = 55f;
             cam.nearClipPlane = 0.3f;
             cam.farClipPlane = 200f;
-            go.AddComponent<AudioListener>();
-
             var follow = go.AddComponent<CameraFollow>();
             using (var f = new Fields(follow))
             {
@@ -282,7 +286,9 @@ namespace ZombieShooter.EditorTools
                  .F("attackRange", 1.6f).F("attackDamage", 12f).F("attackCooldown", 1.1f)
                  .I("scoreValue", 10)
                  .F("knockbackForce", 4f).F("knockbackDecay", 14f)
-                 .F("deathLinger", 0.07f);
+                 .F("deathLinger", 0.22f)
+                 .Obj("deathClip", LoadClip("SFX_Death"))
+                 .F("deathVolume", 0.55f);
             }
 
             var pop = zombie.AddComponent<DeathPop>();
@@ -317,6 +323,12 @@ namespace ZombieShooter.EditorTools
 
             var impactSparks = CreateBurstSystem(go.transform, "ImpactSparks", sparkMat,
                 new Color(1f, 0.8f, 0.35f), 3f, 8f, 0.12f, 0.3f, 0.05f, 0.11f, 32f, 1.6f);
+
+            var sfx = go.AddComponent<SfxPlayer>();
+            using (var f = new Fields(sfx))
+            {
+                f.I("voices", 14).F("minDistance", 6f).F("maxDistance", 45f);
+            }
 
             var impacts = go.AddComponent<ImpactEffects>();
             using (var f = new Fields(impacts))
@@ -559,6 +571,14 @@ namespace ZombieShooter.EditorTools
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat == null) Debug.LogError($"ArenaBuilder: no material at {path}.");
             return mat;
+        }
+
+        static AudioClip LoadClip(string name)
+        {
+            string path = $"{AudioDir}/{name}.wav";
+            var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            if (clip == null) Debug.LogWarning($"ArenaBuilder: no audio clip at {path}.");
+            return clip;
         }
 
         static ZombieAI LoadZombiePrefab()
