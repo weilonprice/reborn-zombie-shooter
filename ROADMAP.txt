@@ -1,8 +1,8 @@
 REBORN - DEVELOPMENT ROADMAP
 Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
 Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 56 weeks.
-Status:  Phase 0 tasks all complete. Gate 0 not yet attempted - it needs an
-         outside player, not you.
+Status:  Gate 0 PASSED. Phase 1 underway - weapons are data and the first
+         four are built.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -48,6 +48,20 @@ PROGRESS LOG
 2026-09-08  Ambient bed in. 12-second loop, tonal frequencies snapped to exact
             multiples of the loop fundamental and the noise layer wrap-
             crossfaded, so the seam is inaudible. Phase 0 tasks complete.
+2026-09-08  GATE 0 PASSED. Run with an outside player, good feedback.
+2026-09-08  Weapons are data. WeaponDefinition ScriptableObject holds every
+            stat; Weapon is now only a runtime executing one against scene
+            wiring. A new weapon is an asset, never a script.
+2026-09-08  Four weapons built and switchable on 1-4: pistol, shotgun,
+            assault rifle, sniper. Three systems went in to make them
+            data-only - DamageInfo carrying a knockback multiplier,
+            penetration with per-weapon falloff, and per-slot ammo banking
+            so swapping cannot be used as a free reload.
+2026-09-08  Fixed: shotgun spread was invisible. Every pellet drew into the
+            same LineRenderer, so eight overwrote one line and only the last
+            showed. Tracers now come from a pool, one line per pellet. Spread
+            also made horizontal-dominant - equal vertical spread was throwing
+            pellets over the zombies' heads in a top-down game.
 
 
 ===============================================================================
@@ -70,15 +84,19 @@ PHASE 0 - PROVE IT'S FUN WITH ZERO ART            Weeks 1-2
 [x] First audio - DONE 2026-09-08. Gunshot, impact, death and a looping low
     ambient bed, all synthesized placeholders in Assets/_Project/Audio.
 
-GATE 0: A stranger keeps shooting for 30 seconds without being told to.
+GATE 0: PASSED 2026-09-08. Run with an outside player, good feedback.
 
 
 ===============================================================================
 PHASE 1 - FIND THE HOOK                           Weeks 3-8
 ===============================================================================
 
-[ ] Move weapon stats into ScriptableObjects so weapons are data, not code.
-[ ] Build 3-4 weapons that genuinely play differently (not stat variations).
+[x] Move weapon stats into ScriptableObjects - DONE 2026-09-08.
+    WeaponDefinition holds every stat; Weapon executes one against scene
+    wiring. Assets live in Assets/_Project/Weapons.
+[x] Build 3-4 weapons that play differently - DONE 2026-09-08. Pistol,
+    shotgun, assault rifle and sniper, switchable on 1-4. They differ in fire
+    mode, penetration, knockback and range, not just in numbers.
 [ ] Enemy archetypes - runner, brute, ranged/exploder. Each must force a
     different player response.
 [ ] Between-wave choice - upgrade draft or shop. Source of build variety.
@@ -242,22 +260,32 @@ KNOWN DEBT IN THE CURRENT BUILD
    out (~45 px per unit). Any change to camera height or FOV silently changes
    how readable they are. Revisit if the camera framing moves in Phase 2.
 
+11. THE BUILDER WILL NOT UPDATE EXISTING WEAPON ASSETS.
+   LoadOrCreateWeapon only creates what is missing, deliberately, so hand
+   tuning survives a rebuild. The flip side is that changing a default in
+   ArenaBuilder does nothing to assets that already exist - they have to be
+   edited in the inspector or deleted and regenerated. Expect this every time
+   a weapon default changes.
+
 
 ===============================================================================
 START HERE - THIS WEEK
 ===============================================================================
 
-1. Run Gate 0.
-   Hand the build to someone who has never seen it. Say nothing - no controls,
-   no explanation. If they keep shooting for 30 seconds unprompted, the gate
-   passes. Your own opinion does not count here; you have been tuning this for
-   hours and cannot judge it cold.
+1. Enemy archetypes.
+   Runner, brute, and a ranged or exploding type. Each must force a different
+   player response - variety of behaviour, not variety of health bars. This is
+   what will show whether four weapons actually have distinct jobs, or whether
+   the assault rifle simply answers everything.
 
-2. If Gate 0 passes, start Phase 1 with weapons as data.
-   Move weapon stats into ScriptableObjects before building more weapons, or
-   every new one is another copy of the same component.
+2. Between-wave choice.
+   An upgrade draft or shop. This is where build variety and replayability
+   come from, and most likely where the hook lives.
 
-3. Write the hook sentence early, not at the end of Phase 1.
+3. Draft the hook sentence now, not at the end of the phase.
    One sentence on why someone picks this over the dozen alternatives. Write
-   a draft now and let Phase 1 prove or kill it - it is the single highest
-   risk in the whole project.
+   it early and let the rest of Phase 1 prove or kill it - it is the single
+   largest risk in the project.
+
+THEN: Gate 1. Five runs back to back, voluntarily, and a hook sentence a
+stranger finds interesting.

@@ -28,7 +28,8 @@ namespace ZombieShooter
         [SerializeField] float separationStrength = 2.2f;
 
         [Header("Knockback")]
-        [Tooltip("Impulse speed applied away from the bullet on every hit.")]
+        [Tooltip("Base impulse away from the bullet. Weapons scale this rather than " +
+                 "replacing it, so a heavier enemy can simply lower its own value.")]
         [SerializeField] float knockbackForce = 4f;
         [Tooltip("How fast that impulse bleeds off, in units/sec^2. Higher is snappier.")]
         [SerializeField] float knockbackDecay = 14f;
@@ -169,18 +170,19 @@ namespace ZombieShooter
             var damageable = target.GetComponentInParent<IDamageable>();
             if (damageable == null || !damageable.IsAlive) return;
 
-            damageable.TakeDamage(attackDamage, transform.position, -transform.forward);
+            damageable.TakeDamage(new DamageInfo(
+                attackDamage, transform.position, -transform.forward, 1f, gameObject));
         }
 
-        void OnDamaged(float amount, Vector3 hitPoint, Vector3 hitNormal)
+        void OnDamaged(DamageInfo info)
         {
             // The surface normal points back toward the shooter, so its inverse is the
             // bullet's direction of travel. Flattened, that pushes the body away from you.
-            var away = -hitNormal;
+            var away = -info.Normal;
             away.y = 0f;
             if (away.sqrMagnitude < 0.0001f) return;
 
-            knockback = away.normalized * knockbackForce;
+            knockback = away.normalized * (knockbackForce * info.KnockbackMultiplier);
         }
 
         void OnDied(Health _)
