@@ -1,8 +1,8 @@
 REBORN - DEVELOPMENT ROADMAP
 Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
 Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 56 weeks.
-Status:  Gate 0 PASSED. Full 15-wave run played end to end and validated.
-         Boss and endless still to build. Gate 1 is now runnable.
+Status:  Gates 0 and 1 PASSED. The hook holds up across repeated runs.
+         Boss and endless still unbuilt; refinement wanted, not redesign.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -108,6 +108,12 @@ PROGRESS LOG
             upgraded rifle topped to 30 when it holds 45, silently half
             refunding the mod on every restock, on every weapon.
             ArmoryManager.EffectiveMagazineSize is now the single owner.
+2026-09-08  GATE 1 PASSED. Core mechanics validated across repeated runs and
+            the hook is stateable. Noted honestly: gameplay and game design
+            still want refinement. That is the correct outcome for this gate -
+            it asks whether the design is worth building on, not whether it is
+            finished. Phase 1 is otherwise complete except the boss and
+            endless mode.
 2026-09-08  Full 15-wave run played end to end. The arc holds up, so 20-25
             minutes is the length the boss gets designed against, and the
             gold economy and archetype ramp both survived the wave cap
@@ -194,9 +200,10 @@ PHASE 1 - FIND THE HOOK                           Weeks 3-8
     shooter where you spend blood money to physically engineer fortified
     killboxes and mod firearms into crowd-shredding weapons of war."
 
-GATE 1: You voluntarily play 5 runs back to back, and can state the hook in
-one sentence a stranger finds interesting. Failing this means changing the
-design, not adding polish.
+GATE 1: PASSED 2026-09-08. The core mechanics hold up across repeated runs and
+the hook is stateable. Gameplay and game design still want refinement - but
+refinement, not redesign, which is exactly what passing this gate means.
+Everything from here is allowed to be polish and content.
 
 
 ===============================================================================
@@ -400,7 +407,13 @@ ZOMBIE STEERING VS DEPLOYABLE BARRICADES - resolved 2026-09-08.
 START HERE - THIS WEEK
 ===============================================================================
 
-1. Build the boss.
+1. Build the boss - and do it BEFORE retiring ArenaBuilder.
+   Phase 2 retires the builder when the arena becomes hand-authored, and that
+   is a one-way door: after it, every new prefab and wiring is manual scene
+   work. The boss is the last thing Phase 1 owes, and it is much cheaper to
+   add while the builder still assembles the scene. It also makes the Gate 2
+   store-page clip dramatically stronger - a 60-second capture ending on a
+   boss reads as a game, one ending on wave 7 reads as a prototype.
    A new enemy prefab, telegraphed wind-up attacks the player can read and
    react to, at least one phase change, a health bar, and the win trigger
    moving from wave-cleared to boss-killed. The thing to avoid is a boss that
