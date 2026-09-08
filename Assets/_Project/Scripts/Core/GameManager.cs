@@ -120,6 +120,18 @@ namespace ZombieShooter
             StateChanged?.Invoke();
         }
 
+        /// <summary>
+        /// Returns to Playing after a win, for endless mode. Health, gold, weapons and mods
+        /// all carry over untouched - this is a continuation of the same run, not a new one.
+        /// </summary>
+        public void ResumeForEndless()
+        {
+            if (State != GameState.Victory) return;
+
+            State = GameState.Playing;
+            StateChanged?.Invoke();
+        }
+
         public void Restart()
         {
             // timeScale survives a scene load, so a restart during a hit-stop freeze would
