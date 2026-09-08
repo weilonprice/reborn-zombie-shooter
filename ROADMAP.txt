@@ -1,10 +1,12 @@
 REBORN - DEVELOPMENT ROADMAP
 Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
 Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 56 weeks.
-Status:  Phase 0 in progress. Core loop verified 2026-09-08.
+Status:  Phase 0 nearly complete. Impact feedback and first audio in.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
+
+Markers:  [x] done    [~] partly done    [ ] not started
 
 
 -------------------------------------------------------------------------------
@@ -19,6 +21,14 @@ PROGRESS LOG
             object references do not survive NewScene. Builder now generates
             assets and builds the scene in two passes, and validates the
             result instead of failing silently.
+2026-09-08  Impact feedback in and verified. Hit flash and knockback on every
+            hit, 50ms hit-stop gated to kills, death pop, muzzle flash and
+            impact sparks. Bodies now linger briefly after death so the flash
+            and freeze have something on screen to land on.
+2026-09-08  First three sounds in. Gunshot, impact and death, synthesized as
+            placeholders rather than sourced. AudioListener moved from the
+            camera to the player: 20 units up, every ground-level sound sat
+            at the far end of its distance rolloff.
 
 
 ===============================================================================
@@ -29,13 +39,15 @@ PHASE 0 - PROVE IT'S FUN WITH ZERO ART            Weeks 1-2
     confirmed good in play. No adjustments needed.
 [x] Enemies spawning and killable - DONE 2026-09-08. Zombies spawn, take
     damage, die, and recycle. Wave counter and score both advance.
-[ ] Hit feedback - damage flash, knockback, hit-stop on kill.
-    (Damage is currently invisible. Biggest remaining feel gap.)
-[ ] Weapon feedback - muzzle flash, impact sparks, shell ejection,
-    camera recoil kick.
+[x] Hit feedback - DONE 2026-09-08. White flash on every hit, knockback along
+    the bullet path, 50ms hit-stop gated to kills and behind a toggle.
+[~] Weapon feedback - muzzle flash and impact sparks DONE 2026-09-08.
+    STILL TO DO: shell ejection, camera recoil kick.
 [ ] Screen shake on fire and kill, with an intensity curve.
-[ ] Death moments - dissolve, ragdoll pop, or gib burst.
-[ ] First audio - gunshot, impact, zombie death, low ambient bed.
+[x] Death moments - DONE 2026-09-08. Body squashes, spreads and spins out over
+    0.2s. Pop chosen over dissolve or gibs as the only zero-asset option.
+[~] First audio - gunshot, impact and death DONE 2026-09-08 (synthesized
+    placeholders in Assets/_Project/Audio). STILL TO DO: low ambient bed.
 
 GATE 0: A stranger keeps shooting for 30 seconds without being told to.
 
@@ -186,19 +198,33 @@ KNOWN DEBT IN THE CURRENT BUILD
    Phase 4 performance work. NavMesh is installed if the map gains real
    obstacles.
 
+7. SCENE SINGLETONS FAIL SILENTLY.
+   SfxPlayer, ImpactEffects and HitStop are reached through null-conditional
+   calls, so if one is missing from the scene the effect simply does not
+   happen - no error, no warning. Already cost several debugging round trips.
+   Add startup validation, and extend the builder's Validate step to assert
+   every singleton and clip landed.
+
+8. EVERY NEW SCENE COMPONENT NEEDS A BUILDER RE-RUN.
+   Adding a component in code does nothing until ArenaBuilder is run again.
+   Easy to forget, and the symptom is silent (see item 7). Goes away when the
+   builder is retired at Phase 2.
+
 
 ===============================================================================
 START HERE - THIS WEEK
 ===============================================================================
 
-1. Make damage visible.
-   Hit flash, knockback, hit-stop on kill. A zombie absorbing four bullets
-   currently looks identical to one absorbing none. Largest remaining gap.
+1. Screen shake on fire and kill.
+   With an intensity curve, and subtle enough to survive a long session.
+   The last big missing piece of impact.
 
-2. Make kills land.
-   Death effect (dissolve, pop or gib burst), plus muzzle flash and impact
-   sparks. Kills should read as events, not disappearances.
+2. Shell ejection and camera recoil kick.
+   The remainder of the weapon feedback task. Recoil kick matters more than
+   shells - it ties the camera to the act of firing.
 
-3. Add the first three sounds.
-   Gunshot, impact, death. Placeholder audio is fine. Roughly half of
-   perceived game feel is audio, and it is the cheapest half.
+3. Low ambient bed.
+   The three event sounds sit on silence right now. An ambient layer is what
+   makes the arena feel like a place rather than a test scene.
+
+THEN: Gate 0. Hand it to someone who has never seen it and say nothing.

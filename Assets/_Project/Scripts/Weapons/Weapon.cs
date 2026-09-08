@@ -28,6 +28,13 @@ namespace ZombieShooter
         [SerializeField] Transform muzzle;
         [SerializeField] LineRenderer tracer;
         [SerializeField] MuzzleFlash muzzleFlash;
+
+        [Header("Audio")]
+        [SerializeField] AudioClip fireClip;
+        [SerializeField] AudioClip impactClip;
+        [Tooltip("Kept well under 1: this fires eight times a second and will dominate the mix.")]
+        [SerializeField] float fireVolume = 0.45f;
+        [SerializeField] float impactVolume = 0.4f;
         [SerializeField] float tracerDuration = 0.03f;
 
         float nextFireTime;
@@ -80,6 +87,7 @@ namespace ZombieShooter
             AmmoChanged?.Invoke(Ammo, magazineSize);
 
             if (muzzleFlash != null) muzzleFlash.Play();
+            SfxPlayer.Instance?.PlayFlat(fireClip, fireVolume);
 
             for (int i = 0; i < pelletsPerShot; i++)
                 FireOnePellet();
@@ -102,6 +110,7 @@ namespace ZombieShooter
                 target?.TakeDamage(damage, hit.point, hit.normal);
 
                 ImpactEffects.Instance?.PlayImpact(hit.point, hit.normal);
+                SfxPlayer.Instance?.PlayAt(impactClip, hit.point, impactVolume);
             }
 
             if (tracer != null) StartCoroutine(ShowTracer(origin, endPoint));
