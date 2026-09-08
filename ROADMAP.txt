@@ -337,9 +337,10 @@ KNOWN DEBT IN THE CURRENT BUILD
 4. NO SAVE OR SETTINGS PERSISTENCE.
    Needed before Phase 4 meta progression. Expensive to retrofit.
 
-5. NO ASSEMBLY DEFINITIONS.
-   Everything compiles into Assembly-CSharp. Add asmdefs before iteration
-   times start costing real minutes.
+5. NO ASSEMBLY DEFINITIONS. - DEFERRED, deliberately.
+   Everything compiles into Assembly-CSharp. Reviewed 2026-09-08: 31 scripts
+   do not cost real minutes yet, and asmdefs carry their own setup risk around
+   editor and package references. Revisit when a compile is actually annoying.
 
 6. ZOMBIE STEERING IS O(n^2), NOW WITH A PER-FRAME SPHERECAST ON TOP.
    ZombieAI.Separation walks every other live zombie each frame
@@ -352,8 +353,18 @@ KNOWN DEBT IN THE CURRENT BUILD
    for the spatial hash, so keep it at number 6.
    Fix: spatial hash or grid buckets for separation, and cache the barricade
    cast to every few frames rather than every frame.
+   DEFERRED, deliberately. Reviewed 2026-09-08: maxAliveAtOnce is 60, so this
+   is ~3,600 distance checks and 60 casts per frame - trivial for a modern
+   CPU. A spatial hash now is premature optimisation. Revisit in Phase 4 when
+   content production raises horde counts, which is where it is scheduled.
 
-7. SCENE SINGLETONS FAIL SILENTLY - AND THE PATTERN HAS SPREAD.
+7. SCENE SINGLETONS FAIL SILENTLY. - RESOLVED 2026-09-08.
+   SystemsCheck runs in Start, after every Awake has assigned its instance,
+   and reports any missing singleton as one Console error naming exactly what
+   is absent and how to fix it. The null-conditional call sites stay - they
+   are correct - but the whole class of failure is now loud instead of silent.
+   Original entry follows.
+   ---
    Reached through null-conditional calls, so one missing from the scene
    simply does nothing - no error, no warning. Now 27 call sites:
    ArmoryManager 10, SfxPlayer 9, CameraShake 4, ImpactEffects 2, TracerPool 1,
@@ -367,7 +378,11 @@ KNOWN DEBT IN THE CURRENT BUILD
    Easy to forget, and the symptom is silent (see item 7). Goes away when the
    builder is retired at Phase 2.
 
-9. HIT TEST IS A RAY, NOT A SPHERECAST.
+9. HIT TEST IS A RAY, NOT A SPHERECAST. - DEFERRED, deliberately.
+   Reviewed 2026-09-08: switching to a spherecast would subtly widen every
+   shot, changing hit feel that has now been validated through two gates. Not
+   worth destabilising for a case that cannot currently occur. Fix it when an
+   enemy actually closes inside the player's centre, not before.
    Shots are correct now that the ray starts at the player's centre, but an
    enemy that closes inside that centre would still be missed. Cannot happen
    at current values - zombies stop at 1.6 units - but a fast archetype in
@@ -385,7 +400,15 @@ KNOWN DEBT IN THE CURRENT BUILD
    edited in the inspector or deleted and regenerated. Expect this every time
    a weapon default changes.
 
-12. WEAPON MODS ARE HARDCODED BY SLOT INDEX.
+12. WEAPON MODS ARE HARDCODED BY SLOT INDEX. - RESOLVED 2026-09-08.
+   WeaponDefinition now carries WeaponTags (Sidearm / Shotgun / Rifle /
+   Precision) plus its own Overclocked response values, and
+   ArmoryManager.ModAppliesTo owns the mod-to-tag rules. Weapon.cs has no
+   slot-index branching left; slotIndex survives only for reserve ammo
+   lookup, which is legitimately positional. Reordering slots or adding a
+   fifth weapon can no longer mis-assign a mod.
+   Original entry follows.
+   ---
    Weapon.cs branches on slotIndex == 0, isShotgun = slotIndex == 1, and
    slotIndex == 2 || slotIndex == 3. Reordering the loadout silently
    reassigns every mod to the wrong gun, and a fifth weapon means editing
@@ -394,7 +417,13 @@ KNOWN DEBT IN THE CURRENT BUILD
    Fix: mods declare what they apply to, or WeaponDefinition carries tags
    (shotgun / precision / sidearm) the mods match against.
 
-13. ARMORY PRICES ARE COMPILE-TIME CONSTANTS.
+13. ARMORY PRICES ARE COMPILE-TIME CONSTANTS. - RESOLVED 2026-09-08.
+   Costs live in an ArmoryPrices ScriptableObject, created once and then left
+   alone on the same create-if-missing contract as the weapon definitions, so
+   tuning survives a rebuild. ArmoryManager keeps static passthrough
+   properties, so all ~20 UI call sites are unchanged.
+   Original entry follows.
+   ---
    ArmoryManager holds every cost as const int, so balancing the economy is a
    recompile rather than an edit. Painful once run structure is fixed and the
    economy actually needs tuning against it.
@@ -439,6 +468,9 @@ START HERE - THIS WEEK
    actually found something, so do not soften it - if you do not want a
    fourth run, that is the answer.
 
-3. Pay down debt 6 and 7 before Phase 2, not during it.
-   Both are load-bearing: 6 is the first thing that breaks as waves grow, and
-   7 has now cost debugging time three separate times.
+3. Debt: reviewed 2026-09-08.
+   Fixed: 7 (silent singletons), 12 (mods hardcoded by slot), 13 (prices as
+   constants). Deliberately deferred with reasons recorded: 5 (asmdefs, not
+   costing time yet), 6 (O(n^2), trivial at 60 agents - Phase 4), 9
+   (spherecast, would alter validated hit feel). The rest are phase-scheduled
+   or by design. Nothing in the register is now unexamined.

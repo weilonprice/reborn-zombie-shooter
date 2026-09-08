@@ -734,7 +734,13 @@ namespace ZombieShooter.EditorTools
             var gm = go.AddComponent<GameManager>();
             using (var f = new Fields(gm)) f.Obj("playerHealth", player.GetComponent<Health>());
 
-            go.AddComponent<ArmoryManager>();
+            var armory = go.AddComponent<ArmoryManager>();
+            using (var f = new Fields(armory))
+            {
+                f.Obj("prices", LoadOrCreateArmoryPrices());
+            }
+
+            go.AddComponent<SystemsCheck>();
 
             var impactSparks = CreateBurstSystem(go.transform, "ImpactSparks", sparkMat,
                 new Color(1f, 0.8f, 0.35f), 3f, 8f, 0.12f, 0.3f, 0.05f, 0.11f, 32f, 1.6f);
@@ -1258,6 +1264,8 @@ namespace ZombieShooter.EditorTools
                 .Str("displayName", "Pistol")
                 .F("damage", 20f).F("fireRate", 200f).F("range", 45f).F("spread", 1.2f)
                 .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.SemiAuto)
+                .I("tags", (int)WeaponTags.Sidearm)
+                .F("overclockedFireRateMultiplier", 1.5f).B("overclockedConvertsToAuto", true)
                 .I("pierceCount", 0).F("penetrationFalloff", 0.65f)
                 .I("magazineSize", 12).I("maxReserveAmmo", 120).F("reloadTime", 1.0f)
                 .F("fireTrauma", 0.07f).F("recoilKick", 0.05f).F("knockbackMultiplier", 0.6f)
@@ -1271,6 +1279,7 @@ namespace ZombieShooter.EditorTools
                 .Str("displayName", "Shotgun")
                 .F("damage", 22f).F("fireRate", 75f).F("range", 30f).F("spread", 7f)
                 .I("pelletsPerShot", 5).E("fireMode", (int)FireMode.SemiAuto)
+                .I("tags", (int)WeaponTags.Shotgun)
                 .I("pierceCount", 1).F("penetrationFalloff", 0.6f)
                 .I("magazineSize", 8).I("maxReserveAmmo", 48).F("reloadTime", 2.4f)
                 .F("fireTrauma", 0.3f).F("recoilKick", 0.18f).F("knockbackMultiplier", 2.2f)
@@ -1282,6 +1291,7 @@ namespace ZombieShooter.EditorTools
                 .Str("displayName", "Assault Rifle")
                 .F("damage", 22f).F("fireRate", 600f).F("range", 60f).F("spread", 2.2f)
                 .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.Automatic)
+                .I("tags", (int)WeaponTags.Rifle).F("overclockedFireRateMultiplier", 1.35f)
                 .I("pierceCount", 2).F("penetrationFalloff", 0.6f)
                 .I("magazineSize", 30).I("maxReserveAmmo", 180).F("reloadTime", 1.7f)
                 .F("fireTrauma", 0.085f).F("recoilKick", 0.06f).F("knockbackMultiplier", 1f)
@@ -1295,6 +1305,7 @@ namespace ZombieShooter.EditorTools
                 .Str("displayName", "Sniper Rifle")
                 .F("damage", 150f).F("fireRate", 45f).F("range", 200f).F("spread", 0.1f)
                 .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.SemiAuto)
+                .I("tags", (int)WeaponTags.Precision)
                 .I("pierceCount", 6).F("penetrationFalloff", 0.85f)
                 .I("magazineSize", 5).I("maxReserveAmmo", 30).F("reloadTime", 2.8f)
                 .F("fireTrauma", 0.42f).F("recoilKick", 0.26f).F("knockbackMultiplier", 3f)
@@ -1303,6 +1314,24 @@ namespace ZombieShooter.EditorTools
                 .F("tracerWidth", 0.13f).F("tracerDuration", 0.1f).I("shellsPerShot", 1));
 
             return new[] { pistol, shotgun, assault, sniper };
+        }
+
+        /// <summary>
+        /// Economy prices as an asset, created once and then left alone - the same
+        /// create-if-missing contract as the weapon definitions, so tuning survives rebuilds.
+        /// </summary>
+        static ArmoryPrices LoadOrCreateArmoryPrices()
+        {
+            const string path = WeaponDir + "/ArmoryPrices.asset";
+
+            var existing = AssetDatabase.LoadAssetAtPath<ArmoryPrices>(path);
+            if (existing != null) return existing;
+
+            EnsureFolder(WeaponDir);
+
+            var asset = ScriptableObject.CreateInstance<ArmoryPrices>();
+            AssetDatabase.CreateAsset(asset, path);
+            return asset;
         }
 
         static WeaponDefinition LoadOrCreateWeapon(string fileName, System.Action<Fields> configure)

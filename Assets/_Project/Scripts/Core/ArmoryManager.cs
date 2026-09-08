@@ -21,19 +21,25 @@ namespace ZombieShooter
     {
         public static ArmoryManager Instance { get; private set; }
 
+        [SerializeField] ArmoryPrices prices;
+
         readonly HashSet<ModCoreType> installedMods = new();
 
-        public const int CostShotgun = 150;
-        public const int CostAssaultRifle = 250;
-        public const int CostSniper = 350;
-        public const int CostAmmoCrate = 50;
-        public const int CostBarricade = 40;
+        // Static passthroughs so every existing call site is unchanged, but the numbers now
+        // come from an asset. The literals are only a fallback for an unwired manager.
+        static ArmoryPrices P => Instance != null ? Instance.prices : null;
 
-        public const int CostDragonsBreath = 200;
-        public const int CostHeavySlug = 200;
-        public const int CostBorePiercing = 220;
-        public const int CostExtendedDrumMags = 180;
-        public const int CostOverclockedReceiver = 180;
+        public static int CostShotgun => P != null ? P.Shotgun : 150;
+        public static int CostAssaultRifle => P != null ? P.AssaultRifle : 250;
+        public static int CostSniper => P != null ? P.Sniper : 350;
+        public static int CostAmmoCrate => P != null ? P.AmmoCrate : 50;
+        public static int CostBarricade => P != null ? P.Barricade : 40;
+
+        public static int CostDragonsBreath => P != null ? P.DragonsBreath : 200;
+        public static int CostHeavySlug => P != null ? P.HeavySlug : 200;
+        public static int CostBorePiercing => P != null ? P.BorePiercing : 220;
+        public static int CostExtendedDrumMags => P != null ? P.ExtendedDrumMags : 180;
+        public static int CostOverclockedReceiver => P != null ? P.OverclockedReceiver : 180;
 
         public event Action Changed;
 
@@ -70,6 +76,34 @@ namespace ZombieShooter
 
             float mult = Instance != null && Instance.HasMod(ModCoreType.ExtendedDrumMags) ? 1.5f : 1f;
             return Mathf.RoundToInt(definition.MagazineSize * mult);
+        }
+
+        /// <summary>
+        /// Whether an installed mod actually affects a given weapon.
+        /// <para>
+        /// Applicability is decided by the weapon's tags, never by its position in the
+        /// loadout. The previous slot-index checks meant reordering slots would have
+        /// silently reassigned every mod, and a fifth weapon would have needed edits to
+        /// Weapon.cs - which is exactly what moving weapons into ScriptableObjects was
+        /// supposed to prevent.
+        /// </para>
+        /// </summary>
+        public static bool ModAppliesTo(ModCoreType mod, WeaponDefinition definition)
+        {
+            if (definition == null || Instance == null || !Instance.HasMod(mod)) return false;
+
+            return mod switch
+            {
+                ModCoreType.ExtendedDrumMags => true,
+                ModCoreType.DragonsBreath => definition.HasAnyTag(WeaponTags.Shotgun),
+                ModCoreType.HeavySlug => definition.HasAnyTag(WeaponTags.Shotgun),
+                ModCoreType.BorePiercing => definition.HasAnyTag(WeaponTags.Rifle | WeaponTags.Precision),
+                // The weapon declares its own response, so "does this apply" is simply
+                // "does this weapon react to it".
+                ModCoreType.OverclockedReceiver =>
+                    definition.OverclockedConvertsToAuto || definition.OverclockedFireRateMultiplier > 1f,
+                _ => false,
+            };
         }
 
         public bool CanAfford(int cost) =>

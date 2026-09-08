@@ -2,6 +2,21 @@ using UnityEngine;
 
 namespace ZombieShooter
 {
+    /// <summary>
+    /// What kind of weapon this is, for mod compatibility. Mods match against these rather
+    /// than against loadout position, so reordering slots or adding a fifth weapon cannot
+    /// silently reassign every mod to the wrong gun.
+    /// </summary>
+    [System.Flags]
+    public enum WeaponTags
+    {
+        None      = 0,
+        Sidearm   = 1 << 0,
+        Shotgun   = 1 << 1,
+        Rifle     = 1 << 2,
+        Precision = 1 << 3,
+    }
+
     public enum FireMode
     {
         /// <summary>Fires continuously while the trigger is held.</summary>
@@ -40,6 +55,15 @@ namespace ZombieShooter
         [Tooltip("Pellets per trigger pull. Above 1 makes it a shotgun.")]
         [SerializeField] int pelletsPerShot = 1;
         [SerializeField] FireMode fireMode = FireMode.Automatic;
+
+        [Header("Mod compatibility")]
+        [Tooltip("What this weapon counts as. Mods apply by tag, never by loadout slot.")]
+        [SerializeField] WeaponTags tags = WeaponTags.None;
+        [Tooltip("Fire rate multiplier when Overclocked Receiver is installed. 1 means the " +
+                 "mod does nothing to this weapon.")]
+        [SerializeField] float overclockedFireRateMultiplier = 1f;
+        [Tooltip("Whether Overclocked Receiver converts this weapon to full auto.")]
+        [SerializeField] bool overclockedConvertsToAuto;
 
         [Header("Penetration")]
         [Tooltip("Extra bodies a shot passes through beyond the first. 0 stops at the first.")]
@@ -84,6 +108,11 @@ namespace ZombieShooter
         public float Spread => spread;
         public int PelletsPerShot => Mathf.Max(1, pelletsPerShot);
         public FireMode Mode => fireMode;
+
+        public WeaponTags Tags => tags;
+        public bool HasAnyTag(WeaponTags any) => (tags & any) != 0;
+        public float OverclockedFireRateMultiplier => overclockedFireRateMultiplier;
+        public bool OverclockedConvertsToAuto => overclockedConvertsToAuto;
 
         public int PierceCount => Mathf.Max(0, pierceCount);
         public float PenetrationFalloff => penetrationFalloff;

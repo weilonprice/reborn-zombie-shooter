@@ -19,6 +19,9 @@ MonoBehaviour:
   spread: 0.1
   pelletsPerShot: 1
   fireMode: 1
+  tags: 8
+  overclockedFireRateMultiplier: 1.0
+  overclockedConvertsToAuto: 0
   pierceCount: 6
   penetrationFalloff: 0.85
   magazineSize: 5
