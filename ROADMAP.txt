@@ -429,6 +429,18 @@ KNOWN DEBT IN THE CURRENT BUILD
    economy actually needs tuning against it.
    Fix: move costs into a ScriptableObject alongside the weapon definitions.
 
+14. NEVER HAND-EDIT ASSET YAML FOR FIELDS THAT ARE NOT COMPILED YET.
+   Learned the hard way 2026-09-08. Weapon tags were written straight into the
+   .asset files while Unity was still compiling the WeaponDefinition change,
+   so on reimport the keys were unknown and Unity silently discarded all
+   twelve of them. Four of the five mods went dead - they check tags that were
+   suddenly None - and nothing reported it, because the drum mags mod applies
+   unconditionally and so still appeared to work.
+   Rule: let Unity compile the field first, then write the value, then verify
+   it survived a reimport. For anything larger than a few keys, use an editor
+   script with SerializedObject instead of touching YAML - that path cannot
+   write a field the assembly does not have.
+
 
 -------------------------------------------------------------------------------
 RESOLVED
