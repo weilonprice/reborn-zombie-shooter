@@ -30,32 +30,47 @@ namespace ZombieShooter.EditorTools
 
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
-            var groundMat = CreateMaterial("M_Ground", new Color(0.20f, 0.21f, 0.23f));
-            var wallMat = CreateMaterial("M_Wall", new Color(0.32f, 0.33f, 0.36f));
-            var playerMat = CreateMaterial("M_Player", new Color(0.25f, 0.65f, 1.00f));
-            var gunMat = CreateMaterial("M_Gun", new Color(0.90f, 0.90f, 0.95f));
-            var zombieMat = CreateMaterial("M_Zombie", new Color(0.35f, 0.70f, 0.28f));
-            var tracerMat = CreateUnlitMaterial("M_Tracer", new Color(1.00f, 0.85f, 0.35f));
+            // Two strict passes. Object references do NOT survive NewScene: Unity reimports
+            // assets written moments earlier, and the stale reference then serializes as null
+            // without any error. So every asset is written and flushed first, and reloaded by
+            // path only after the scene exists.
 
-            var zombiePrefab = BuildZombiePrefab(zombieMat);
+            // Pass 1 - generate assets.
+            CreateMaterial("M_Ground", new Color(0.20f, 0.21f, 0.23f));
+            CreateMaterial("M_Wall", new Color(0.32f, 0.33f, 0.36f));
+            CreateMaterial("M_Player", new Color(0.25f, 0.65f, 1.00f));
+            CreateMaterial("M_Gun", new Color(0.90f, 0.90f, 0.95f));
+            CreateMaterial("M_Zombie", new Color(0.35f, 0.70f, 0.28f));
+            CreateUnlitMaterial("M_Tracer", new Color(1.00f, 0.85f, 0.35f));
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
 
+            BuildZombiePrefab();
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            // Pass 2 - build the scene from assets loaded fresh off disk.
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            var groundMat = LoadMaterial("M_Ground");
+            var wallMat = LoadMaterial("M_Wall");
+            var playerMat = LoadMaterial("M_Player");
+            var gunMat = LoadMaterial("M_Gun");
+            var tracerMat = LoadMaterial("M_Tracer");
+            var zombiePrefab = LoadZombiePrefab();
 
             BuildEnvironment(groundMat, wallMat);
             var player = BuildPlayer(playerMat, gunMat, tracerMat);
-            var camera = BuildCamera(player.transform);
+            BuildCamera(player.transform);
             var waves = BuildManagers(player, zombiePrefab);
             BuildHud(player, waves);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
             RegisterInBuildSettings();
-
             AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
 
-            Debug.Log($"<b>Zombie Shooter</b>: arena built at {ScenePath}. Press Play. " +
-                      "WASD to move, mouse to aim, left click to fire, R to reload.");
+            Validate(waves);
         }
 
         // ---------------------------------------------------------------- environment
@@ -202,8 +217,10 @@ namespace ZombieShooter.EditorTools
 
         // ---------------------------------------------------------------- zombie
 
-        static ZombieAI BuildZombiePrefab(Material mat)
+        static void BuildZombiePrefab()
         {
+            var mat = LoadMaterial("M_Zombie");
+
             var zombie = new GameObject("Zombie");
             zombie.transform.position = Vector3.zero;
 
@@ -241,10 +258,8 @@ namespace ZombieShooter.EditorTools
                  .I("scoreValue", 10);
             }
 
-            var saved = PrefabUtility.SaveAsPrefabAsset(zombie, ZombiePrefabPath);
+            PrefabUtility.SaveAsPrefabAsset(zombie, ZombiePrefabPath);
             Object.DestroyImmediate(zombie);
-
-            return saved.GetComponent<ZombieAI>();
         }
 
         // ---------------------------------------------------------------- managers
@@ -260,7 +275,7 @@ namespace ZombieShooter.EditorTools
             using (var f = new Fields(waves))
             {
                 f.Obj("zombiePrefab", zombiePrefab).Obj("player", player.transform)
-                 .F("spawnRadius", 24f).F("minDistanceFromPlayer", 12f)
+                 .F("spawnRadius", 24f).F("minDistanceFromPlayer", 12f).F("spawnHeight", 1f)
                  .I("firstWaveCount", 5).F("countGrowth", 2.5f).I("maxAliveAtOnce", 60)
                  .F("timeBetweenSpawns", 0.45f).F("timeBetweenWaves", 5f);
             }
@@ -285,7 +300,7 @@ namespace ZombieShooter.EditorTools
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
 
-            if (Object.FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
+            if (Object.FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
             {
                 new GameObject("EventSystem",
                     typeof(UnityEngine.EventSystems.EventSystem),
@@ -423,6 +438,48 @@ namespace ZombieShooter.EditorTools
 
             AssetDatabase.CreateAsset(mat, path);
             return mat;
+        }
+
+        static Material LoadMaterial(string name)
+        {
+            string path = $"{MaterialDir}/{name}.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null) Debug.LogError($"ArenaBuilder: no material at {path}.");
+            return mat;
+        }
+
+        static ZombieAI LoadZombiePrefab()
+        {
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(ZombiePrefabPath);
+            if (go == null)
+            {
+                Debug.LogError($"ArenaBuilder: no prefab at {ZombiePrefabPath}.");
+                return null;
+            }
+
+            var ai = go.GetComponent<ZombieAI>();
+            if (ai == null) Debug.LogError($"ArenaBuilder: {ZombiePrefabPath} has no ZombieAI component.");
+            return ai;
+        }
+
+        /// <summary>
+        /// Confirms the references that cannot fail loudly on their own actually landed.
+        /// A null prefab here means zero zombies at runtime with no other symptom.
+        /// </summary>
+        static void Validate(WaveManager waves)
+        {
+            var prefab = new SerializedObject(waves).FindProperty("zombiePrefab");
+
+            if (prefab == null || prefab.objectReferenceValue == null)
+            {
+                Debug.LogError("<b>Zombie Shooter</b>: the zombie prefab did NOT serialize onto " +
+                               "WaveManager - no zombies will spawn. This is a builder bug, not a " +
+                               "setup mistake; re-run the builder.", waves);
+                return;
+            }
+
+            Debug.Log($"<b>Zombie Shooter</b>: arena built at {ScenePath}, zombie prefab wired. " +
+                      "Press Play. WASD to move, mouse to aim, left click to fire, R to reload.");
         }
 
         static void RegisterInBuildSettings()

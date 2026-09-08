@@ -1,0 +1,204 @@
+REBORN - DEVELOPMENT ROADMAP
+Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
+Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 56 weeks.
+Status:  Phase 0 in progress. Core loop verified 2026-09-08.
+
+Task list only. Each phase ends at a gate - do not start the next phase
+until the gate passes.
+
+
+-------------------------------------------------------------------------------
+PROGRESS LOG
+-------------------------------------------------------------------------------
+
+2026-09-08  Player feel verified. Movement, shooting, aiming and reloading
+            all confirmed good in play. No tuning adjustments needed.
+2026-09-08  Enemies live. Zombies spawn on the ring, take damage, die, and
+            recycle through the pool. Core loop is now closed end to end.
+2026-09-08  Fixed: ArenaBuilder wrote a null zombie prefab reference because
+            object references do not survive NewScene. Builder now generates
+            assets and builds the scene in two passes, and validates the
+            result instead of failing silently.
+
+
+===============================================================================
+PHASE 0 - PROVE IT'S FUN WITH ZERO ART            Weeks 1-2
+===============================================================================
+
+[x] Tuning pass - DONE 2026-09-08. Movement, shooting, aiming, reloading all
+    confirmed good in play. No adjustments needed.
+[x] Enemies spawning and killable - DONE 2026-09-08. Zombies spawn, take
+    damage, die, and recycle. Wave counter and score both advance.
+[ ] Hit feedback - damage flash, knockback, hit-stop on kill.
+    (Damage is currently invisible. Biggest remaining feel gap.)
+[ ] Weapon feedback - muzzle flash, impact sparks, shell ejection,
+    camera recoil kick.
+[ ] Screen shake on fire and kill, with an intensity curve.
+[ ] Death moments - dissolve, ragdoll pop, or gib burst.
+[ ] First audio - gunshot, impact, zombie death, low ambient bed.
+
+GATE 0: A stranger keeps shooting for 30 seconds without being told to.
+
+
+===============================================================================
+PHASE 1 - FIND THE HOOK                           Weeks 3-8
+===============================================================================
+
+[ ] Move weapon stats into ScriptableObjects so weapons are data, not code.
+[ ] Build 3-4 weapons that genuinely play differently (not stat variations).
+[ ] Enemy archetypes - runner, brute, ranged/exploder. Each must force a
+    different player response.
+[ ] Between-wave choice - upgrade draft or shop. Source of build variety.
+[ ] Define run structure - run length, win condition or endless + score.
+[ ] Write the hook in one sentence: why pick this over the dozen alternatives.
+
+GATE 1: You voluntarily play 5 runs back to back, and can state the hook in
+one sentence a stranger finds interesting. Failing this means changing the
+design, not adding polish.
+
+
+===============================================================================
+PHASE 2 - VERTICAL SLICE & ART DIRECTION LOCK     Weeks 9-16
+===============================================================================
+
+[ ] URP post-processing stack - bloom, color grading, vignette, subtle grain.
+    Does more for a minimal look than any model would.
+[ ] Lighting design - committed palette and mood, strong silhouettes,
+    high contrast.
+[ ] VFX language - consistent rules for muzzles, impacts, deaths, pickups.
+[ ] Arena as level design - replace the generated box with a hand-authored
+    space: cover, chokepoints, sightlines, a reason to move.
+[ ] UI pass - migrate to TextMeshPro, design real HUD, main menu, pause.
+[ ] Audio pass - full mix, music bed, dynamic intensity between waves.
+[ ] RETIRE ArenaBuilder once hand-authoring starts (see debt item 1).
+
+GATE 2: Capture 60 seconds of unedited play you would put on a store page
+as-is. That clip becomes the Phase 3 trailer.
+
+
+===============================================================================
+PHASE 3 - STEAM PAGE LIVE                         Weeks 14-18  (overlaps P2)
+===============================================================================
+
+[ ] Store page - capsule art, screenshots, description, tags.
+    Capsule art is the click-through gate; weight it accordingly.
+[ ] Announce trailer cut from the Gate 2 capture.
+[ ] Steamworks setup - App ID, depots, build upload pipeline,
+    achievements scaffolding, Steam Cloud.
+[ ] Save system - settings persistence + meta progression storage.
+    Needed before Phase 4; expensive to retrofit.
+[ ] Migrate InputReader to Input Actions + rebinding UI (see debt item 2).
+[ ] Start devlog cadence.
+
+GATE 3: Page live and accumulating wishlists on its own.
+
+
+===============================================================================
+PHASE 4 - CONTENT PRODUCTION                      Weeks 17-34
+===============================================================================
+
+Target counts are budgets, not minimums.
+
+[ ] Enemy roster to ~12, including 2-3 bosses with real mechanics.
+[ ] Weapons to ~10, each with a distinct role.
+[ ] Upgrades to 60+, with intentional synergies.
+[ ] Arenas - 3-4 hand-designed spaces with different tactical character.
+[ ] Meta progression - unlocks and persistent goals that give a losing run
+    value.
+[ ] Performance - profile the horde. Expect the O(n^2) separation to need a
+    spatial hash past ~100 agents (see debt item 6).
+
+GATE 4: 10+ hours of play without repetition becoming obvious, and no run
+feels like a strictly worse version of another.
+
+
+===============================================================================
+PHASE 5 - DEMO & NEXT FEST                        Weeks 32-40
+===============================================================================
+
+[ ] Demo build - first 20 minutes, self-contained, ending on a hook.
+[ ] Telemetry - where players quit, which upgrades get picked, which weapons
+    never do, where they die.
+[ ] External playtests in rounds. Watch silently. Do not explain controls.
+[ ] Onboarding pass - most first-time-player problems surface here.
+[ ] Register for Next Fest deliberately - one-shot visibility spike, align it
+    to a strong build.
+
+GATE 5: Demo retention holds past 10 minutes for most players, and the
+wishlist curve visibly steps up during the fest.
+
+
+===============================================================================
+PHASE 6 - LAUNCH PREPARATION                      Weeks 41-56
+===============================================================================
+
+[ ] CONTENT FREEZE at week 44. Bugs and balance only after that.
+    Anything new becomes post-launch update material.
+[ ] Steam Deck verification.
+[ ] Accessibility & settings - full input rebinding, colorblind-safe palette,
+    difficulty options, screen shake toggle.
+[ ] Localization for highest-value languages, if text budget allows.
+[ ] Launch trailer, press & streamer outreach, keys out several weeks ahead.
+[ ] Confirm pricing and release date.
+
+GATE 6: Release candidate runs 2 weeks with no new critical bugs, on both
+desktop and Steam Deck. Ship it.
+
+
+===============================================================================
+CONTINUOUS TRACKS - run alongside every phase
+===============================================================================
+
+[ ] Playtesting        WEEKLY   Someone other than you plays, from Phase 0 on.
+                                Watch without commentary.
+[ ] Audience building  2-3/WK   Short clips of game feel and VFX work.
+                                Start now, not at the store page.
+[ ] Build hygiene      ONGOING  Keep repo clean, tag milestone builds, make a
+                                runnable build weekly.
+[ ] Runway tracking    MONTHLY  Know your months of runway vs. current phase.
+
+
+===============================================================================
+KNOWN DEBT IN THE CURRENT BUILD
+===============================================================================
+
+1. ARENA SCENE IS GENERATED.
+   ArenaBuilder overwrites Arena.unity wholesale. Retire the tool the moment
+   hand-authoring starts in Phase 2, or it will silently destroy level design.
+
+2. INPUT IS POLLED DIRECTLY.
+   InputReader reads devices rather than action maps. Commercial release needs
+   full rebinding. Migrate to Input Actions in Phase 3 with the settings menu.
+
+3. HUD USES LEGACY uGUI TEXT.
+   Chosen to avoid the TextMeshPro import prompt on first run.
+   Migrate in the Phase 2 UI pass.
+
+4. NO SAVE OR SETTINGS PERSISTENCE.
+   Needed before Phase 4 meta progression. Expensive to retrofit.
+
+5. NO ASSEMBLY DEFINITIONS.
+   Everything compiles into Assembly-CSharp. Add asmdefs before iteration
+   times start costing real minutes.
+
+6. ZOMBIE STEERING IS NAIVE.
+   O(n^2) separation, fine for tens of agents, not hundreds. Revisit with
+   Phase 4 performance work. NavMesh is installed if the map gains real
+   obstacles.
+
+
+===============================================================================
+START HERE - THIS WEEK
+===============================================================================
+
+1. Make damage visible.
+   Hit flash, knockback, hit-stop on kill. A zombie absorbing four bullets
+   currently looks identical to one absorbing none. Largest remaining gap.
+
+2. Make kills land.
+   Death effect (dissolve, pop or gib burst), plus muzzle flash and impact
+   sparks. Kills should read as events, not disappearances.
+
+3. Add the first three sounds.
+   Gunshot, impact, death. Placeholder audio is fine. Roughly half of
+   perceived game feel is audio, and it is the cheapest half.

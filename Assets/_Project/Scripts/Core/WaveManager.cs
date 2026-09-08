@@ -18,6 +18,9 @@ namespace ZombieShooter
         [SerializeField] float spawnRadius = 22f;
         [Tooltip("Never spawn closer than this to the player, so nothing pops in on top of them.")]
         [SerializeField] float minDistanceFromPlayer = 12f;
+        [Tooltip("Height zombies spawn at. Their capsule is centred on the pivot, so spawning " +
+                 "at ground level would bury the lower half and make them pop upward.")]
+        [SerializeField] float spawnHeight = 1f;
 
         [Header("Pacing")]
         [SerializeField] int firstWaveCount = 5;
@@ -116,12 +119,12 @@ namespace ZombieShooter
 
             // A handful of tries is plenty to find a point away from the player;
             // the last candidate is accepted regardless so this always terminates.
-            Vector3 point = centre;
+            Vector3 point = centre + Vector3.up * spawnHeight;
             for (int attempt = 0; attempt < 8; attempt++)
             {
                 float angle = UnityEngine.Random.value * Mathf.PI * 2f;
                 point = centre + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * spawnRadius;
-                point.y = centre.y;
+                point.y = centre.y + spawnHeight;
 
                 if (player == null) break;
                 if ((point - player.position).sqrMagnitude >= minDistanceFromPlayer * minDistanceFromPlayer)
