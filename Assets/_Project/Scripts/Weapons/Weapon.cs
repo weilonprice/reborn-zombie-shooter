@@ -27,6 +27,7 @@ namespace ZombieShooter
         [Header("Feedback")]
         [SerializeField] Transform muzzle;
         [SerializeField] LineRenderer tracer;
+        [SerializeField] MuzzleFlash muzzleFlash;
         [SerializeField] float tracerDuration = 0.03f;
 
         float nextFireTime;
@@ -78,6 +79,8 @@ namespace ZombieShooter
             Ammo--;
             AmmoChanged?.Invoke(Ammo, magazineSize);
 
+            if (muzzleFlash != null) muzzleFlash.Play();
+
             for (int i = 0; i < pelletsPerShot; i++)
                 FireOnePellet();
 
@@ -97,6 +100,8 @@ namespace ZombieShooter
                 // GetComponentInParent so colliders on child meshes still report to the root.
                 var target = hit.collider.GetComponentInParent<IDamageable>();
                 target?.TakeDamage(damage, hit.point, hit.normal);
+
+                ImpactEffects.Instance?.PlayImpact(hit.point, hit.normal);
             }
 
             if (tracer != null) StartCoroutine(ShowTracer(origin, endPoint));

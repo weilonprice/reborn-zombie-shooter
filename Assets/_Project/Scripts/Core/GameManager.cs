@@ -79,6 +79,10 @@ namespace ZombieShooter
 
         public void Restart()
         {
+            // timeScale survives a scene load, so a restart during a hit-stop freeze would
+            // otherwise come back to a permanently frozen game.
+            Time.timeScale = 1f;
+
             // Reloading the scene is the cheapest correct reset for a prototype:
             // every system rebuilds its own state in Awake/OnEnable.
             var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
