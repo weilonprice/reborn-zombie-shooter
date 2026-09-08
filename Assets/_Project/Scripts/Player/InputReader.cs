@@ -96,5 +96,18 @@ namespace ZombieShooter
         public static bool RestartPressed =>
             (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame) ||
             (Gamepad.current != null && Gamepad.current.startButton.wasPressedThisFrame);
+
+        public static bool ArmoryPressed =>
+            (Keyboard.current != null && Keyboard.current.bKey.wasPressedThisFrame) ||
+            (Gamepad.current != null && Gamepad.current.buttonNorth.wasPressedThisFrame);
+
+        public static bool DeployPressed =>
+            (Keyboard.current != null && (Keyboard.current.fKey.wasPressedThisFrame || Keyboard.current.eKey.wasPressedThisFrame)) ||
+            (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame) ||
+            (Gamepad.current != null && Gamepad.current.leftShoulder.wasPressedThisFrame);
+
+        public static bool RotateDeployablePressed =>
+            (Keyboard.current != null && (Keyboard.current.rKey.wasPressedThisFrame || Keyboard.current.qKey.wasPressedThisFrame)) ||
+            (Gamepad.current != null && Gamepad.current.rightShoulder.wasPressedThisFrame);
     }
 }

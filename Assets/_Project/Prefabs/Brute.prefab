@@ -99,6 +99,7 @@ MonoBehaviour:
   attackDamage: 25
   attackCooldown: 1.4
   scoreValue: 30
+  goldReward: 40
   deathLinger: 0.25
   deathClip: {fileID: 8300000, guid: 9e65ae5b350164ce98b50756f9b5882f, type: 3}
   deathVolume: 0.75

@@ -18,8 +18,10 @@ namespace ZombieShooter
         public GameState State { get; private set; } = GameState.Playing;
         public int Score { get; private set; }
         public int Kills { get; private set; }
+        public int Gold { get; private set; }
 
         public event Action<int> ScoreChanged;
+        public event Action<int> GoldChanged;
         public event Action StateChanged;
 
         void Awake()
@@ -67,6 +69,23 @@ namespace ZombieShooter
             Score += amount;
             Kills++;
             ScoreChanged?.Invoke(Score);
+        }
+
+        public void AddGold(int amount)
+        {
+            if (State != GameState.Playing || amount <= 0) return;
+
+            Gold += amount;
+            GoldChanged?.Invoke(Gold);
+        }
+
+        public bool TrySpendGold(int amount)
+        {
+            if (amount < 0 || Gold < amount) return false;
+
+            Gold -= amount;
+            GoldChanged?.Invoke(Gold);
+            return true;
         }
 
         void OnPlayerDied(Health _)

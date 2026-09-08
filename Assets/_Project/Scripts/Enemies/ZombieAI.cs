@@ -39,6 +39,7 @@ namespace ZombieShooter
         [SerializeField] float attackDamage = 12f;
         [SerializeField] float attackCooldown = 1.1f;
         [SerializeField] int scoreValue = 10;
+        [SerializeField] int goldReward = 10;
         [Tooltip("Seconds the body stays up after dying, so the kill flash and hit-stop " +
                  "have something on screen to land on. Not a death animation - just enough " +
                  "frames for the impact to register.")]
@@ -69,6 +70,7 @@ namespace ZombieShooter
         public event Action<ZombieAI> Died;
 
         public int ScoreValue => scoreValue;
+        public int GoldReward => goldReward;
         /// <summary>The prefab this instance was instantiated from, for multi-type pooling.</summary>
         public ZombieAI PrefabSource { get; set; }
 
@@ -97,6 +99,9 @@ namespace ZombieShooter
             health.Damaged -= OnDamaged;
         }
 
+        static readonly RaycastHit[] ObstacleHits = new RaycastHit[4];
+        Barricade blockingBarricade;
+
         public void SetTarget(Transform t) => target = t;
 
         void Update()
@@ -115,10 +120,40 @@ namespace ZombieShooter
             toTarget.y = 0f;
             float distance = toTarget.magnitude;
 
+            blockingBarricade = !isRanged ? CheckForBlockingBarricade() : null;
+
             Steer(toTarget, distance);
 
             if (distance <= attackRange)
+            {
                 TryAttack();
+            }
+            else if (blockingBarricade != null && blockingBarricade.IsAlive)
+            {
+                TryAttackBarricade(blockingBarricade);
+            }
+        }
+
+        Barricade CheckForBlockingBarricade()
+        {
+            var origin = transform.position + Vector3.up * 0.5f;
+            var dir = transform.forward;
+            int count = Physics.SphereCastNonAlloc(origin, 0.35f, dir, ObstacleHits, attackRange, ~0, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
+            {
+                var b = ObstacleHits[i].collider.GetComponentInParent<Barricade>();
+                if (b != null && b.IsAlive) return b;
+            }
+            return null;
+        }
+
+        void TryAttackBarricade(Barricade barricade)
+        {
+            if (Time.time < nextAttackTime || barricade == null || !barricade.IsAlive) return;
+            nextAttackTime = Time.time + attackCooldown;
+
+            barricade.TakeDamage(new DamageInfo(
+                attackDamage, transform.position, -transform.forward, 1f, gameObject));
         }
 
         void Steer(Vector3 toTarget, float distance)
@@ -139,8 +174,10 @@ namespace ZombieShooter
             }
             else
             {
-                // Stop closing once in melee range, but keep separating so bodies don't stack.
-                if (distance <= attackRange) move = Vector3.zero;
+                // Stop closing once in melee range of player or clawing a barricade,
+                // but keep separating so bodies don't stack.
+                if (distance <= attackRange || (blockingBarricade != null && blockingBarricade.IsAlive))
+                    move = Vector3.zero;
             }
 
             move += Separation() * separationStrength;
@@ -235,6 +272,7 @@ namespace ZombieShooter
             dying = true;
 
             GameManager.Instance?.AddScore(scoreValue);
+            GameManager.Instance?.AddGold(goldReward);
             HitStop.Instance?.FreezeForKill();
             SfxPlayer.Instance?.PlayAt(deathClip, transform.position, deathVolume);
             CameraShake.Instance?.AddTrauma(killTrauma);
