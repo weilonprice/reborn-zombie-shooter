@@ -108,6 +108,13 @@ PROGRESS LOG
             upgraded rifle topped to 30 when it holds 45, silently half
             refunding the mod on every restock, on every weapon.
             ArmoryManager.EffectiveMagazineSize is now the single owner.
+2026-09-08  Endless mode in. [E] on the victory screen drops the wave cap and
+            resumes the same run at wave 16 rather than restarting - health,
+            gold, weapons and mods all carry over, so it reads as continuing
+            past the finish line rather than a separate mode. WaveNumber is a
+            field and survives the coroutine ending, which is what makes the
+            continuation free. The unlock is session-only until the save
+            system lands in Phase 3.
 2026-09-08  GATE 1 PASSED. Core mechanics validated across repeated runs and
             the hook is stateable. Noted honestly: gameplay and game design
             still want refinement. That is the correct outcome for this gate -
@@ -195,7 +202,11 @@ PHASE 1 - FIND THE HOOK                           Weeks 3-8
     counter so the run reads as an arc rather than a treadmill. Played end to
     end and validated - the 20-25 minute arc holds up, so that is the length
     the boss gets designed against.
-    STILL TO DO: the boss encounter, and endless unlocked by winning.
+    DONE: endless mode - [E] on the victory screen drops the wave cap and
+    resumes the same run at wave 16, carrying health, gold, weapons and mods.
+    STILL TO DO: the boss encounter. Endless is currently unlocked only within
+    the session that won it; making the unlock persist needs the save system,
+    which is debt item 4 and due in Phase 3.
 [x] Write the hook in one sentence - DONE 2026-09-08: "A top-down wave survival
     shooter where you spend blood money to physically engineer fortified
     killboxes and mod firearms into crowd-shredding weapons of war."

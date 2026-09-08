@@ -146,6 +146,20 @@ namespace ZombieShooter
             }
         }
 
+        /// <summary>
+        /// Drops the wave cap and resumes the loop after a win. WaveNumber is a field and
+        /// survives the coroutine ending, so the next wave is 16 rather than 1 - endless
+        /// continues the run instead of restarting it.
+        /// </summary>
+        public void ContinueEndless()
+        {
+            if (GameManager.Instance == null || GameManager.Instance.State != GameState.Victory) return;
+
+            finalWave = 0;
+            GameManager.Instance.ResumeForEndless();
+            loop = StartCoroutine(RunWaves());
+        }
+
         public void ReadyNextWave()
         {
             WaitingForPlayerReady = false;
@@ -156,6 +170,13 @@ namespace ZombieShooter
             if (OnBreak && WaitingForPlayerReady && InputReader.RestartPressed && Time.timeScale > 0f)
             {
                 ReadyNextWave();
+            }
+
+            if (GameManager.Instance != null
+                && GameManager.Instance.State == GameState.Victory
+                && InputReader.EndlessPressed)
+            {
+                ContinueEndless();
             }
         }
 

@@ -93,6 +93,12 @@ namespace ZombieShooter
             }
         }
 
+        /// <summary>Continue past a win into endless. Separate key from restart so the
+        /// victory screen can offer both without one shadowing the other.</summary>
+        public static bool EndlessPressed =>
+            (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame) ||
+            (Gamepad.current != null && Gamepad.current.buttonNorth.wasPressedThisFrame);
+
         public static bool RestartPressed =>
             (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame) ||
             (Gamepad.current != null && Gamepad.current.startButton.wasPressedThisFrame);

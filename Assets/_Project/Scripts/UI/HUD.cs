@@ -206,7 +206,7 @@ namespace ZombieShooter
                 int wonScore = GameManager.Instance.Score;
                 int wonGold = GameManager.Instance.Gold;
                 int lastWave = waves != null ? waves.WaveNumber : 0;
-                centreLabel.text = $"YOU SURVIVED\nAll {lastWave} waves cleared  ·  Score {wonScore}  ·  Gold ${wonGold}\n\nPress SPACE to play again";
+                centreLabel.text = $"YOU SURVIVED\nAll {lastWave} waves cleared  ·  Score {wonScore}  ·  Gold ${wonGold}\n\n[E] CONTINUE ENDLESS   ·   [SPACE] PLAY AGAIN";
                 return;
             }
 
