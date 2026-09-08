@@ -13,6 +13,7 @@ namespace ZombieShooter
         [SerializeField] Weapon weapon;
         [SerializeField] WaveManager waves;
         [SerializeField] WeaponLoadout loadout;
+        [SerializeField] BarricadePlacer placer;
 
         [Header("Widgets")]
         [SerializeField] Image healthFill;
@@ -21,6 +22,8 @@ namespace ZombieShooter
         [SerializeField] Text weaponLabel;
         [SerializeField] Text waveLabel;
         [SerializeField] Text scoreLabel;
+        [SerializeField] Text goldLabel;
+        [SerializeField] Text barricadeLabel;
         [SerializeField] Text centreLabel;
 
         bool lastReloading;
@@ -45,21 +48,32 @@ namespace ZombieShooter
             {
                 waves.WaveStarted += OnWaveStarted;
                 waves.RemainingChanged += OnRemainingChanged;
+                waves.BreakStarted += RefreshCentreLabel;
+                waves.BreakEnded += RefreshCentreLabel;
             }
 
             if (loadout != null)
             {
                 loadout.WeaponChanged += OnWeaponChanged;
+                loadout.ReserveAmmoChanged += OnReserveAmmoChanged;
                 // Covers either execution order: if the loadout already picked a weapon we
                 // read it, and if it has not, the event above delivers it.
                 OnWeaponChanged(loadout.CurrentDefinition);
             }
 
+            if (placer != null)
+            {
+                placer.BarricadesChanged += OnBarricadesChanged;
+                OnBarricadesChanged(placer.BarricadesInStock);
+            }
+
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.ScoreChanged += OnScoreChanged;
+                GameManager.Instance.GoldChanged += OnGoldChanged;
                 GameManager.Instance.StateChanged += RefreshCentreLabel;
                 OnScoreChanged(GameManager.Instance.Score);
+                OnGoldChanged(GameManager.Instance.Gold);
             }
 
             RefreshWaveLabel();
@@ -75,13 +89,25 @@ namespace ZombieShooter
             {
                 waves.WaveStarted -= OnWaveStarted;
                 waves.RemainingChanged -= OnRemainingChanged;
+                waves.BreakStarted -= RefreshCentreLabel;
+                waves.BreakEnded -= RefreshCentreLabel;
             }
 
-            if (loadout != null) loadout.WeaponChanged -= OnWeaponChanged;
+            if (loadout != null)
+            {
+                loadout.WeaponChanged -= OnWeaponChanged;
+                loadout.ReserveAmmoChanged -= OnReserveAmmoChanged;
+            }
+
+            if (placer != null)
+            {
+                placer.BarricadesChanged -= OnBarricadesChanged;
+            }
 
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.ScoreChanged -= OnScoreChanged;
+                GameManager.Instance.GoldChanged -= OnGoldChanged;
                 GameManager.Instance.StateChanged -= RefreshCentreLabel;
             }
         }
@@ -108,9 +134,22 @@ namespace ZombieShooter
         {
             if (ammoLabel == null) return;
 
+            string reserveText = "∞";
+            if (loadout != null)
+            {
+                int res = loadout.CurrentReserveAmmo;
+                if (res >= 0) reserveText = res.ToString();
+            }
+
             ammoLabel.text = weapon != null && weapon.IsReloading
-                ? "RELOADING..."
-                : $"{ammo} / {magazine}";
+                ? $"RELOADING...  [{reserveText}]"
+                : $"{ammo} / {magazine}  [{reserveText}]";
+        }
+
+        void OnReserveAmmoChanged(int slot, int reserve)
+        {
+            if (weapon != null)
+                OnAmmoChanged(weapon.Ammo, weapon.MagazineSize);
         }
 
         void OnWeaponChanged(WeaponDefinition weaponDefinition)
@@ -120,6 +159,9 @@ namespace ZombieShooter
             weaponLabel.text = weaponDefinition != null
                 ? weaponDefinition.DisplayName.ToUpperInvariant()
                 : string.Empty;
+
+            if (weapon != null)
+                OnAmmoChanged(weapon.Ammo, weapon.MagazineSize);
         }
 
         void OnWaveStarted(int wave)
@@ -135,6 +177,17 @@ namespace ZombieShooter
             if (scoreLabel != null) scoreLabel.text = $"SCORE {score}";
         }
 
+        void OnGoldChanged(int gold)
+        {
+            if (goldLabel != null) goldLabel.text = $"GOLD ${gold}";
+        }
+
+        void OnBarricadesChanged(int count)
+        {
+            if (barricadeLabel != null)
+                barricadeLabel.text = $"[F] BARRICADE  x{count}";
+        }
+
         void RefreshWaveLabel()
         {
             if (waveLabel == null || waves == null) return;
@@ -148,14 +201,15 @@ namespace ZombieShooter
             if (GameManager.Instance != null && GameManager.Instance.State == GameState.GameOver)
             {
                 int score = GameManager.Instance.Score;
+                int gold = GameManager.Instance.Gold;
                 int wave = waves != null ? waves.WaveNumber : 0;
-                centreLabel.text = $"YOU DIED\nWave {wave}  ·  Score {score}\n\nPress SPACE to restart";
+                centreLabel.text = $"YOU DIED\nWave {wave}  ·  Score {score}  ·  Gold ${gold}\n\nPress SPACE to restart";
                 return;
             }
 
             if (waves != null && waves.OnBreak)
             {
-                centreLabel.text = $"WAVE {waves.WaveNumber + 1} IN {Mathf.CeilToInt(waves.BreakTimeLeft)}";
+                centreLabel.text = $"WAVE {waves.WaveNumber} CLEARED!\n[B] ARMORY SHOP   ·   [F] PLACE FORTIFICATIONS   ·   [SPACE] NEXT WAVE";
                 return;
             }
 

@@ -7,9 +7,8 @@ namespace ZombieShooter
 {
     /// <summary>
     /// Runtime for a firearm. Holds no stats of its own: it executes a
-    /// <see cref="WeaponDefinition"/> against the scene references wired here, so a new
-    /// weapon is a new asset rather than a new script or another tuned component.
-    /// Switching weapons is <see cref="Equip"/>.
+    /// <see cref="WeaponDefinition"/> against scene wiring and active mod cores
+    /// from <see cref="ArmoryManager"/>, drawing ammo from <see cref="WeaponLoadout"/>.
     /// </summary>
     public class Weapon : MonoBehaviour
     {
@@ -18,24 +17,32 @@ namespace ZombieShooter
 
         [Header("Scene wiring")]
         [Tooltip("Where the hit test starts. Defaults to this object, which sits at the " +
-                 "player's centre. Must NOT be the muzzle: at melee range the barrel is " +
-                 "inside the zombie's collider, and a ray starting inside a collider never " +
-                 "reports hitting it, so point-blank shots pass straight through.")]
+                 "player's centre. Must NOT be the muzzle.")]
         [SerializeField] Transform rayOrigin;
         [SerializeField] Transform muzzle;
         [SerializeField] MuzzleFlash muzzleFlash;
         [SerializeField] ParticleSystem shellEject;
         [SerializeField] LayerMask hitMask = ~0;
 
-        // Shared across every weapon: only one shot is ever resolved at a time.
         static readonly RaycastHit[] HitBuffer = new RaycastHit[24];
 
+        int slotIndex;
         float nextFireTime;
         Coroutine reloadRoutine;
         Health ownerHealth;
+        WeaponLoadout loadout;
 
         public WeaponDefinition Definition => definition;
-        public int MagazineSize => definition != null ? definition.MagazineSize : 0;
+        public int MagazineSize
+        {
+            get
+            {
+                if (definition == null) return 0;
+                float mult = ArmoryManager.Instance != null && ArmoryManager.Instance.HasMod(ModCoreType.ExtendedDrumMags) ? 1.5f : 1f;
+                return Mathf.RoundToInt(definition.MagazineSize * mult);
+            }
+        }
+
         public int Ammo { get; private set; }
         public bool IsReloading => reloadRoutine != null;
 
@@ -46,8 +53,9 @@ namespace ZombieShooter
         {
             if (muzzle == null) muzzle = transform;
             ownerHealth = GetComponentInParent<Health>();
+            loadout = GetComponent<WeaponLoadout>();
 
-            Equip(definition);
+            Equip(definition, 0);
         }
 
         void Start()
@@ -55,10 +63,10 @@ namespace ZombieShooter
             AmmoChanged?.Invoke(Ammo, MagazineSize);
         }
 
-        /// <summary>Swaps the weapon's design wholesale, resetting ammo and presentation.</summary>
-        public void Equip(WeaponDefinition next)
+        public void Equip(WeaponDefinition next, int slot = 0)
         {
             definition = next;
+            slotIndex = slot;
 
             if (definition == null)
             {
@@ -68,22 +76,26 @@ namespace ZombieShooter
             }
 
             CancelReload();
-            Ammo = definition.MagazineSize;
+            Ammo = MagazineSize;
             nextFireTime = 0f;
 
-            AmmoChanged?.Invoke(Ammo, definition.MagazineSize);
+            AmmoChanged?.Invoke(Ammo, MagazineSize);
         }
 
         void Update()
         {
+            if (Time.timeScale <= 0f) return;
             if (definition == null) return;
             if (GameManager.Instance != null && GameManager.Instance.State != GameState.Playing) return;
             if (ownerHealth != null && !ownerHealth.IsAlive) return;
 
             if (InputReader.ReloadPressed) BeginReload();
 
-            // Semi-auto reads the press, not the hold, so holding the trigger fires once.
-            bool pullingTrigger = definition.Mode == FireMode.Automatic
+            FireMode effectiveMode = definition.Mode;
+            if (slotIndex == 0 && ArmoryManager.Instance != null && ArmoryManager.Instance.HasMod(ModCoreType.OverclockedReceiver))
+                effectiveMode = FireMode.Automatic;
+
+            bool pullingTrigger = effectiveMode == FireMode.Automatic
                 ? InputReader.FireHeld
                 : InputReader.FirePressed;
 
@@ -100,11 +112,17 @@ namespace ZombieShooter
                 return;
             }
 
-            nextFireTime = Time.time + definition.SecondsBetweenShots;
-            Ammo--;
-            AmmoChanged?.Invoke(Ammo, definition.MagazineSize);
+            float fireRate = definition.FireRate;
+            if (ArmoryManager.Instance != null && ArmoryManager.Instance.HasMod(ModCoreType.OverclockedReceiver))
+            {
+                if (slotIndex == 0) fireRate *= 1.5f;       // Pistol
+                else if (slotIndex == 2) fireRate *= 1.35f;  // Assault Rifle
+            }
 
-            // Once per trigger pull, not per pellet: a shotgun flashes once and ejects one shell.
+            nextFireTime = Time.time + (60f / Mathf.Max(1f, fireRate));
+            Ammo--;
+            AmmoChanged?.Invoke(Ammo, MagazineSize);
+
             if (muzzleFlash != null) muzzleFlash.Play();
             SfxPlayer.Instance?.PlayFlat(definition.FireClip, definition.FireVolume);
             CameraShake.Instance?.AddTrauma(definition.FireTrauma);
@@ -113,35 +131,35 @@ namespace ZombieShooter
             if (shellEject != null && definition.ShellsPerShot > 0)
                 shellEject.Emit(definition.ShellsPerShot);
 
+            bool isShotgun = slotIndex == 1;
+            bool heavySlug = isShotgun && ArmoryManager.Instance != null && ArmoryManager.Instance.HasMod(ModCoreType.HeavySlug);
+            bool dragonsBreath = isShotgun && ArmoryManager.Instance != null && ArmoryManager.Instance.HasMod(ModCoreType.DragonsBreath);
+
+            int pellets = heavySlug ? 1 : definition.PelletsPerShot;
             bool anyHit = false;
             var impactPoint = Vector3.zero;
 
-            for (int i = 0; i < definition.PelletsPerShot; i++)
+            for (int i = 0; i < pellets; i++)
             {
-                if (FireOnePellet(out var point) && !anyHit)
+                if (FireOnePellet(heavySlug, dragonsBreath, out var point) && !anyHit)
                 {
                     anyHit = true;
                     impactPoint = point;
                 }
             }
 
-            // One impact sound per trigger pull. A shotgun putting eight pellets through two
-            // bodies each would otherwise fire sixteen voices and swamp a fourteen-voice pool.
             if (anyHit)
                 SfxPlayer.Instance?.PlayAt(definition.ImpactClip, impactPoint, definition.ImpactVolume);
 
             if (Ammo == 0) BeginReload();
         }
 
-        /// <summary>
-        /// Resolves one pellet, passing through up to <c>PierceCount</c> further bodies.
-        /// Returns whether it connected with anything, and where it first did.
-        /// </summary>
-        bool FireOnePellet(out Vector3 firstImpact)
+        bool FireOnePellet(bool heavySlug, bool dragonsBreath, out Vector3 firstImpact)
         {
             firstImpact = Vector3.zero;
 
-            var direction = ApplySpread(muzzle.forward);
+            float spreadAngle = heavySlug ? 0.3f : definition.Spread;
+            var direction = ApplySpread(muzzle.forward, spreadAngle);
             var origin = rayOrigin != null ? rayOrigin.position : transform.position;
             float range = definition.Range;
             var endPoint = origin + direction * range;
@@ -152,55 +170,64 @@ namespace ZombieShooter
 
             if (count > 0)
             {
-                // RaycastNonAlloc returns hits in arbitrary order; penetration needs them
-                // resolved nearest first or damage falloff would apply down the wrong chain.
                 Array.Sort(HitBuffer, 0, count, HitDistanceComparer.Instance);
 
-                float damage = definition.Damage;
+                float damage = heavySlug ? 120f : definition.Damage;
+                float knockback = heavySlug ? 3.5f : definition.KnockbackMultiplier;
+
+                bool bore = (slotIndex == 2 || slotIndex == 3) && ArmoryManager.Instance != null && ArmoryManager.Instance.HasMod(ModCoreType.BorePiercing);
+                int pierceLimit = definition.PierceCount + (bore ? 2 : 0);
+                float falloff = bore ? 1.0f : definition.PenetrationFalloff;
+
                 int bodiesHit = 0;
 
                 for (int i = 0; i < count; i++)
                 {
                     var hit = HitBuffer[i];
-
-                    // GetComponentInParent so colliders on child meshes report to the root.
                     var target = hit.collider.GetComponentInParent<IDamageable>();
 
                     if (target == null)
                     {
-                        // World geometry. Nothing penetrates walls.
                         endPoint = hit.point;
                         Register(hit, ref connected, ref firstImpact);
                         break;
                     }
 
-                    // A body mid-death collapse is scenery, not a target - pass through it
-                    // without spending a pierce on it.
                     if (!target.IsAlive) continue;
 
                     Register(hit, ref connected, ref firstImpact);
+                    target.TakeDamage(new DamageInfo(damage, hit.point, hit.normal, knockback, gameObject));
 
-                    target.TakeDamage(new DamageInfo(damage, hit.point, hit.normal,
-                                                     definition.KnockbackMultiplier, gameObject));
+                    if (dragonsBreath)
+                        StartCoroutine(ApplyBurnDoT(target));
+
                     bodiesHit++;
-
-                    if (bodiesHit > definition.PierceCount)
+                    if (bodiesHit > pierceLimit)
                     {
                         endPoint = hit.point;
                         break;
                     }
 
-                    damage *= definition.PenetrationFalloff;
+                    damage *= falloff;
                 }
             }
 
-            // Drawn from the barrel even though the hit test starts at the body, so the shot
-            // still looks like it came out of the gun. Pooled, so every pellet gets its own
-            // line and the spread is actually visible.
             TracerPool.Instance?.Draw(muzzle.position, endPoint,
                                       definition.TracerWidth, definition.TracerDuration);
 
             return connected;
+        }
+
+        IEnumerator ApplyBurnDoT(IDamageable target)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                yield return new WaitForSeconds(0.4f);
+                if (target != null && target.IsAlive)
+                {
+                    target.TakeDamage(new DamageInfo(8f, transform.position, Vector3.up, 0.2f, gameObject));
+                }
+            }
         }
 
         static void Register(in RaycastHit hit, ref bool connected, ref Vector3 firstImpact)
@@ -212,18 +239,10 @@ namespace ZombieShooter
             firstImpact = hit.point;
         }
 
-        /// <summary>
-        /// Spread is deliberately horizontal-dominant. This is a top-down game: a fan across
-        /// the screen plane is both what the player can see and what actually crosses a
-        /// zombie's silhouette. Equal vertical spread would throw pellets clean over their
-        /// heads - at 7 degrees over 30 units that is nearly 4 units of vertical drift
-        /// against a body less than 2 units tall.
-        /// </summary>
         const float VerticalSpreadScale = 0.15f;
 
-        Vector3 ApplySpread(Vector3 forward)
+        Vector3 ApplySpread(Vector3 forward, float spread)
         {
-            float spread = definition.Spread;
             if (spread <= 0f) return forward;
 
             float yaw = UnityEngine.Random.Range(-spread, spread);
@@ -232,18 +251,19 @@ namespace ZombieShooter
             return Quaternion.Euler(pitch, yaw, 0f) * forward;
         }
 
-        /// <summary>Restores a banked magazine, used when swapping back to a weapon.</summary>
         public void SetAmmo(int amount)
         {
             if (definition == null) return;
 
-            Ammo = Mathf.Clamp(amount, 0, definition.MagazineSize);
-            AmmoChanged?.Invoke(Ammo, definition.MagazineSize);
+            Ammo = Mathf.Clamp(amount, 0, MagazineSize);
+            AmmoChanged?.Invoke(Ammo, MagazineSize);
         }
 
         public void BeginReload()
         {
-            if (definition == null || IsReloading || Ammo == definition.MagazineSize) return;
+            if (definition == null || IsReloading || Ammo >= MagazineSize) return;
+            if (loadout != null && definition.MaxReserveAmmo >= 0 && loadout.CurrentReserveAmmo <= 0) return;
+
             reloadRoutine = StartCoroutine(ReloadRoutine());
         }
 
@@ -265,8 +285,14 @@ namespace ZombieShooter
         {
             yield return new WaitForSeconds(definition.ReloadTime);
 
-            Ammo = definition.MagazineSize;
-            AmmoChanged?.Invoke(Ammo, definition.MagazineSize);
+            int needed = MagazineSize - Ammo;
+            int loaded = needed;
+
+            if (loadout != null && definition.MaxReserveAmmo >= 0)
+                loaded = loadout.ConsumeReserve(slotIndex, needed);
+
+            Ammo += loaded;
+            AmmoChanged?.Invoke(Ammo, MagazineSize);
             reloadRoutine = null;
         }
     }

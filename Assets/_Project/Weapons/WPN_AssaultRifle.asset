@@ -21,7 +21,8 @@ MonoBehaviour:
   fireMode: 0
   pierceCount: 2
   penetrationFalloff: 0.6
-  magazineSize: 35
+  magazineSize: 30
+  maxReserveAmmo: 180
   reloadTime: 1.7
   fireTrauma: 0.085
   recoilKick: 0.06

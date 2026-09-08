@@ -31,7 +31,6 @@ namespace ZombieShooter
         [SerializeField] float countGrowth = 2.5f;
         [SerializeField] int maxAliveAtOnce = 60;
         [SerializeField] float timeBetweenSpawns = 0.45f;
-        [SerializeField] float timeBetweenWaves = 5f;
 
         [Header("Archetypes")]
         [Tooltip("Wave index at which brutes begin spawning (1-indexed).")]
@@ -47,16 +46,22 @@ namespace ZombieShooter
         Transform poolRoot;
         Coroutine loop;
 
+        public static WaveManager Instance { get; private set; }
+
         public int WaveNumber { get; private set; }
         public int Remaining { get; private set; }
-        public float BreakTimeLeft { get; private set; }
         public bool OnBreak { get; private set; }
+        public bool WaitingForPlayerReady { get; private set; }
 
         public event Action<int> WaveStarted;
         public event Action<int> RemainingChanged;
+        public event Action<int> WaveCompleted;
+        public event Action BreakStarted;
+        public event Action BreakEnded;
 
         void Awake()
         {
+            Instance = this;
             poolRoot = new GameObject("ZombiePool").transform;
             poolRoot.SetParent(transform, false);
 
@@ -111,13 +116,39 @@ namespace ZombieShooter
                 while (alive.Count > 0)
                     yield return null;
 
+                WaveCompleted?.Invoke(WaveNumber);
                 OnBreak = true;
-                for (BreakTimeLeft = timeBetweenWaves; BreakTimeLeft > 0f; BreakTimeLeft -= Time.deltaTime)
-                    yield return null;
+                WaitingForPlayerReady = true;
+                BreakStarted?.Invoke();
 
-                BreakTimeLeft = 0f;
+                while (WaitingForPlayerReady)
+                {
+                    if (GameManager.Instance != null && GameManager.Instance.State != GameState.Playing)
+                        yield break;
+                    yield return null;
+                }
+
+                BreakEnded?.Invoke();
                 OnBreak = false;
             }
+        }
+
+        public void ReadyNextWave()
+        {
+            WaitingForPlayerReady = false;
+        }
+
+        void Update()
+        {
+            if (OnBreak && WaitingForPlayerReady && InputReader.RestartPressed && Time.timeScale > 0f)
+            {
+                ReadyNextWave();
+            }
+        }
+
+        void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
         }
 
         void Spawn()

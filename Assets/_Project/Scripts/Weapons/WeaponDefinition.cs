@@ -51,6 +51,8 @@ namespace ZombieShooter
 
         [Header("Ammo")]
         [SerializeField] int magazineSize = 30;
+        [Tooltip("Maximum reserve ammo carried. -1 for infinite (e.g. Pistol).")]
+        [SerializeField] int maxReserveAmmo = -1;
         [SerializeField] float reloadTime = 1.4f;
 
         [Header("Feel")]
@@ -87,6 +89,7 @@ namespace ZombieShooter
         public float PenetrationFalloff => penetrationFalloff;
 
         public int MagazineSize => Mathf.Max(1, magazineSize);
+        public int MaxReserveAmmo => maxReserveAmmo;
         public float ReloadTime => reloadTime;
 
         public float FireTrauma => fireTrauma;

@@ -18,6 +18,7 @@ namespace ZombieShooter.EditorTools
         const string RunnerPrefabPath = Root + "/Prefabs/Runner.prefab";
         const string RangedPrefabPath = Root + "/Prefabs/RangedZombie.prefab";
         const string ProjectilePrefabPath = Root + "/Prefabs/EnemyProjectile.prefab";
+        const string BarricadePrefabPath = Root + "/Prefabs/Barricade.prefab";
         const string MaterialDir = Root + "/Materials";
         const string AudioDir = Root + "/Audio";
         const string WeaponDir = Root + "/Weapons";
@@ -53,6 +54,12 @@ namespace ZombieShooter.EditorTools
             CreateMaterial("M_Brute", new Color(0.65f, 0.17f, 0.17f));
             CreateMaterial("M_Runner", new Color(0.95f, 0.55f, 0.15f));
             CreateMaterial("M_Ranged", new Color(0.55f, 0.20f, 0.75f));
+            CreateMaterial("M_Barricade_Wood", new Color(0.48f, 0.28f, 0.12f));
+            CreateMaterial("M_Barricade_Metal", new Color(0.20f, 0.22f, 0.26f));
+            CreateUnlitMaterial("M_Placement_Valid", new Color(0.2f, 0.9f, 0.3f, 0.45f));
+            CreateUnlitMaterial("M_Placement_Invalid", new Color(0.9f, 0.2f, 0.2f, 0.45f));
+            CreateUnlitMaterial("M_HealthBar_Bg", new Color(0.12f, 0.12f, 0.12f, 0.85f));
+            CreateUnlitMaterial("M_HealthBar_Fill", new Color(0.3f, 0.85f, 0.35f, 0.95f));
             CreateUnlitMaterial("M_Projectile", new Color(0.95f, 0.30f, 1.00f));
             CreateUnlitMaterial("M_Tracer", new Color(1.00f, 0.85f, 0.35f));
             CreateUnlitMaterial("M_Spark", new Color(1.00f, 0.82f, 0.35f));
@@ -63,6 +70,7 @@ namespace ZombieShooter.EditorTools
             BuildZombiePrefab();
             BuildBrutePrefab();
             BuildProjectilePrefab();
+            BuildBarricadePrefab();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
@@ -260,6 +268,18 @@ namespace ZombieShooter.EditorTools
                 f.Obj("weapon", weapon).F("swapCooldown", 0.25f).Arr("slots", arsenal);
             }
 
+            var placer = player.AddComponent<BarricadePlacer>();
+            using (var f = new Fields(placer))
+            {
+                f.Obj("barricadePrefab", LoadBarricadePrefab())
+                 .Obj("validGhostMat", LoadMaterial("M_Placement_Valid"))
+                 .Obj("invalidGhostMat", LoadMaterial("M_Placement_Invalid"))
+                 .Obj("placeClip", LoadClip("SFX_Barricade_Place"))
+                 .I("startingBarricades", 1)
+                 .F("maxPlacementRange", 4.2f)
+                 .F("placeVolume", 0.55f);
+            }
+
             return player;
         }
 
@@ -344,7 +364,7 @@ namespace ZombieShooter.EditorTools
                 f.F("moveSpeed", 2.6f).F("turnSpeed", 360f)
                  .F("separationRadius", 1.1f).F("separationStrength", 2.2f)
                  .F("attackRange", 1.6f).F("attackDamage", 12f).F("attackCooldown", 1.1f)
-                 .I("scoreValue", 10)
+                 .I("scoreValue", 10).I("goldReward", 10)
                  .F("knockbackForce", 4f).F("knockbackDecay", 14f)
                  .F("deathLinger", 0.22f)
                  .Obj("deathClip", LoadClip("SFX_Death"))
@@ -411,7 +431,7 @@ namespace ZombieShooter.EditorTools
                 f.F("moveSpeed", 1.6f).F("turnSpeed", 240f)
                  .F("separationRadius", 1.5f).F("separationStrength", 3.2f)
                  .F("attackRange", 1.9f).F("attackDamage", 25f).F("attackCooldown", 1.4f)
-                 .I("scoreValue", 30)
+                 .I("scoreValue", 30).I("goldReward", 40)
                  .F("knockbackForce", 1.2f).F("knockbackDecay", 16f)
                  .F("deathLinger", 0.25f)
                  .Obj("deathClip", LoadClip("SFX_Death"))
@@ -508,7 +528,7 @@ namespace ZombieShooter.EditorTools
                 f.F("moveSpeed", 4.5f).F("turnSpeed", 480f)
                  .F("separationRadius", 0.9f).F("separationStrength", 2.0f)
                  .F("attackRange", 1.3f).F("attackDamage", 6f).F("attackCooldown", 0.75f)
-                 .I("scoreValue", 15)
+                 .I("scoreValue", 15).I("goldReward", 15)
                  .F("knockbackForce", 6.0f).F("knockbackDecay", 14f)
                  .F("deathLinger", 0.18f)
                  .Obj("deathClip", LoadClip("SFX_Death"))
@@ -577,7 +597,7 @@ namespace ZombieShooter.EditorTools
                 f.F("moveSpeed", 1.8f).F("turnSpeed", 320f)
                  .F("separationRadius", 1.4f).F("separationStrength", 2.5f)
                  .F("attackRange", 13.5f).F("attackDamage", 15f).F("attackCooldown", 2.2f)
-                 .I("scoreValue", 25)
+                 .I("scoreValue", 25).I("goldReward", 25)
                  .F("knockbackForce", 3.5f).F("knockbackDecay", 14f)
                  .F("deathLinger", 0.20f)
                  .Obj("deathClip", LoadClip("SFX_Death"))
@@ -609,6 +629,101 @@ namespace ZombieShooter.EditorTools
             Object.DestroyImmediate(ranged);
         }
 
+        static void BuildBarricadePrefab()
+        {
+            var woodMat = LoadMaterial("M_Barricade_Wood");
+            var metalMat = LoadMaterial("M_Barricade_Metal");
+            var sparkMat = LoadMaterial("M_Spark");
+            var hbBgMat = LoadMaterial("M_HealthBar_Bg");
+            var hbFillMat = LoadMaterial("M_HealthBar_Fill");
+
+            var go = new GameObject("Barricade");
+            go.transform.position = Vector3.zero;
+
+            var col = go.AddComponent<BoxCollider>();
+            col.size = new Vector3(1.6f, 1.0f, 0.6f);
+            col.center = new Vector3(0f, 0.5f, 0f);
+
+            var visuals = new GameObject("Visuals");
+            visuals.transform.SetParent(go.transform, false);
+
+            var wood = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wood.name = "WoodBody";
+            wood.transform.SetParent(visuals.transform, false);
+            wood.transform.localPosition = new Vector3(0f, 0.475f, 0f);
+            wood.transform.localScale = new Vector3(1.6f, 0.95f, 0.55f);
+            wood.GetComponent<MeshRenderer>().sharedMaterial = woodMat;
+            Object.DestroyImmediate(wood.GetComponent<Collider>());
+
+            var trim1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            trim1.name = "MetalTrimBottom";
+            trim1.transform.SetParent(visuals.transform, false);
+            trim1.transform.localPosition = new Vector3(0f, 0.18f, 0f);
+            trim1.transform.localScale = new Vector3(1.62f, 0.14f, 0.57f);
+            trim1.GetComponent<MeshRenderer>().sharedMaterial = metalMat;
+            Object.DestroyImmediate(trim1.GetComponent<Collider>());
+
+            var trim2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            trim2.name = "MetalTrimTop";
+            trim2.transform.SetParent(visuals.transform, false);
+            trim2.transform.localPosition = new Vector3(0f, 0.78f, 0f);
+            trim2.transform.localScale = new Vector3(1.62f, 0.14f, 0.57f);
+            trim2.GetComponent<MeshRenderer>().sharedMaterial = metalMat;
+            Object.DestroyImmediate(trim2.GetComponent<Collider>());
+
+            // Floating World-Space Health Bar
+            var hbRoot = new GameObject("HealthBar");
+            hbRoot.transform.SetParent(go.transform, false);
+            hbRoot.transform.localPosition = new Vector3(0f, 1.25f, 0f);
+
+            var hbBg = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            hbBg.name = "Bg";
+            hbBg.transform.SetParent(hbRoot.transform, false);
+            hbBg.transform.localScale = new Vector3(1.2f, 0.12f, 1f);
+            hbBg.GetComponent<MeshRenderer>().sharedMaterial = hbBgMat;
+            Object.DestroyImmediate(hbBg.GetComponent<Collider>());
+
+            var hbFillPivot = new GameObject("FillPivot");
+            hbFillPivot.transform.SetParent(hbRoot.transform, false);
+            hbFillPivot.transform.localPosition = new Vector3(-0.58f, 0f, -0.005f);
+
+            var hbFill = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            hbFill.name = "Fill";
+            hbFill.transform.SetParent(hbFillPivot.transform, false);
+            hbFill.transform.localPosition = new Vector3(0.58f, 0f, 0f);
+            hbFill.transform.localScale = new Vector3(1.16f, 0.08f, 1f);
+            hbFill.GetComponent<MeshRenderer>().sharedMaterial = hbFillMat;
+            Object.DestroyImmediate(hbFill.GetComponent<Collider>());
+
+            // Splinters burst
+            var splinters = CreateBurstSystem(go.transform, "Splinters", sparkMat,
+                new Color(0.65f, 0.42f, 0.22f), 2.5f, 6.5f, 0.15f, 0.4f, 0.04f, 0.12f, 35f, 2.5f);
+
+            var barricade = go.AddComponent<Barricade>();
+            using (var f = new Fields(barricade))
+            {
+                f.F("maxHealth", 150f)
+                 .Obj("obstacleCollider", col)
+                 .Obj("visualRoot", visuals)
+                 .Obj("splinterParticles", splinters)
+                 .Obj("healthBarRoot", hbRoot.transform)
+                 .Obj("healthBarFill", hbFillPivot.transform)
+                 .Obj("hitClip", LoadClip("SFX_Barricade_Hit"))
+                 .Obj("breakClip", LoadClip("SFX_Barricade_Break"))
+                 .F("hitVolume", 0.55f).F("breakVolume", 0.75f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(go, BarricadePrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
+        static Barricade LoadBarricadePrefab()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<Barricade>(BarricadePrefabPath);
+            if (prefab == null) Debug.LogError($"ArenaBuilder: no barricade prefab at {BarricadePrefabPath}.");
+            return prefab;
+        }
+
         // ---------------------------------------------------------------- managers
 
         static WaveManager BuildManagers(GameObject player, ZombieAI zombiePrefab, ZombieAI brutePrefab,
@@ -618,6 +733,8 @@ namespace ZombieShooter.EditorTools
 
             var gm = go.AddComponent<GameManager>();
             using (var f = new Fields(gm)) f.Obj("playerHealth", player.GetComponent<Health>());
+
+            go.AddComponent<ArmoryManager>();
 
             var impactSparks = CreateBurstSystem(go.transform, "ImpactSparks", sparkMat,
                 new Color(1f, 0.8f, 0.35f), 3f, 8f, 0.12f, 0.3f, 0.05f, 0.11f, 32f, 1.6f);
@@ -663,7 +780,7 @@ namespace ZombieShooter.EditorTools
                  .Obj("player", player.transform)
                  .F("spawnRadius", 24f).F("minDistanceFromPlayer", 12f).F("spawnHeight", 1f)
                  .I("firstWaveCount", 5).F("countGrowth", 2.5f).I("maxAliveAtOnce", 60)
-                 .F("timeBetweenSpawns", 0.45f).F("timeBetweenWaves", 5f)
+                 .F("timeBetweenSpawns", 0.45f)
                  .I("bruteStartWave", 2).I("runnerStartWave", 3).I("rangedStartWave", 4);
             }
 
@@ -719,11 +836,19 @@ namespace ZombieShooter.EditorTools
                 new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 106f), new Vector2(340f, 32f), "PISTOL");
             weaponLabel.color = new Color(0.78f, 0.80f, 0.84f);
 
+            var barricadeLabel = CreateText(canvasGo.transform, "BarricadeLabel", font, 22, TextAnchor.LowerRight,
+                new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 142f), new Vector2(340f, 32f), "[F] BARRICADE  x1");
+            barricadeLabel.color = new Color(0.95f, 0.75f, 0.35f);
+
             var waveLabel = CreateText(canvasGo.transform, "WaveLabel", font, 30, TextAnchor.UpperLeft,
                 new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -40f), new Vector2(520f, 44f), "WAVE 1");
 
             var scoreLabel = CreateText(canvasGo.transform, "ScoreLabel", font, 30, TextAnchor.UpperRight,
                 new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-40f, -40f), new Vector2(400f, 44f), "SCORE 0");
+
+            var goldLabel = CreateText(canvasGo.transform, "GoldLabel", font, 24, TextAnchor.UpperRight,
+                new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-40f, -88f), new Vector2(400f, 36f), "GOLD $0");
+            goldLabel.color = new Color(1.0f, 0.85f, 0.25f);
 
             var centreLabel = CreateText(canvasGo.transform, "CentreLabel", font, 46, TextAnchor.MiddleCenter,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1000f, 300f), string.Empty);
@@ -735,14 +860,19 @@ namespace ZombieShooter.EditorTools
                  .Obj("weapon", player.GetComponent<Weapon>())
                  .Obj("waves", waves)
                  .Obj("loadout", player.GetComponent<WeaponLoadout>())
+                 .Obj("placer", player.GetComponent<BarricadePlacer>())
                  .Obj("healthFill", fill)
                  .Obj("healthLabel", healthLabel)
                  .Obj("ammoLabel", ammoLabel)
                  .Obj("weaponLabel", weaponLabel)
+                 .Obj("barricadeLabel", barricadeLabel)
                  .Obj("waveLabel", waveLabel)
                  .Obj("scoreLabel", scoreLabel)
+                 .Obj("goldLabel", goldLabel)
                  .Obj("centreLabel", centreLabel);
             }
+
+            BuildArmoryShop(canvasGo.transform, font, uiSprite, player.GetComponent<WeaponLoadout>());
         }
 
         static GameObject CreatePanel(Transform parent, string name, Sprite sprite, Color color,
@@ -783,7 +913,7 @@ namespace ZombieShooter.EditorTools
         static void ApplyRect(GameObject go, Vector2 anchorMin, Vector2 anchorMax,
             Vector2 anchoredPosition, Vector2 sizeDelta)
         {
-            var rect = go.GetComponent<RectTransform>();
+            var rect = go.GetComponent<RectTransform>() ?? go.AddComponent<RectTransform>();
             rect.anchorMin = anchorMin;
             rect.anchorMax = anchorMax;
             // Stretched rects (min != max on an axis) use sizeDelta as an inset, so zero it.
@@ -792,6 +922,179 @@ namespace ZombieShooter.EditorTools
                 Mathf.Approximately(anchorMin.y, anchorMax.y) ? anchorMin.y : 0.5f);
             rect.anchoredPosition = anchoredPosition;
             rect.sizeDelta = sizeDelta;
+        }
+
+        static ArmoryUI BuildArmoryShop(Transform canvasTransform, Font font, Sprite uiSprite, WeaponLoadout loadout)
+        {
+            var armoryRoot = new GameObject("ArmoryUI", typeof(RectTransform));
+            armoryRoot.transform.SetParent(canvasTransform, false);
+            ApplyRect(armoryRoot, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+
+            // Dark modal backdrop that covers the full screen and blocks raycasts
+            var overlay = CreatePanel(armoryRoot.transform, "ArmoryShopOverlay", uiSprite,
+                new Color(0.04f, 0.05f, 0.07f, 0.88f),
+                Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            overlay.GetComponent<Image>().raycastTarget = true;
+
+            // Main shop card in the center
+            var shopCard = CreatePanel(overlay.transform, "ShopCard", uiSprite,
+                new Color(0.11f, 0.13f, 0.18f, 0.96f),
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1080f, 720f));
+            shopCard.GetComponent<Image>().raycastTarget = true;
+
+            // Header Title
+            var titleText = CreateText(shopCard.transform, "Title", font, 34, TextAnchor.MiddleCenter,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -46f), new Vector2(800f, 48f), "ARMORY SHOP");
+            titleText.color = new Color(0.95f, 0.95f, 0.95f);
+
+            // Gold counter
+            var goldText = CreateText(shopCard.transform, "Gold", font, 24, TextAnchor.MiddleCenter,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -88f), new Vector2(400f, 36f), "GOLD: $0");
+            goldText.color = new Color(1.0f, 0.85f, 0.25f);
+
+            // Section 1: Firearms & Ammo (Left column: X = -260)
+            var wpnHeader = CreateText(shopCard.transform, "WpnHeader", font, 20, TextAnchor.MiddleLeft,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-260f, -135f), new Vector2(480f, 30f), "— WEAPONS —");
+            wpnHeader.color = new Color(0.45f, 0.82f, 1.0f);
+
+            var (shotgunBtn, shotgunTxt) = CreateShopItemButton(shopCard.transform, "BuyShotgun", uiSprite, font,
+                new Vector2(-260f, -180f), new Vector2(480f, 48f),
+                "SHOTGUN (Slot 2)\n8 Shells · Heavy Spread Knockback", "$150 BUY");
+
+            var (arBtn, arTxt) = CreateShopItemButton(shopCard.transform, "BuyAR", uiSprite, font,
+                new Vector2(-260f, -236f), new Vector2(480f, 48f),
+                "ASSAULT RIFLE (Slot 3)\n30 Rounds · 600 RPM Rapid Auto", "$250 BUY");
+
+            var (sniperBtn, sniperTxt) = CreateShopItemButton(shopCard.transform, "BuySniper", uiSprite, font,
+                new Vector2(-260f, -292f), new Vector2(480f, 48f),
+                "SNIPER RIFLE (Slot 4)\n5 Rounds · 150 Dmg Heavy Pierce", "$350 BUY");
+
+            var ammoHeader = CreateText(shopCard.transform, "AmmoHeader", font, 20, TextAnchor.MiddleLeft,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-260f, -348f), new Vector2(480f, 26f), "— AMMO & FORTIFICATIONS —");
+            ammoHeader.color = new Color(0.45f, 0.82f, 1.0f);
+
+            var (ammoBtn, ammoTxt) = CreateShopItemButton(shopCard.transform, "BuyAmmo", uiSprite, font,
+                new Vector2(-260f, -392f), new Vector2(480f, 48f),
+                "FULL AMMO CRATE\nRestocks reserve ammo for all guns", "$50 REFILL ALL");
+
+            var (barricadeBtn, barricadeTxt) = CreateShopItemButton(shopCard.transform, "BuyBarricade", uiSprite, font,
+                new Vector2(-260f, -448f), new Vector2(480f, 48f),
+                "WOODEN BARRICADE (150 HP)\nBlocks horde path & enemy fire · [F] Place", "$40 BUY");
+
+            // Section 2: Mod Cores (Right column: X = +260)
+            var modHeader = CreateText(shopCard.transform, "ModHeader", font, 20, TextAnchor.MiddleLeft,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(260f, -135f), new Vector2(480f, 30f), "— TACTICAL MOD CORES —");
+            modHeader.color = new Color(1.0f, 0.55f, 0.35f);
+
+            var (drumBtn, drumTxt) = CreateShopItemButton(shopCard.transform, "ModDrum", uiSprite, font,
+                new Vector2(260f, -185f), new Vector2(480f, 48f),
+                "DRUM MAGAZINES (Universal)\n+50% mag capacity across all weapons", "$180 INSTALL");
+
+            var (overclockBtn, overclockTxt) = CreateShopItemButton(shopCard.transform, "ModOverclock", uiSprite, font,
+                new Vector2(260f, -245f), new Vector2(480f, 48f),
+                "OVERCLOCKED RECEIVER (Pistol & AR)\nFull-auto Pistol + 50% rate; AR +35% rate", "$180 INSTALL");
+
+            var (boreBtn, boreTxt) = CreateShopItemButton(shopCard.transform, "ModBore", uiSprite, font,
+                new Vector2(260f, -305f), new Vector2(480f, 48f),
+                "BORE PIERCING ROUNDS (AR & Sniper)\n+2 Pierce count & 100% damage retention", "$220 INSTALL");
+
+            var (slugBtn, slugTxt) = CreateShopItemButton(shopCard.transform, "ModSlug", uiSprite, font,
+                new Vector2(260f, -365f), new Vector2(480f, 48f),
+                "HEAVY SLUG CORE (Shotgun)\n1 Pinpoint 120-dmg slug with 3.5x knockback", "$200 INSTALL");
+
+            var (dragonBtn, dragonTxt) = CreateShopItemButton(shopCard.transform, "ModDragon", uiSprite, font,
+                new Vector2(260f, -425f), new Vector2(480f, 48f),
+                "DRAGON'S BREATH CORE (Shotgun)\nIncendiary pellets ignite targets with DoT", "$200 INSTALL");
+
+            // Footer action buttons
+            var (deployBtn, deployTxt) = CreateActionButton(shopCard.transform, "DeployButton", uiSprite, font,
+                new Vector2(-100f, 46f), new Vector2(380f, 54f),
+                "DEPLOY / NEXT WAVE [SPACE]", new Color(0.18f, 0.55f, 0.28f, 1f));
+
+            var (closeBtn, closeTxt) = CreateActionButton(shopCard.transform, "CloseButton", uiSprite, font,
+                new Vector2(280f, 46f), new Vector2(240f, 54f),
+                "EXIT SHOP [B]", new Color(0.28f, 0.30f, 0.36f, 1f));
+
+            var armoryUI = armoryRoot.AddComponent<ArmoryUI>();
+            using (var f = new Fields(armoryUI))
+            {
+                f.Obj("panel", overlay)
+                 .Obj("titleLabel", titleText)
+                 .Obj("goldLabel", goldText)
+                 .Obj("loadout", loadout)
+                 .Obj("shotgunButton", shotgunBtn).Obj("shotgunBtnText", shotgunTxt)
+                 .Obj("arButton", arBtn).Obj("arBtnText", arTxt)
+                 .Obj("sniperButton", sniperBtn).Obj("sniperBtnText", sniperTxt)
+                 .Obj("ammoButton", ammoBtn).Obj("ammoBtnText", ammoTxt)
+                 .Obj("barricadeButton", barricadeBtn).Obj("barricadeBtnText", barricadeTxt)
+                 .Obj("drumMagsButton", drumBtn).Obj("drumMagsBtnText", drumTxt)
+                 .Obj("overclockButton", overclockBtn).Obj("overclockBtnText", overclockTxt)
+                 .Obj("boreButton", boreBtn).Obj("boreBtnText", boreTxt)
+                 .Obj("slugButton", slugBtn).Obj("slugBtnText", slugTxt)
+                 .Obj("dragonsBreathButton", dragonBtn).Obj("dragonsBreathBtnText", dragonTxt)
+                 .Obj("deployButton", deployBtn).Obj("deployBtnText", deployTxt)
+                 .Obj("closeButton", closeBtn);
+            }
+
+            return armoryUI;
+        }
+
+        static (Button, Text) CreateShopItemButton(Transform parent, string name, Sprite sprite, Font font,
+            Vector2 anchoredPosition, Vector2 sizeDelta, string descText, string buyText)
+        {
+            var cardGo = CreatePanel(parent, name + "_Card", sprite,
+                new Color(0.16f, 0.18f, 0.24f, 0.95f),
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), anchoredPosition, sizeDelta);
+            cardGo.GetComponent<Image>().raycastTarget = false;
+
+            var label = CreateText(cardGo.transform, "Desc", font, 14, TextAnchor.MiddleLeft,
+                new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(16f, 0f), new Vector2(310f, sizeDelta.y), descText);
+            label.color = new Color(0.9f, 0.9f, 0.9f);
+
+            var (btn, btnText) = CreateButton(cardGo.transform, "Button", sprite,
+                new Color(0.24f, 0.52f, 0.85f, 1f),
+                new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-80f, 0f), new Vector2(140f, 38f),
+                buyText, font, 14);
+
+            return (btn, btnText);
+        }
+
+        static (Button, Text) CreateActionButton(Transform parent, string name, Sprite sprite, Font font,
+            Vector2 anchoredPosition, Vector2 sizeDelta, string labelText, Color color)
+        {
+            return CreateButton(parent, name, sprite, color,
+                new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), anchoredPosition, sizeDelta,
+                labelText, font, 18);
+        }
+
+        static (Button, Text) CreateButton(Transform parent, string name, Sprite sprite, Color normalColor,
+            Vector2 anchorMin, Vector2 anchorMax, Vector2 anchoredPosition, Vector2 sizeDelta,
+            string labelText, Font font, int fontSize)
+        {
+            var go = new GameObject(name, typeof(Image), typeof(Button));
+            go.transform.SetParent(parent, false);
+
+            var img = go.GetComponent<Image>();
+            img.sprite = sprite;
+            img.type = Image.Type.Sliced;
+            img.color = normalColor;
+            img.raycastTarget = true;
+
+            var btn = go.GetComponent<Button>();
+            var colors = btn.colors;
+            colors.normalColor = normalColor;
+            colors.highlightedColor = normalColor * 1.25f;
+            colors.pressedColor = normalColor * 0.75f;
+            colors.disabledColor = new Color(0.22f, 0.22f, 0.25f, 0.6f);
+            btn.colors = colors;
+
+            ApplyRect(go, anchorMin, anchorMax, anchoredPosition, sizeDelta);
+
+            var text = CreateText(go.transform, "Label", font, fontSize, TextAnchor.MiddleCenter,
+                Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, labelText);
+            text.color = Color.white;
+
+            return (btn, text);
         }
 
         // ---------------------------------------------------------------- assets
@@ -956,7 +1259,7 @@ namespace ZombieShooter.EditorTools
                 .F("damage", 20f).F("fireRate", 200f).F("range", 45f).F("spread", 1.2f)
                 .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.SemiAuto)
                 .I("pierceCount", 0).F("penetrationFalloff", 0.65f)
-                .I("magazineSize", 12).F("reloadTime", 1.0f)
+                .I("magazineSize", 12).I("maxReserveAmmo", 120).F("reloadTime", 1.0f)
                 .F("fireTrauma", 0.07f).F("recoilKick", 0.05f).F("knockbackMultiplier", 0.6f)
                 .Obj("fireClip", gunshot).Obj("impactClip", impact)
                 .F("fireVolume", 0.4f).F("impactVolume", 0.4f)
@@ -969,7 +1272,7 @@ namespace ZombieShooter.EditorTools
                 .F("damage", 22f).F("fireRate", 75f).F("range", 30f).F("spread", 7f)
                 .I("pelletsPerShot", 5).E("fireMode", (int)FireMode.SemiAuto)
                 .I("pierceCount", 1).F("penetrationFalloff", 0.6f)
-                .I("magazineSize", 15).F("reloadTime", 2.4f)
+                .I("magazineSize", 8).I("maxReserveAmmo", 48).F("reloadTime", 2.4f)
                 .F("fireTrauma", 0.3f).F("recoilKick", 0.18f).F("knockbackMultiplier", 2.2f)
                 .Obj("fireClip", gunshot).Obj("impactClip", impact)
                 .F("fireVolume", 0.6f).F("impactVolume", 0.45f)
@@ -980,7 +1283,7 @@ namespace ZombieShooter.EditorTools
                 .F("damage", 22f).F("fireRate", 600f).F("range", 60f).F("spread", 2.2f)
                 .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.Automatic)
                 .I("pierceCount", 2).F("penetrationFalloff", 0.6f)
-                .I("magazineSize", 35).F("reloadTime", 1.7f)
+                .I("magazineSize", 30).I("maxReserveAmmo", 180).F("reloadTime", 1.7f)
                 .F("fireTrauma", 0.085f).F("recoilKick", 0.06f).F("knockbackMultiplier", 1f)
                 .Obj("fireClip", gunshot).Obj("impactClip", impact)
                 .F("fireVolume", 0.45f).F("impactVolume", 0.4f)
@@ -993,7 +1296,7 @@ namespace ZombieShooter.EditorTools
                 .F("damage", 150f).F("fireRate", 45f).F("range", 200f).F("spread", 0.1f)
                 .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.SemiAuto)
                 .I("pierceCount", 6).F("penetrationFalloff", 0.85f)
-                .I("magazineSize", 10).F("reloadTime", 2.8f)
+                .I("magazineSize", 5).I("maxReserveAmmo", 30).F("reloadTime", 2.8f)
                 .F("fireTrauma", 0.42f).F("recoilKick", 0.26f).F("knockbackMultiplier", 3f)
                 .Obj("fireClip", gunshot).Obj("impactClip", impact)
                 .F("fireVolume", 0.7f).F("impactVolume", 0.5f)
@@ -1006,15 +1309,16 @@ namespace ZombieShooter.EditorTools
         {
             string path = $"{WeaponDir}/{fileName}.asset";
 
-            var existing = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(path);
-            if (existing != null) return existing;
+            var weapon = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(path);
+            if (weapon == null)
+            {
+                EnsureFolder(WeaponDir);
+                weapon = ScriptableObject.CreateInstance<WeaponDefinition>();
+                AssetDatabase.CreateAsset(weapon, path);
+            }
 
-            EnsureFolder(WeaponDir);
-
-            var weapon = ScriptableObject.CreateInstance<WeaponDefinition>();
             using (var f = new Fields(weapon)) configure(f);
-
-            AssetDatabase.CreateAsset(weapon, path);
+            EditorUtility.SetDirty(weapon);
             return weapon;
         }
 

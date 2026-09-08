@@ -38,6 +38,8 @@ namespace ZombieShooter
 
         void Update()
         {
+            if (Time.timeScale <= 0f) return;
+
             bool alive = health == null || health.IsAlive;
             bool playing = GameManager.Instance == null || GameManager.Instance.State == GameState.Playing;
 

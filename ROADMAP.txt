@@ -1,8 +1,9 @@
 REBORN - DEVELOPMENT ROADMAP
 Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
 Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 56 weeks.
-Status:  Gate 0 PASSED. Phase 1 underway - weapons are data and the first
-         four are built.
+Status:  Gate 0 PASSED. Phase 1 core loop in: 4 weapons, 4 enemy archetypes,
+         gold economy, inter-wave armory, mod cores, and destructible wooden
+         barricades built; approaching Gate 1 playtest.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -76,6 +77,33 @@ PROGRESS LOG
             now manages 4-way pooling and escalating archetype weights. All
             four weapons now have distinct counters: Shotgun stops Brutes,
             Rifle sprays Runners, Sniper picks off Ranged, Pistol fallbacks.
+2026-09-08  Design locked: Tactical Gunsmith & Fortifications (Option 1).
+            Core hook established: kill zombies to earn Gold, spend at the
+            inter-wave Armory on weapon purchases, weapon mod cores, and
+            deployable fortifications (destructible barricades, explosive red
+            barrels, claymores) to physically engineer killboxes. Modernizing
+            Boxhead's iconic barricade/barrel emergent sandbox with deep
+            weapon build variety.
+2026-09-08  Gold Economy & HUD in. ZombieAI awards gold on kill scaled by
+            archetype (Standard: 10g, Runner: 15g, Ranged: 25g, Brute: 40g).
+            GameManager banks run-persistent gold with TrySpendGold/AddGold
+            APIs prepared for shop purchases. HUD displays golden wallet
+            counter under score and records final gold on Game Over screen.
+2026-09-08  Inter-wave Armory Shop in. Interactive break state with Time.timeScale
+            pausing between waves. Player spawns with Pistol and purchases
+            Shotgun ($150), Assault Rifle ($250), Sniper ($350), full Ammo Crates
+            ($50), and 5 tangible Weapon Mod Cores (Drum Mags, Overclocked
+            Receiver, Bore Piercing, Heavy Slug, Dragon's Breath) with accumulated
+            gold.
+2026-09-08  Pistol ammo updated from infinite to finite (120 reserve / 10 spare mags),
+            restocked alongside all weapons via Armory Ammo Crates ($50).
+2026-09-08  Destructible Wooden Barricades in (Boxhead DNA). Players purchase
+            barricades at the Armory ($40) and place them via [F] or Right-Click
+            with 1.0m grid snapping and 90-degree [R] rotation. Barricades feature
+            150 HP, floating world-space health bars, friendly-fire immunity from
+            player bullets (with piercing rounds punching through), and wood
+            splinter destruction. Zombies detect blocking barricades and claw them
+            down, resolving Tech Debt #6.
 
 
 ===============================================================================
@@ -113,9 +141,19 @@ PHASE 1 - FIND THE HOOK                           Weeks 3-8
     mode, penetration, knockback and range, not just in numbers.
 [x] Enemy archetypes - DONE 2026-09-08. Standard, brute, runner and ranged.
     Each forces a different player response and validates weapon roles.
-[ ] Between-wave choice - upgrade draft or shop. Source of build variety.
-[ ] Define run structure - run length, win condition or endless + score.
-[ ] Write the hook in one sentence: why pick this over the dozen alternatives.
+[x] Gold Economy & HUD - DONE 2026-09-08. Gold awarded on zombie kills scaled
+    by archetype (10g/15g/25g/40g), displayed in HUD, and banked into run wallet.
+[x] Inter-wave Armory & Shop - DONE 2026-09-08. Interactive pause/break shop to
+    buy weapons, ammo restocks, and tangible weapon mod cores (dragon's breath,
+    heavy slug, bore rounds, drum mags, overclocked receiver).
+[x] Tactical Deployables (Wooden Barricades) - DONE 2026-09-08.
+    Placeable wooden barricades (destructible 150 HP obstacles zombies claw
+    through or path around). Red explosive barrels queued for next iteration.
+[ ] Define run structure - 15-wave escalation culminating in an Evac/Boss
+    extraction encounter, plus an unlocked endless survival mode.
+[x] Write the hook in one sentence - DONE 2026-09-08: "A top-down wave survival
+    shooter where you spend blood money to physically engineer fortified
+    killboxes and mod firearms into crowd-shredding weapons of war."
 
 GATE 1: You voluntarily play 5 runs back to back, and can state the hook in
 one sentence a stranger finds interesting. Failing this means changing the
@@ -246,10 +284,11 @@ KNOWN DEBT IN THE CURRENT BUILD
    Everything compiles into Assembly-CSharp. Add asmdefs before iteration
    times start costing real minutes.
 
-6. ZOMBIE STEERING IS NAIVE.
-   O(n^2) separation, fine for tens of agents, not hundreds. Revisit with
-   Phase 4 performance work. NavMesh is installed if the map gains real
-   obstacles.
+6. ZOMBIE STEERING VS DEPLOYABLE BARRICADES - RESOLVED 2026-09-08.
+   Zombies perform forward obstacle sensing and claw at blocking barricades
+   on attack cooldown while O(n^2) separation pushes adjacent horde members
+   sideways along the barricade line. Upon structural collapse, the path clears
+   and zombies advance through the opening.
 
 7. SCENE SINGLETONS FAIL SILENTLY.
    SfxPlayer, ImpactEffects and HitStop are reached through null-conditional
@@ -287,17 +326,24 @@ START HERE - THIS WEEK
 ===============================================================================
 
 1. Enemy archetypes - DONE 2026-09-08.
-   Brute, runner and ranged built, pooled and paced. All four weapons tested
-   and validated with distinct tactical counters.
+   Standard, brute, runner and ranged built, pooled and paced. All four weapons
+   tested and validated with distinct tactical counters.
 
-2. Between-wave choice.
-   An upgrade draft or shop. This is where build variety and replayability
-   come from, and most likely where the hook lives.
+2. Gold economy & HUD wallet - DONE 2026-09-08.
+   Hooked zombie kills to award gold scaled by archetype (Standard 10, Runner 15,
+   Ranged 25, Brute 40), displayed gold in HUD, and banked into run balance.
 
-3. Draft the hook sentence now, not at the end of the phase.
-   One sentence on why someone picks this over the dozen alternatives. Write
-   it early and let the rest of Phase 1 prove or kill it - it is the single
-   largest risk in the project.
+3. Inter-wave Armory Shop UI - DONE 2026-09-08.
+   Interactive pause/break menu to purchase weapons, ammo reserves, and
+   tangible weapon mod cores.
 
-THEN: Gate 1. Five runs back to back, voluntarily, and a hook sentence a
-stranger finds interesting.
+4. Tactical Deployables (Wooden Barricades DONE 2026-09-08).
+   Placement of destructible wooden barricades with 1.0m grid snapping and
+   zombie clawing interaction (Boxhead DNA). Explosive red barrels up next.
+
+5. Hook sentence - LOCKED 2026-09-08.
+   "A top-down wave survival shooter where you spend blood money to physically
+   engineer fortified killboxes and mod firearms into crowd-shredding weapons of war."
+
+THEN: Gate 1. Five runs back to back, voluntarily, and an inter-wave loop that
+proves the hook in action.
