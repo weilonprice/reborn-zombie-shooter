@@ -98,6 +98,7 @@ MonoBehaviour:
   attackRange: 1.9
   attackDamage: 25
   attackCooldown: 1.4
+  barricadeDamageMultiplier: 1
   scoreValue: 30
   goldReward: 40
   deathLinger: 0.25

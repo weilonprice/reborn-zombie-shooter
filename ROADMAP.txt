@@ -1,8 +1,8 @@
 REBORN - DEVELOPMENT ROADMAP
 Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
 Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 56 weeks.
-Status:  Gates 0 and 1 PASSED. The hook holds up across repeated runs.
-         Boss and endless still unbuilt; refinement wanted, not redesign.
+Status:  Gates 0 and 1 PASSED. Phase 1 fully built - the boss is in, so a run
+         now has a climax. Boss numbers not yet play-tested.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -115,6 +115,20 @@ PROGRESS LOG
             field and survives the coroutine ending, which is what makes the
             continuation free. The unlock is session-only until the save
             system lands in Phase 3.
+2026-09-08  Boss built. Rather than a second AI, BossController switches an
+            ordinary ZombieAI between behaviours it already supported:
+            isRanged for the artillery phase, then melee charger at 50%
+            health. That reused steering, separation, knockback, pooling and
+            barricade sensing wholesale - the boss cost one small script plus
+            five setters on ZombieAI. 2000 HP, 2.2x scale, knockbackForce
+            0.35 against a standard 4.0 so the shotgun cannot hold it off.
+            The phase-two barricade multiplier is 10x, chosen so 35 damage
+            clears a 150 HP wall in exactly one hit - at two hits the phase
+            stops reading as "walls no longer help", which is the entire point
+            of the design. Boss health bar is polled rather than event-driven,
+            because the boss is pooled and a bar lingering after death is
+            worse than one frame of latency appearing.
+            Compiles clean; numbers not yet play-tested.
 2026-09-08  GATE 1 PASSED. Core mechanics validated across repeated runs and
             the hook is stateable. Noted honestly: gameplay and game design
             still want refinement. That is the correct outcome for this gate -
@@ -197,16 +211,19 @@ PHASE 1 - FIND THE HOOK                           Weeks 3-8
     progression stays a Phase 4 problem. Beating the boss unlocks endless
     survival. At current pacing that is ~337 zombies and 20-25 minutes, close
     enough to the Phase 5 demo length to reuse.
-[~] Implement the run structure - PARTLY DONE 2026-09-08.
+[x] Implement the run structure - BUILT 2026-09-08.
     DONE: wave cap at 15, GameState.Victory, win screen, and a WAVE n / 15
     counter so the run reads as an arc rather than a treadmill. Played end to
     end and validated - the 20-25 minute arc holds up, so that is the length
     the boss gets designed against.
     DONE: endless mode - [E] on the victory screen drops the wave cap and
     resumes the same run at wave 16, carrying health, gold, weapons and mods.
-    STILL TO DO: the boss encounter. Endless is currently unlocked only within
-    the session that won it; making the unlock persist needs the save system,
-    which is debt item 4 and due in Phase 3.
+    DONE: the boss. Arrives 40% into wave 15 alongside the horde. Two phases -
+    artillery at range, then an enraged charger at 50% health that smashes
+    barricades in a single blow. Killing it is the win; clearing the wave is
+    no longer the trigger. NOT yet play-tested.
+    NOTE: endless is unlocked only within the session that won it. Making the
+    unlock persist needs the save system, which is debt item 4, due Phase 3.
 [x] Write the hook in one sentence - DONE 2026-09-08: "A top-down wave survival
     shooter where you spend blood money to physically engineer fortified
     killboxes and mod firearms into crowd-shredding weapons of war."
@@ -459,7 +476,20 @@ ZOMBIE STEERING VS DEPLOYABLE BARRICADES - resolved 2026-09-08.
 START HERE - THIS WEEK
 ===============================================================================
 
-1. Build the boss - and do it BEFORE retiring ArenaBuilder.
+1. Play wave 15 and tune the boss.
+   Three numbers are low-confidence. 2000 HP against a full wave 15 could be
+   trivial with a saved-up loadout or brutal without one. Phase 1 may be
+   invisible - a ranged attacker sitting at 14 units during a horde fight may
+   simply never get noticed. And the artillery is currently just the Ranged
+   archetype's straight projectile; the telegraphed ground-marker AoE is not
+   built, so phase 1 may feel thin until it is.
+
+2. Then: the artillery telegraph.
+   A ground marker before impact. Wave 15 plus a boss is the most crowded the
+   screen ever gets, and an untelegraphed area attack in that is unreadable.
+
+OLD ITEM, now done - kept for the reasoning about ordering:
+   Build the boss - and do it BEFORE retiring ArenaBuilder.
    Phase 2 retires the builder when the arena becomes hand-authored, and that
    is a one-way door: after it, every new prefab and wiring is manual scene
    work. The boss is the last thing Phase 1 owes, and it is much cheaper to
@@ -473,12 +503,7 @@ START HERE - THIS WEEK
    fortification hook directly, for example by smashing barricades in a single
    hit, so walls buy time rather than safety.
 
-2. Run Gate 1.
-   Five runs back to back, voluntarily, and a hook sentence a stranger finds
-   interesting. Both halves are finally testable: the hook is written and a
-   run now has an ending. This is the gate that decides whether Phase 1
-   actually found something, so do not soften it - if you do not want a
-   fourth run, that is the answer.
+3. Then Phase 2 - art direction lock, and retire ArenaBuilder.
 
 3. Debt: reviewed 2026-09-08.
    Fixed: 7 (silent singletons), 12 (mods hardcoded by slot), 13 (prices as

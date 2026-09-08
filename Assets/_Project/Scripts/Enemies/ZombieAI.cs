@@ -38,6 +38,9 @@ namespace ZombieShooter
         [SerializeField] float attackRange = 1.6f;
         [SerializeField] float attackDamage = 12f;
         [SerializeField] float attackCooldown = 1.1f;
+        [Tooltip("Scales damage dealt to barricades only. The boss raises this in its second " +
+                 "phase so a wall falls in one blow.")]
+        [SerializeField] float barricadeDamageMultiplier = 1f;
         [SerializeField] int scoreValue = 10;
         [SerializeField] int goldReward = 10;
         [Tooltip("Seconds the body stays up after dying, so the kill flash and hit-stop " +
@@ -73,6 +76,14 @@ namespace ZombieShooter
         public int GoldReward => goldReward;
         /// <summary>The prefab this instance was instantiated from, for multi-type pooling.</summary>
         public ZombieAI PrefabSource { get; set; }
+
+        // Runtime setters so BossController can switch this AI between the behaviours it
+        // already supports, instead of a second AI duplicating steering and separation.
+        public void SetRanged(bool value) => isRanged = value;
+        public void SetMoveSpeed(float value) => moveSpeed = value;
+        public void SetAttackDamage(float value) => attackDamage = value;
+        public void SetAttackCooldown(float value) => attackCooldown = value;
+        public void SetBarricadeDamageMultiplier(float value) => barricadeDamageMultiplier = value;
 
         void Awake()
         {
@@ -153,7 +164,8 @@ namespace ZombieShooter
             nextAttackTime = Time.time + attackCooldown;
 
             barricade.TakeDamage(new DamageInfo(
-                attackDamage, transform.position, -transform.forward, 1f, gameObject));
+                attackDamage * barricadeDamageMultiplier,
+                transform.position, -transform.forward, 1f, gameObject));
         }
 
         void Steer(Vector3 toTarget, float distance)

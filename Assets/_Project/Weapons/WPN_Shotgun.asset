@@ -20,7 +20,7 @@ MonoBehaviour:
   pelletsPerShot: 5
   fireMode: 1
   tags: 2
-  overclockedFireRateMultiplier: 1.0
+  overclockedFireRateMultiplier: 1
   overclockedConvertsToAuto: 0
   pierceCount: 1
   penetrationFalloff: 0.6

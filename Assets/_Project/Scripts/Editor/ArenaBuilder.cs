@@ -19,6 +19,7 @@ namespace ZombieShooter.EditorTools
         const string RangedPrefabPath = Root + "/Prefabs/RangedZombie.prefab";
         const string ProjectilePrefabPath = Root + "/Prefabs/EnemyProjectile.prefab";
         const string BarricadePrefabPath = Root + "/Prefabs/Barricade.prefab";
+        const string BossPrefabPath = Root + "/Prefabs/Boss.prefab";
         const string MaterialDir = Root + "/Materials";
         const string AudioDir = Root + "/Audio";
         const string WeaponDir = Root + "/Weapons";
@@ -54,6 +55,7 @@ namespace ZombieShooter.EditorTools
             CreateMaterial("M_Brute", new Color(0.65f, 0.17f, 0.17f));
             CreateMaterial("M_Runner", new Color(0.95f, 0.55f, 0.15f));
             CreateMaterial("M_Ranged", new Color(0.55f, 0.20f, 0.75f));
+            CreateMaterial("M_Boss", new Color(0.42f, 0.05f, 0.07f));
             CreateMaterial("M_Barricade_Wood", new Color(0.48f, 0.28f, 0.12f));
             CreateMaterial("M_Barricade_Metal", new Color(0.20f, 0.22f, 0.26f));
             CreateUnlitMaterial("M_Placement_Valid", new Color(0.2f, 0.9f, 0.3f, 0.45f));
@@ -70,6 +72,7 @@ namespace ZombieShooter.EditorTools
             BuildZombiePrefab();
             BuildBrutePrefab();
             BuildProjectilePrefab();
+            BuildBossPrefab();
             BuildBarricadePrefab();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -457,6 +460,107 @@ namespace ZombieShooter.EditorTools
             Object.DestroyImmediate(brute);
         }
 
+        static void BuildBossPrefab()
+        {
+            var mat = LoadMaterial("M_Boss");
+
+            var boss = new GameObject("Boss");
+            boss.transform.position = Vector3.zero;
+
+            // 2.2x the standard zombie. It has to be unmistakable at a glance while forty
+            // other bodies are on screen - this arrives during wave 15, not instead of it.
+            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            body.name = "Body";
+            body.transform.SetParent(boss.transform, false);
+            body.transform.localScale = new Vector3(1.98f, 2.09f, 1.98f);
+            body.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(body.GetComponent<CapsuleCollider>());
+
+            var snout = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            snout.name = "Snout";
+            snout.transform.SetParent(boss.transform, false);
+            snout.transform.localPosition = new Vector3(0f, 0.77f, 0.99f);
+            snout.transform.localScale = new Vector3(0.66f, 0.66f, 0.88f);
+            snout.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(snout.GetComponent<BoxCollider>());
+
+            var controller = boss.AddComponent<CharacterController>();
+            controller.height = 3.9f;
+            controller.radius = 0.92f;
+            controller.center = Vector3.zero;
+            controller.stepOffset = 0.5f;
+
+            var health = boss.AddComponent<Health>();
+            using (var f = new Fields(health)) f.F("maxHealth", 2000f);
+
+            var shootPoint = new GameObject("ShootPoint").transform;
+            shootPoint.SetParent(boss.transform, false);
+            shootPoint.localPosition = new Vector3(0f, 0.8f, 1.3f);
+
+            var ai = boss.AddComponent<ZombieAI>();
+            using (var f = new Fields(ai))
+            {
+                // Starts ranged; BossController flips it to a charger at half health.
+                // knockbackForce 0.35 against a standard 4.0 - it is barely movable, so the
+                // shotgun cannot simply hold it at arm's length the way it does a Brute.
+                f.F("moveSpeed", 1.7f).F("turnSpeed", 200f)
+                 .F("separationRadius", 2.1f).F("separationStrength", 4f)
+                 .F("attackRange", 2.8f).F("attackDamage", 22f).F("attackCooldown", 2.2f)
+                 .I("scoreValue", 500).I("goldReward", 250)
+                 .F("knockbackForce", 0.35f).F("knockbackDecay", 18f)
+                 .F("deathLinger", 0.6f)
+                 .Obj("deathClip", LoadClip("SFX_Death"))
+                 .F("deathVolume", 0.9f).F("killTrauma", 1f)
+                 .B("isRanged", true).F("preferredRange", 14f)
+                 .Obj("projectilePrefab", LoadProjectilePrefab())
+                 .Obj("shootPoint", shootPoint)
+                 .Obj("shootClip", LoadClip("SFX_Gunshot"))
+                 .F("shootVolume", 0.6f);
+            }
+
+            var bossController = boss.AddComponent<BossController>();
+            using (var f = new Fields(bossController))
+            {
+                f.F("phaseOneMoveSpeed", 1.7f).F("phaseOneAttackCooldown", 2.2f)
+                 .F("phaseTwoAt", 0.5f)
+                 .F("phaseTwoMoveSpeed", 5f).F("phaseTwoAttackDamage", 35f)
+                 .F("phaseTwoAttackCooldown", 0.9f)
+                 // 35 x 10 clears a 150 HP barricade in one blow. If it took two, the phase
+                 // would not read as "walls stopped working".
+                 .F("phaseTwoBarricadeMultiplier", 10f)
+                 .Obj("phaseChangeClip", LoadClip("SFX_Barricade_Break"))
+                 .F("phaseChangeVolume", 0.9f).F("phaseChangeTrauma", 0.75f)
+                 .F("phaseChangeFreeze", 0.12f);
+            }
+
+            var pop = boss.AddComponent<DeathPop>();
+            using (var f = new Fields(pop))
+            {
+                f.Obj("health", health).F("duration", 0.55f)
+                 .F("squash", 1.7f).F("spinDegrees", 200f);
+            }
+
+            var flash = boss.AddComponent<HitFlash>();
+            using (var f = new Fields(flash))
+            {
+                f.Obj("health", health).Col("flashColor", Color.white).F("duration", 0.06f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(boss, BossPrefabPath);
+            Object.DestroyImmediate(boss);
+        }
+
+        static ZombieAI LoadBossPrefab()
+        {
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(BossPrefabPath);
+            if (go == null)
+            {
+                Debug.LogError($"ArenaBuilder: no prefab at {BossPrefabPath}.");
+                return null;
+            }
+            return go.GetComponent<ZombieAI>();
+        }
+
         static void BuildProjectilePrefab()
         {
             var mat = LoadMaterial("M_Projectile");
@@ -786,6 +890,7 @@ namespace ZombieShooter.EditorTools
                  .Obj("player", player.transform)
                  .F("spawnRadius", 24f).F("minDistanceFromPlayer", 12f).F("spawnHeight", 1f)
                  .I("firstWaveCount", 5).F("countGrowth", 2.5f).I("maxAliveAtOnce", 60).I("finalWave", 15)
+                 .Obj("bossPrefab", LoadBossPrefab()).F("bossArrivesAt", 0.4f)
                  .F("timeBetweenSpawns", 0.45f)
                  .I("bruteStartWave", 2).I("runnerStartWave", 3).I("rangedStartWave", 4);
             }
@@ -856,6 +961,29 @@ namespace ZombieShooter.EditorTools
                 new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-40f, -88f), new Vector2(400f, 36f), "GOLD $0");
             goldLabel.color = new Color(1.0f, 0.85f, 0.25f);
 
+            // Boss bar, top centre and hidden until one exists. Wave 15 puts a boss and a
+            // full horde on screen together, so its health needs somewhere unmissable that
+            // is not competing with the player's own bar in the corner.
+            var bossBarRoot = CreatePanel(canvasGo.transform, "BossBarRoot", uiSprite,
+                new Color(0f, 0f, 0f, 0.55f),
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -46f), new Vector2(760f, 30f));
+
+            var bossFillGo = CreatePanel(bossBarRoot.transform, "BossFill", uiSprite,
+                new Color(0.72f, 0.10f, 0.12f, 0.95f),
+                Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            var bossFill = bossFillGo.GetComponent<Image>();
+            bossFill.type = Image.Type.Filled;
+            bossFill.fillMethod = Image.FillMethod.Horizontal;
+            bossFill.fillOrigin = (int)Image.OriginHorizontal.Left;
+            bossFill.fillAmount = 1f;
+
+            var bossLabel = CreateText(bossBarRoot.transform, "BossLabel", font, 18,
+                TextAnchor.MiddleCenter, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero,
+                "THE BUTCHER");
+
+            bossBarRoot.SetActive(false);
+
             var centreLabel = CreateText(canvasGo.transform, "CentreLabel", font, 46, TextAnchor.MiddleCenter,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1000f, 300f), string.Empty);
 
@@ -871,6 +999,9 @@ namespace ZombieShooter.EditorTools
                  .Obj("healthLabel", healthLabel)
                  .Obj("ammoLabel", ammoLabel)
                  .Obj("weaponLabel", weaponLabel)
+                 .Obj("bossBarRoot", bossBarRoot)
+                 .Obj("bossFill", bossFill)
+                 .Obj("bossLabel", bossLabel)
                  .Obj("barricadeLabel", barricadeLabel)
                  .Obj("waveLabel", waveLabel)
                  .Obj("scoreLabel", scoreLabel)
