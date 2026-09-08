@@ -1,8 +1,8 @@
 REBORN - DEVELOPMENT ROADMAP
 Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
 Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 56 weeks.
-Status:  Gate 0 PASSED. A run now has an ending: 15 waves, then a win screen.
-         Boss and endless still to build. Not yet played end to end.
+Status:  Gate 0 PASSED. Full 15-wave run played end to end and validated.
+         Boss and endless still to build. Gate 1 is now runnable.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -102,6 +102,17 @@ PROGRESS LOG
             per-frame spherecast on top. Restored, and three unrecorded items
             added: mods hardcoded by slot index, Armory prices as compile-time
             constants, and the silent-singleton pattern spreading to 27 sites.
+2026-09-08  Fixed: Armory ammo crates refilled to the unmodded magazine size.
+            Capacity was computed in two places - Weapon applied the drum mag
+            multiplier while WeaponLoadout read the raw definition - so an
+            upgraded rifle topped to 30 when it holds 45, silently half
+            refunding the mod on every restock, on every weapon.
+            ArmoryManager.EffectiveMagazineSize is now the single owner.
+2026-09-08  Full 15-wave run played end to end. The arc holds up, so 20-25
+            minutes is the length the boss gets designed against, and the
+            gold economy and archetype ramp both survived the wave cap
+            without needing retuning. Gate 1 is now runnable - until a run
+            had an ending, five runs back to back could not measure anything.
 2026-09-08  Wave cap and win screen in. WaveManager stops at wave 15 and calls
             GameManager.Win() rather than opening another Armory break -
             clearing the final wave is the win, so there is nothing left to
@@ -175,8 +186,9 @@ PHASE 1 - FIND THE HOOK                           Weeks 3-8
     enough to the Phase 5 demo length to reuse.
 [~] Implement the run structure - PARTLY DONE 2026-09-08.
     DONE: wave cap at 15, GameState.Victory, win screen, and a WAVE n / 15
-    counter so the run reads as an arc rather than a treadmill. Compiles
-    clean; NOT yet played end to end.
+    counter so the run reads as an arc rather than a treadmill. Played end to
+    end and validated - the 20-25 minute arc holds up, so that is the length
+    the boss gets designed against.
     STILL TO DO: the boss encounter, and endless unlocked by winning.
 [x] Write the hook in one sentence - DONE 2026-09-08: "A top-down wave survival
     shooter where you spend blood money to physically engineer fortified
@@ -388,14 +400,7 @@ ZOMBIE STEERING VS DEPLOYABLE BARRICADES - resolved 2026-09-08.
 START HERE - THIS WEEK
 ===============================================================================
 
-1. Play all 15 waves end to end, once.
-   The cap and win screen are in but unplayed. The only question that matters
-   is whether 20-25 minutes is the right arc - too long and the middle waves
-   sag, too short and the Armory never gets interesting. This is the number
-   the boss will be built against, and it is far cheaper to change now than
-   after.
-
-2. Build the boss.
+1. Build the boss.
    A new enemy prefab, telegraphed wind-up attacks the player can read and
    react to, at least one phase change, a health bar, and the win trigger
    moving from wave-cleared to boss-killed. The thing to avoid is a boss that
@@ -403,11 +408,13 @@ START HERE - THIS WEEK
    fortification hook directly, for example by smashing barricades in a single
    hit, so walls buy time rather than safety.
 
-3. Run Gate 1.
+2. Run Gate 1.
    Five runs back to back, voluntarily, and a hook sentence a stranger finds
-   interesting. The hook is written; the five runs need the run structure to
-   mean anything.
+   interesting. Both halves are finally testable: the hook is written and a
+   run now has an ending. This is the gate that decides whether Phase 1
+   actually found something, so do not soften it - if you do not want a
+   fourth run, that is the answer.
 
-4. Pay down debt 6 and 7 before Phase 2, not during it.
+3. Pay down debt 6 and 7 before Phase 2, not during it.
    Both are load-bearing: 6 is the first thing that breaks as waves grow, and
    7 has now cost debugging time three separate times.
