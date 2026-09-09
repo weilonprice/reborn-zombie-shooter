@@ -2,8 +2,9 @@ REBORN - DEVELOPMENT ROADMAP
 Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
 Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 64 weeks.
 Status:  Gates 0 and 1 PASSED. Phase 2 content production underway - bigger
-         arena, deployables, and a data-driven weapon upgrade tree in. No art
-         until the content exists.
+         arena, deployables, and data-driven weapon upgrade trees in, with the
+         economy repriced so the trees are a choice. 1 of 12 paths authored.
+         No art until the content exists.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -223,6 +224,27 @@ PROGRESS LOG
             ricochet and mark code was deleted rather than left dormant. Third
             and current: a single Gunslinger path, authored, with two columns
             left as placeholders for paths still to be designed.
+2026-09-09  Economy measured and repriced. A 15-wave run earns 6580 gold; the
+            most all four weapons could absorb under the old flat tier curve
+            was 6870, so a run could buy 96% of everything the game sells and
+            no purchase was a real choice. Tier costs are now 60/150/350/800/
+            2000 - one maxed path is 3360, most of a run - defined once in
+            ArenaBuilder.TierCosts and applied by a helper so sixty tiers
+            across twelve paths cannot drift out of step. Also fixes pacing
+            for free: 55% of a run's gold arrives in the last five waves, and
+            the expensive tiers are now what that money is for.
+2026-09-09  Mod cores deleted - all five, plus ModCoreType, their prices, the
+            shop column and WeaponDefinition's overclock fields. Closes debt
+            15 by deletion rather than migration, and removes the untested
+            stacking between mods and upgrade trees. Double tap removed from
+            the Gunslinger T2 as well. Fixed while in there: the HUD never
+            showed an infinite reserve, because it only checked the weapon
+            definition and not the resolved upgrade stat; and the shop's
+            deployable buttons overlapped the ammo and barricade rows by 21px,
+            a layout bug that predated all of this.
+2026-09-09  Decision: three upgrade paths on all four weapons, not one. Sixty
+            tiers total. Taken with the content cost understood, on the basis
+            that the economy rework is what makes any of them a choice.
 2026-09-09  Gunslinger path live. T1 guaranteed crit on the first shot after
             every reload; T2 25% crit and double tap; T3 fan the hammer, hold
             to fire at 600 RPM with spread bleeding 1.2 to 9 degrees and
@@ -335,15 +357,17 @@ main reason content comes first.
 [ ] More weapons, toward ~10. BLOCKED on a design decision: WeaponLoadout has
     exactly 4 slots on keys 1-4. Ten weapons needs either more keys or a
     carry-two-and-swap-at-the-Armory model. Decide before building them.
-[~] Mod cores and upgrades to 60+. Weapon upgrade trees are in and are data,
-    not branches: three paths x five tiers per weapon under a 5-3-0 rule,
-    bought with gold. Pistol has one authored path (Gunslinger); its other two
-    and all of shotgun, rifle and sniper are still to design. This does NOT
-    close debt item 15 - ModCoreType and its hardcoded branches still exist
-    alongside the trees, and retiring it is now a task in its own right.
-    New constraint discovered while building: UpgradeTier's behaviour flags are
-    a fixed vocabulary (18 and counting). Adding tiers and paths is free;
-    adding a new KIND of effect is still code. See debt item 17.
+[~] Weapon upgrades. Trees are in and are data, not branches: three paths of
+    five tiers on every weapon under a 5-3-0 rule, bought with gold. Costs come
+    from one shared curve (ArenaBuilder.TierCosts), so authoring a path is
+    choosing five effects, not five effects and five prices.
+    PROGRESS: 1 of 12 paths authored. Pistol "Gunslinger" done; the pistol's
+    other two and all three each for shotgun, rifle and sniper remain. 55 of
+    60 tiers still to design.
+    Mod cores are gone entirely, which closed debt item 15 by deletion.
+    Remaining constraint: UpgradeTier's behaviour flags are a flat vocabulary.
+    Adding tiers and paths is free; adding a new KIND of effect is still code.
+    See debt item 17, and expect to hit it repeatedly across the next 11 paths.
 [ ] Arenas - 3-4 spaces with different tactical character.
 [ ] Meta progression - needs the save system, debt item 4.
 [ ] Performance - profile the horde. Debt item 6, deferred to exactly here.
@@ -562,17 +586,16 @@ KNOWN DEBT IN THE CURRENT BUILD
    economy actually needs tuning against it.
    Fix: move costs into a ScriptableObject alongside the weapon definitions.
 
-15. MOD CORES ARE AN ENUM WITH HARDCODED BRANCHES.
-   ModCoreType is an enum and every effect is a branch in Weapon.cs - Heavy
-   Slug swaps pellets and damage, Dragon's Breath starts a coroutine, Bore
-   Piercing edits pierce and falloff. Five was fine. Phase 2 targets 60+
-   upgrades, which under this design means 60 branches in one file, each
-   needing an enum value, a UI field and manual wiring.
-   This BLOCKS the upgrades task - it is not a tidy-up, it is a prerequisite.
-   Fix: upgrades become ScriptableObjects that describe their effect, the way
-   weapons and deployables already do. Deployables are the worked example -
-   DeployableDefinition plus one generic placer replaced what would have been
-   three near-identical scripts.
+15. MOD CORES ARE AN ENUM WITH HARDCODED BRANCHES. -- RESOLVED 2026-09-09.
+   ModCoreType was an enum with every effect a branch in Weapon.cs, and it
+   blocked the upgrades task: 60 upgrades would have meant 60 branches in one
+   file. Resolved by DELETION rather than by the planned migration into
+   ScriptableObjects - upgrade trees already did everything mods did, and
+   keeping both meant two systems making a weapon stronger with neither aware
+   of the other and untested stacking between them.
+   Worth recording that deleting was cheaper than migrating and only became
+   the obvious answer once the replacement existed. The register had assumed
+   a rework for weeks.
 
 16. WEAPON LOADOUT IS FIXED AT FOUR SLOTS.
    WeaponLoadout is hardcoded to 4 entries on keys 1-4. The Phase 2 target of
@@ -629,10 +652,13 @@ START HERE - THIS WEEK
    against. Watch the 0.2s tap-versus-hold threshold on T3 and the ultimate's
    2.0-second duration on T5.
 
-2. Design the pistol's other two paths.
-   The panel already lays out three columns; two say "TO BE DESIGNED" and are
-   inert. Until they exist the 5-3-0 rule has nothing to bite on - one path is
-   a ladder, not a build.
+2. Design the remaining 11 upgrade paths.
+   Three per weapon on all four, decided 2026-09-09 with the content cost
+   understood. The pistol's two empty columns come first: until they exist the
+   5-3-0 rule has nothing to bite on, and one path is a ladder, not a build.
+   Candidates already brainstormed and recorded in UPGRADES.txt: Lawman,
+   Reaper, Marksman, Powder Keg, Drifter, Undertaker, Wildfire, Hexslinger.
+   Every one needs new code - none are data-only.
 
 3. Decide the two Phase 2 blockers.
    Weapons need the loadout question answered (debt 16). Upgrades needed the

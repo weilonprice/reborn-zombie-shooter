@@ -182,7 +182,6 @@ namespace ZombieShooter
             if (tier.critChance >= 0f) stats.CritChance = tier.critChance;
             if (tier.critMultiplier >= 0f) stats.CritMultiplier = tier.critMultiplier;
             if (tier.guaranteedCritAfterReload) stats.GuaranteedCritAfterReload = true;
-            if (tier.doubleTap) stats.DoubleTap = true;
 
             if (tier.fanFireRate >= 0f) stats.FanFireRate = tier.fanFireRate;
             if (tier.fanMaxSpread >= 0f) stats.FanMaxSpread = tier.fanMaxSpread;

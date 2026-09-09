@@ -25,7 +25,6 @@ namespace ZombieShooter
         public float CritChance;
         public float CritMultiplier;
         public bool GuaranteedCritAfterReload;
-        public bool DoubleTap;
 
         /// <summary>0 means the trigger is not a fan - the weapon still fires per click.</summary>
         public float FanFireRate;

@@ -38,7 +38,6 @@ namespace ZombieShooter
         const float OffHandRange = 26f;
         const float AkimboOffset = 0.30f;
 
-        const float DoubleTapDelay = 0.08f;
         /// <summary>How long the trigger must be held before a click becomes a fan.</summary>
         const float FanEngageDelay = 0.2f;
         const float FanCoolSeconds = 0.4f;
@@ -53,8 +52,6 @@ namespace ZombieShooter
 
         bool useOffHand;
 
-        bool doubleTapPending;
-        float doubleTapAt;
         float triggerHeldSince;
         bool fanEngaged;
         float fanHeat;
@@ -78,6 +75,14 @@ namespace ZombieShooter
         /// <summary>Raised whenever a shot from this weapon kills something.</summary>
         public event Action Killed;
         public event Action UltimateEnded;
+
+        /// <summary>
+        /// Whether the reserve is currently bottomless. Read by the HUD: infinite reserve
+        /// arrives as a resolved upgrade stat, not as a negative MaxReserveAmmo on the
+        /// definition, so the reserve counter simply stops moving rather than going below
+        /// zero - and nothing downstream could tell the difference from a full one.
+        /// </summary>
+        public bool HasInfiniteReserve => stats.InfiniteReserve;
 
         public bool UltimateActive { get; private set; }
         public bool HasUltimate => stats.UltimateKills > 0;
@@ -195,26 +200,13 @@ namespace ZombieShooter
 
             if (InputReader.ReloadPressed) BeginReload();
 
-            if (doubleTapPending && Time.time >= doubleTapAt)
-            {
-                doubleTapPending = false;
-                Fire(force: true);
-            }
-
-            bool overclockedAuto = definition.OverclockedConvertsToAuto
-                && ArmoryManager.ModAppliesTo(ModCoreType.OverclockedReceiver, definition);
             bool fanning = stats.FanFireRate > 0f;
 
             if (InputReader.FirePressed)
             {
                 triggerHeldSince = Time.time;
                 fanEngaged = false;
-
-                if (Fire() && stats.DoubleTap)
-                {
-                    doubleTapPending = true;
-                    doubleTapAt = Time.time + DoubleTapDelay;
-                }
+                Fire();
             }
             else if (InputReader.FireHeld)
             {
@@ -229,7 +221,7 @@ namespace ZombieShooter
                         Fire();
                     }
                 }
-                else if (stats.FullAuto || overclockedAuto)
+                else if (stats.FullAuto)
                 {
                     Fire();
                 }
@@ -251,15 +243,10 @@ namespace ZombieShooter
 
         float CurrentFireRate()
         {
-            float rate = stats.FireRate;
+            if (UltimateActive && stats.UltimateFireRate > 0f) return stats.UltimateFireRate;
+            if (fanEngaged && stats.FanFireRate > 0f) return stats.FanFireRate;
 
-            if (UltimateActive && stats.UltimateFireRate > 0f) rate = stats.UltimateFireRate;
-            else if (fanEngaged && stats.FanFireRate > 0f) rate = stats.FanFireRate;
-
-            if (ArmoryManager.ModAppliesTo(ModCoreType.OverclockedReceiver, definition))
-                rate *= definition.OverclockedFireRateMultiplier;
-
-            return rate;
+            return stats.FireRate;
         }
 
         float CurrentSpread()
@@ -306,7 +293,6 @@ namespace ZombieShooter
 
             nextFireTime = 0f;
             fanEngaged = false;
-            doubleTapPending = false;
             pendingReloadCrit = stats.GuaranteedCritAfterReload;
         }
 
@@ -321,14 +307,10 @@ namespace ZombieShooter
         /// <summary>Kept for external callers; the input path uses <see cref="Fire"/>.</summary>
         public void TryFire() => Fire();
 
-        /// <summary>
-        /// Fires one round. <paramref name="force"/> skips the rate limiter, which the second
-        /// half of a double tap needs - it lands faster than the weapon's own cycle allows.
-        /// </summary>
-        bool Fire(bool force = false)
+        bool Fire()
         {
             if (definition == null || IsReloading) return false;
-            if (!force && Time.time < nextFireTime) return false;
+            if (Time.time < nextFireTime) return false;
 
             if (Ammo <= 0)
             {
@@ -360,9 +342,6 @@ namespace ZombieShooter
             if (shellEject != null && definition.ShellsPerShot > 0)
                 shellEject.Emit(definition.ShellsPerShot);
 
-            bool heavySlug = ArmoryManager.ModAppliesTo(ModCoreType.HeavySlug, definition);
-            bool dragonsBreath = ArmoryManager.ModAppliesTo(ModCoreType.DragonsBreath, definition);
-
             var origin = rayOrigin != null ? rayOrigin.position : transform.position;
             bool anyHit = false;
             var impactPoint = Vector3.zero;
@@ -377,7 +356,7 @@ namespace ZombieShooter
                     : firingMuzzle.forward;
 
                 // A round is spent either way: the spin is the cost, not a free search.
-                anyHit = FireOnePellet(heavySlug, dragonsBreath, crit, origin, direction,
+                anyHit = FireOnePellet(crit, origin, direction,
                                        firingMuzzle.position, out impactPoint);
             }
             else if (offHand && stats.OffHandTargets > 0 && GatherOffHandTargets(origin))
@@ -389,7 +368,7 @@ namespace ZombieShooter
                 {
                     var direction = (TargetFinder.AimPoint(offHandTargets[i]) - origin).normalized;
 
-                    if (FireOnePellet(heavySlug, dragonsBreath, crit, origin, direction,
+                    if (FireOnePellet(crit, origin, direction,
                                       firingMuzzle.position, out var point) && !anyHit)
                     {
                         anyHit = true;
@@ -399,14 +378,14 @@ namespace ZombieShooter
             }
             else
             {
-                int pellets = heavySlug ? 1 : definition.PelletsPerShot;
-                float spreadAngle = heavySlug ? 0.3f : CurrentSpread();
+                int pellets = definition.PelletsPerShot;
+                float spreadAngle = CurrentSpread();
 
                 for (int i = 0; i < pellets; i++)
                 {
                     var direction = ApplySpread(firingMuzzle.forward, spreadAngle);
 
-                    if (FireOnePellet(heavySlug, dragonsBreath, crit, origin, direction,
+                    if (FireOnePellet(crit, origin, direction,
                                       firingMuzzle.position, out var point) && !anyHit)
                     {
                         anyHit = true;
@@ -464,8 +443,8 @@ namespace ZombieShooter
             return closest;
         }
 
-        bool FireOnePellet(bool heavySlug, bool dragonsBreath, bool crit, Vector3 origin,
-                           Vector3 direction, Vector3 tracerFrom, out Vector3 firstImpact)
+        bool FireOnePellet(bool crit, Vector3 origin, Vector3 direction, Vector3 tracerFrom,
+                           out Vector3 firstImpact)
         {
             firstImpact = Vector3.zero;
 
@@ -480,14 +459,13 @@ namespace ZombieShooter
             {
                 Array.Sort(HitBuffer, 0, count, HitDistanceComparer.Instance);
 
-                float damage = heavySlug ? 120f : stats.Damage;
+                float damage = stats.Damage;
                 if (crit) damage *= stats.CritMultiplier;
 
-                float knockback = heavySlug ? 3.5f : stats.KnockbackMultiplier;
+                float knockback = stats.KnockbackMultiplier;
 
-                bool bore = ArmoryManager.ModAppliesTo(ModCoreType.BorePiercing, definition);
-                int pierceLimit = stats.PierceCount + (bore ? 2 : 0);
-                float falloff = bore ? 1.0f : definition.PenetrationFalloff;
+                int pierceLimit = stats.PierceCount;
+                float falloff = definition.PenetrationFalloff;
 
                 int bodiesHit = 0;
 
@@ -509,9 +487,6 @@ namespace ZombieShooter
 
                     var health = hit.collider.GetComponentInParent<Health>();
                     ApplyShot(target, health, hit.point, hit.normal, damage, knockback);
-
-                    if (dragonsBreath)
-                        StartCoroutine(ApplyBurnDoT(target));
 
                     bodiesHit++;
                     if (bodiesHit > pierceLimit)
@@ -552,18 +527,6 @@ namespace ZombieShooter
             if (killed) OnKill();
 
             return killed;
-        }
-
-        IEnumerator ApplyBurnDoT(IDamageable target)
-        {
-            for (int i = 0; i < 3; i++)
-            {
-                yield return new WaitForSeconds(0.4f);
-                if (target != null && target.IsAlive)
-                {
-                    target.TakeDamage(new DamageInfo(8f, transform.position, Vector3.up, 0.2f, gameObject));
-                }
-            }
         }
 
         void OnKill()

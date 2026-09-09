@@ -4,26 +4,21 @@ using UnityEngine;
 
 namespace ZombieShooter
 {
-    public enum ModCoreType
-    {
-        DragonsBreath,       // Shotgun: Incendiary fire pellets (DoT)
-        HeavySlug,           // Shotgun: Single 120-damage high-knockback slug
-        BorePiercing,        // AR & Sniper: +2 pierce count, 100% damage retention
-        ExtendedDrumMags,    // Universal: +50% magazine capacity
-        OverclockedReceiver  // Pistol & AR: Full-auto pistol + 50% fire rate; AR +35% fire rate
-    }
-
     /// <summary>
-    /// Manages purchases of weapons, ammo crates, and tangible weapon mod cores.
-    /// Deducts gold through GameManager and coordinates with WeaponLoadout.
+    /// Manages purchases of weapons, ammo crates and deployables. Deducts gold through
+    /// GameManager and coordinates with WeaponLoadout.
+    /// <para>
+    /// Mod cores used to live here too - five global upgrades bought once and applied by
+    /// weapon tag. They were removed once weapon upgrade trees landed: two systems making a
+    /// weapon stronger, neither aware of the other, with untested stacking between them.
+    /// Trees replace them, so this is deletion rather than migration.
+    /// </para>
     /// </summary>
     public class ArmoryManager : MonoBehaviour
     {
         public static ArmoryManager Instance { get; private set; }
 
         [SerializeField] ArmoryPrices prices;
-
-        readonly HashSet<ModCoreType> installedMods = new();
 
         // Static passthroughs so every existing call site is unchanged, but the numbers now
         // come from an asset. The literals are only a fallback for an unwired manager.
@@ -34,12 +29,6 @@ namespace ZombieShooter
         public static int CostSniper => P != null ? P.Sniper : 350;
         public static int CostAmmoCrate => P != null ? P.AmmoCrate : 50;
         public static int CostBarricade => P != null ? P.Barricade : 40;
-
-        public static int CostDragonsBreath => P != null ? P.DragonsBreath : 200;
-        public static int CostHeavySlug => P != null ? P.HeavySlug : 200;
-        public static int CostBorePiercing => P != null ? P.BorePiercing : 220;
-        public static int CostExtendedDrumMags => P != null ? P.ExtendedDrumMags : 180;
-        public static int CostOverclockedReceiver => P != null ? P.OverclockedReceiver : 180;
 
         public event Action Changed;
 
@@ -58,8 +47,6 @@ namespace ZombieShooter
             if (Instance == this) Instance = null;
         }
 
-        public bool HasMod(ModCoreType mod) => installedMods.Contains(mod);
-
         /// <summary>
         /// Magazine capacity for a definition with installed mods applied.
         /// <para>
@@ -74,39 +61,7 @@ namespace ZombieShooter
         {
             if (definition == null) return 0;
 
-            // Upgrades set the base magazine, mods then scale it - so a drum-mag bonus
-            // applies to the upgraded size rather than the printed one.
-            int baseSize = UpgradeManager.Resolve(definition).MagazineSize;
-            float mult = Instance != null && Instance.HasMod(ModCoreType.ExtendedDrumMags) ? 1.5f : 1f;
-            return Mathf.RoundToInt(baseSize * mult);
-        }
-
-        /// <summary>
-        /// Whether an installed mod actually affects a given weapon.
-        /// <para>
-        /// Applicability is decided by the weapon's tags, never by its position in the
-        /// loadout. The previous slot-index checks meant reordering slots would have
-        /// silently reassigned every mod, and a fifth weapon would have needed edits to
-        /// Weapon.cs - which is exactly what moving weapons into ScriptableObjects was
-        /// supposed to prevent.
-        /// </para>
-        /// </summary>
-        public static bool ModAppliesTo(ModCoreType mod, WeaponDefinition definition)
-        {
-            if (definition == null || Instance == null || !Instance.HasMod(mod)) return false;
-
-            return mod switch
-            {
-                ModCoreType.ExtendedDrumMags => true,
-                ModCoreType.DragonsBreath => definition.HasAnyTag(WeaponTags.Shotgun),
-                ModCoreType.HeavySlug => definition.HasAnyTag(WeaponTags.Shotgun),
-                ModCoreType.BorePiercing => definition.HasAnyTag(WeaponTags.Rifle | WeaponTags.Precision),
-                // The weapon declares its own response, so "does this apply" is simply
-                // "does this weapon react to it".
-                ModCoreType.OverclockedReceiver =>
-                    definition.OverclockedConvertsToAuto || definition.OverclockedFireRateMultiplier > 1f,
-                _ => false,
-            };
+            return UpgradeManager.Resolve(definition).MagazineSize;
         }
 
         public bool CanAfford(int cost) =>
@@ -146,16 +101,6 @@ namespace ZombieShooter
             if (GameManager.Instance == null || !GameManager.Instance.TrySpendGold(definition.Cost)) return false;
 
             placer.AddStock(index, 1);
-            Changed?.Invoke();
-            return true;
-        }
-
-        public bool TryBuyMod(ModCoreType mod, int cost)
-        {
-            if (installedMods.Contains(mod)) return false;
-            if (GameManager.Instance == null || !GameManager.Instance.TrySpendGold(cost)) return false;
-
-            installedMods.Add(mod);
             Changed?.Invoke();
             return true;
         }

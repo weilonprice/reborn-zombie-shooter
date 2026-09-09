@@ -24,21 +24,11 @@ namespace ZombieShooter
         [SerializeField] int barricade = 40;
 
         [Header("Mod cores")]
-        [SerializeField] int dragonsBreath = 200;
-        [SerializeField] int heavySlug = 200;
-        [SerializeField] int borePiercing = 220;
-        [SerializeField] int extendedDrumMags = 180;
-        [SerializeField] int overclockedReceiver = 180;
 
         public int Shotgun => shotgun;
         public int AssaultRifle => assaultRifle;
         public int Sniper => sniper;
         public int AmmoCrate => ammoCrate;
         public int Barricade => barricade;
-        public int DragonsBreath => dragonsBreath;
-        public int HeavySlug => heavySlug;
-        public int BorePiercing => borePiercing;
-        public int ExtendedDrumMags => extendedDrumMags;
-        public int OverclockedReceiver => overclockedReceiver;
     }
 }

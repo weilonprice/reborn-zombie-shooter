@@ -1,0 +1,242 @@
+REBORN - UPGRADES REFERENCE
+Snapshot of what is actually IN the build. Not a design document - if it is
+written here, it exists in code and has been compiled. Ideas that have been
+discussed but not built are listed at the bottom, clearly separated.
+
+Last updated: 2026-09-09, after the mod-core removal and the cost-curve
+rework. Uncommitted at time of writing.
+NOTHING IN THIS FILE HAS BEEN PLAY-TESTED.
+
+
+===============================================================================
+TWO SYSTEMS, BOTH LIVE
+===============================================================================
+
+The game currently has two separate ways to make a weapon stronger, and they
+do not know about each other:
+
+  1. WEAPON UPGRADE TREES - the new system. Data-driven, per weapon, three
+     paths of five tiers under a 5-3-0 rule. Only the pistol has a tree, and
+     only one of its three paths is authored.
+
+  2. MOD CORES - the older system. A fixed enum of five global mods bought
+     once and applied to every weapon whose tags match.
+
+This overlap is deliberate for now but is not a resting state. Retiring mod
+cores into trees is Tech Debt #15, and Tech Debt #17 covers the flat flag
+vocabulary the trees use. Both should be done as one rework, not two.
+
+Order of application matters: upgrades set the base magazine, mods then scale
+it. So Extended Drum Mags multiplies the UPGRADED size, not the printed one.
+That single source of truth lives in ArmoryManager.EffectiveMagazineSize, and
+it has to stay there - computing it twice is what caused the bug where the
+Armory topped an upgraded rifle to 30 rounds while it held 45.
+
+
+===============================================================================
+SYSTEM 1 - WEAPON UPGRADE TREES
+===============================================================================
+
+Bought with gold at the Armory between waves, via the WEAPON UPGRADES button.
+Gold resets each run, so trees reset with it.
+
+TIER COSTS
+  T1 60   T2 150   T3 350   T4 800   T5 2000
+
+  One curve, shared by every path on every weapon, defined once as
+  ArenaBuilder.TierCosts and applied by the UpgradePath helper. Authoring a
+  path is choosing five effects; costs are not a per-path decision.
+
+  Full path 3360. Dip to T3 560. Under 5-3-0 one weapon can absorb 3920.
+
+  The curve is steep on purpose. Measured 2026-09-09: a 15-wave run earns
+  6580 gold (338 enemies at 18.7 average, plus 250 from the boss), and under
+  the previous flat curve the maximum possible spend across all four weapons
+  was 6870 - so a run could buy 96% of everything the game sells. Nothing was
+  a choice; buying was just sequencing. It also lands the expensive tiers
+  late, where the money actually is: 55% of a run's gold arrives in the last
+  five waves.
+
+
+THE 5-3-0 RULE
+  One path may reach tier 5.
+  A second path may reach tier 3.
+  The third is locked at 0 and can never be started.
+
+  Enforced in UpgradeManager.IsNextTierAllowed, which evaluates the rule
+  against the configuration a purchase WOULD produce rather than the one it
+  starts from - the rule is about the result, not the starting point.
+
+  The panel draws "locked by 5-3-0" and "you cannot afford this yet" as
+  visibly different states. Greying both identically makes the rule read as
+  arbitrary rather than as a consequence of a choice already made.
+
+WHICH WEAPONS HAVE TREES
+  Pistol     - one authored path, two placeholder columns
+  Shotgun    - none
+  Rifle      - none
+  Sniper     - none
+
+  A weapon with no tree runs on its definition values plus mod cores, and
+  its panel reads "This weapon has no upgrade paths yet."
+
+
+-------------------------------------------------------------------------------
+PISTOL - PATH 1 OF 3: "GUNSLINGER"
+-------------------------------------------------------------------------------
+Summary: open hot, close hot, and eventually stop needing to aim at all.
+Full path costs 3360 gold. See TIER COSTS below.
+
+Pistol base for reference: 20 damage, 200 RPM, 12 magazine, 120 reserve,
+1.0s reload, 1.2 degree spread, semi-automatic.
+
+T1  QUICK DRAW                                                       60 gold
+    Fire rate 200 -> 320. Reload 1.0s -> 0.75s.
+    The first shot after every reload is a guaranteed crit at 2x damage.
+    Arms only on a reload that actually loaded rounds, so a dry reserve
+    cannot hand out a free crit.
+
+T2  DEADEYE                                                         150 gold
+    Damage 20 -> 30. Fire rate -> 380. Reload -> 0.6s.
+    25% chance any shot crits for double damage.
+T3  FAN THE HAMMER                                                  350 gold
+    Magazine 12 -> 18. Crit chance -> 35%.
+    Holding the trigger past 0.2s fires at 600 RPM while spread degrades
+    from 1.2 to 9 degrees over one second, recovering over 0.4s on release.
+    A CLICK IS STILL AN ACCURATE SINGLE SHOT. The 0.2s threshold is what
+    keeps the accurate shot alive; it is the number most likely to need
+    tuning in the whole path.
+
+T4  TRUE GUNSLINGER                                                 800 gold
+    Damage 30 -> 45. Magazine -> 30. Reload -> 0.45s. Fan rate -> 750 RPM.
+    DUAL PISTOLS: a second gun appears, shots alternate hands, both guns
+    keep the player's forward so only the muzzle origin moves.
+    INFINITE RESERVE: reloads still happen, the reserve never depletes.
+
+T5  LEGEND OF THE WEST                                             2000 gold
+    Crit chance -> 45%.
+    ULTIMATE, charged by 30 pistol kills, fired with [V]:
+      - flourish reload that does not touch the reserve
+      - PlayerController takes over facing; the player spins at 540 deg/s
+      - mouse and right stick do nothing; WASD still works
+      - guns auto-aim the nearest enemy within 22m, one target per shot
+      - 80% crit chance for the duration
+      - 900 RPM, and the ability ends when the magazine runs dry
+      - opens on 0.35s of slow motion at 0.35x
+    Duration is therefore 30 rounds / 15 per second = 2.0 SECONDS.
+    That may be short for something costing 30 kills. Raise the T5 magazine
+    or lower the ultimate fire rate if it is.
+
+    Charge rules: only kills by this weapon count, barrels and claymores do
+    not. Kills scored DURING the ultimate do not pay for the next one.
+    Charge survives weapon swaps; the ability itself does not.
+    The ability ends itself on death or when the wave break starts, because
+    Weapon stops updating in both cases and would otherwise never reach an
+    empty magazine, stranding the player spinning with no way out.
+
+SHOTS TO KILL A STANDARD ZOMBIE (100 HP), by tier:
+    base  5      T1  5  (4 opening with the crit)
+    T2    4  (3) T3  4  (3)      T4  3  (2)
+    Brute is 300 HP: 7 shots at T4. Boss is 2000 HP.
+
+
+-------------------------------------------------------------------------------
+PISTOL - PATHS 2 AND 3: NOT DESIGNED
+-------------------------------------------------------------------------------
+Both render in the panel as "- TO BE DESIGNED -" with no tiers, so every
+button in those columns is inert.
+
+Until they exist the 5-3-0 rule has nothing to bite on. One path is a ladder,
+not a build - there is currently no choice to make, only an affordability
+question.
+
+
+===============================================================================
+SYSTEM 2 - MOD CORES: REMOVED 2026-09-09
+===============================================================================
+
+Five global mods (Dragon's Breath, Heavy Slug, Bore Piercing, Extended Drum
+Mags, Overclocked Receiver) were bought once at the Armory and applied to
+every weapon whose tags matched. Deleted outright once upgrade trees landed -
+two systems making a weapon stronger, neither aware of the other, with
+untested stacking between them. This closed Tech Debt #15 by deletion rather
+than by migrating them into trees.
+
+Gone with them: ModCoreType, the five prices, the shop's right-hand column,
+and WeaponDefinition's OverclockedFireRateMultiplier and
+OverclockedConvertsToAuto. WeaponTags survives but is now unread - it was how
+mods chose their weapons, and it is kept only as a likely hook for tiers that
+target a weapon family.
+
+
+===============================================================================
+OTHER ARMORY PURCHASES (not upgrades, but they spend the same gold)
+===============================================================================
+
+  Shotgun          150      Ammo crate        50   (refills all reserves)
+  Assault rifle    250      Barricade         40
+  Sniper           350      Explosive barrel  60
+                            Claymore          75
+
+All prices live in ArmoryPrices.asset, not in code - balancing the economy is
+an edit, not a recompile. The constants in ArmoryManager are only a fallback
+for an unwired manager.
+
+
+===============================================================================
+HOW TO ADD TO THIS
+===============================================================================
+
+A new TIER or a whole new PATH is pure data: add an UpgradeTier to the
+authoring in ArenaBuilder.LoadOrCreatePistolUpgrades and re-run the builder.
+No code.
+
+A new KIND of effect is not. It costs a field on UpgradeTier, a member on
+WeaponStats, a line in UpgradeManager.Apply, and a branch in the firing path.
+UpgradeTier currently carries 18 behaviour fields for this reason. That is
+Tech Debt #17, deliberately unfixed - designing the abstraction against a
+single authored path would be guessing.
+
+The tier data asset (Assets/_Project/Upgrades/UPG_Pistol.asset) is generated
+by the builder under a create-if-missing contract: it is written once and
+never overwritten, so hand-tuning survives a rebuild. The consequence is that
+CHANGING AUTHORED TIERS IN CODE REQUIRES DELETING THE ASSET FIRST, or the
+builder will keep the stale version with no error. This has already caused
+one near-miss where a regenerated asset held a design we had replaced.
+
+
+===============================================================================
+DESIGNED BUT NOT BUILT
+===============================================================================
+
+Kept short on purpose - this file documents what exists. These are candidates
+for the pistol's two empty paths, brainstormed 2026-09-09 and not started:
+
+  Lawman      Fortification. Repair barricades by shooting them, cripple,
+              stand-still damage bonus, barricade turrets. The only concept
+              that makes deployables matter to a weapon.
+  Reaper      Sustain. Life-steal on kill, damage scaling with missing
+              health, one revive per wave. Blocked on a real question: there
+              is NO healing anywhere in the game, so this would not be a
+              playstyle, it would be the only sustain that exists.
+  Marksman    Elites. Bonus damage to high-HP enemies, ramping damage on a
+              single target, infinite pierce, one charged shot per magazine.
+              Cheapest to build; answers the boss, which Gunslinger does not.
+  Powder Keg  Crowds. Splash, dynamite every sixth round, reload throws a
+              stick, corpses chain-detonate.
+  Drifter     Mobility. Dash with i-frames, burning trail, blink through
+              enemies. Adds a movement verb to the game, which is a decision
+              about the game rather than about the gun.
+  Undertaker  Chain death. Stacking poison that spreads on death, and a
+              summon at T5.
+  Wildfire    Fire. Ignite rather than kill, burning spreads through packs,
+              ground fire, corpses explode, and a capstone that scales with
+              how many enemies are alight. Weak early, apocalyptic late, and
+              bad against the boss unless burn is allowed to stack on single
+              targets.
+  Hexslinger  Multi-element with reactions - shock a burning enemy to
+              detonate it, and so on. Judged the most interesting and the
+              most expensive, and a better fit for the rifle or shotgun than
+              for a precision sidearm.
+
+Every one of these needs new code. None of them are data-only.

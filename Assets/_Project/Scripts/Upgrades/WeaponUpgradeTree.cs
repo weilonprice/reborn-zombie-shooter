@@ -54,8 +54,6 @@ namespace ZombieShooter
         public float critMultiplier = -1f;
         [Tooltip("The first shot after a reload always crits.")]
         public bool guaranteedCritAfterReload;
-        [Tooltip("One click fires two rounds in quick succession.")]
-        public bool doubleTap;
         [Tooltip("Rate of fire while the trigger is held down. 0 keeps the weapon on clicks.")]
         public float fanFireRate = -1f;
         [Tooltip("Spread the weapon degrades to while held. -1 leaves it alone.")]
