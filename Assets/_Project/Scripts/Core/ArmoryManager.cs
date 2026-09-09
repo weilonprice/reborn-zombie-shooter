@@ -130,12 +130,19 @@ namespace ZombieShooter
             return true;
         }
 
-        public bool TryBuyBarricade(BarricadePlacer placer)
+        /// <summary>
+        /// Buys one of whatever deployable sits at that catalogue index. Price comes from the
+        /// definition, so a new deployable needs no new purchase method here.
+        /// </summary>
+        public bool TryBuyDeployable(DeployablePlacer placer, int index)
         {
             if (placer == null) return false;
-            if (GameManager.Instance == null || !GameManager.Instance.TrySpendGold(CostBarricade)) return false;
 
-            placer.AddBarricades(1);
+            var definition = placer.DefinitionAt(index);
+            if (definition == null) return false;
+            if (GameManager.Instance == null || !GameManager.Instance.TrySpendGold(definition.Cost)) return false;
+
+            placer.AddStock(index, 1);
             Changed?.Invoke();
             return true;
         }

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c5fd190c1b6e4313a4d865d34c7ff22, type: 3}
+  m_Name: DEP_Claymore
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.DeployableDefinition
+  displayName: Claymore
+  prefab: {fileID: 6137415007367903886, guid: 8164b9ab689c04587a1df346eb939919, type: 3}
+  cost: 75
+  gridSnap: 1
+  rotatable: 1
+  footprint: 0.4
+  maxPlacementRange: 4.2
+  ghostSize: {x: 0.7, y: 0.34, z: 0.25}
+  placementHeight: 0.2
+  placeClip: {fileID: 8300000, guid: a20555810491e4c12a23b45d7d80a62d, type: 3}
+  placeVolume: 0.5

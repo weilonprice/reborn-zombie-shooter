@@ -20,11 +20,18 @@ namespace ZombieShooter.EditorTools
         const string ProjectilePrefabPath = Root + "/Prefabs/EnemyProjectile.prefab";
         const string BarricadePrefabPath = Root + "/Prefabs/Barricade.prefab";
         const string BossPrefabPath = Root + "/Prefabs/Boss.prefab";
+        const string BarrelPrefabPath = Root + "/Prefabs/ExplosiveBarrel.prefab";
+        const string ClaymorePrefabPath = Root + "/Prefabs/Claymore.prefab";
+        const string DeployableDir = Root + "/Deployables";
         const string MaterialDir = Root + "/Materials";
         const string AudioDir = Root + "/Audio";
         const string WeaponDir = Root + "/Weapons";
 
-        const float ArenaHalfSize = 30f;
+        // 90x90. Enlarged 2026-09-08 to give killbox construction room to breathe -
+        // barricade funnels need space to be a choice rather than a formality.
+        const float ArenaHalfSize = 45f;
+        /// <summary>Deployables stay this far inside the walls.</summary>
+        const float PlacementMargin = 3f;
         const float WallHeight = 3f;
 
         [MenuItem("Tools/Zombie Shooter/Build Playable Arena")]
@@ -56,6 +63,9 @@ namespace ZombieShooter.EditorTools
             CreateMaterial("M_Runner", new Color(0.95f, 0.55f, 0.15f));
             CreateMaterial("M_Ranged", new Color(0.55f, 0.20f, 0.75f));
             CreateMaterial("M_Boss", new Color(0.42f, 0.05f, 0.07f));
+            CreateMaterial("M_Barrel", new Color(0.72f, 0.26f, 0.06f));
+            CreateMaterial("M_Claymore", new Color(0.20f, 0.26f, 0.16f));
+            CreateUnlitMaterial("M_Claymore_Light", new Color(0.95f, 0.25f, 0.20f));
             CreateMaterial("M_Barricade_Wood", new Color(0.48f, 0.28f, 0.12f));
             CreateMaterial("M_Barricade_Metal", new Color(0.20f, 0.22f, 0.26f));
             CreateUnlitMaterial("M_Placement_Valid", new Color(0.2f, 0.9f, 0.3f, 0.45f));
@@ -74,6 +84,8 @@ namespace ZombieShooter.EditorTools
             BuildProjectilePrefab();
             BuildBossPrefab();
             BuildBarricadePrefab();
+            BuildBarrelPrefab();
+            BuildClaymorePrefab();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
@@ -147,13 +159,28 @@ namespace ZombieShooter.EditorTools
             // A few blocks so the empty field has landmarks and sightline breaks.
             var cover = new GameObject("Cover").transform;
             cover.SetParent(env, false);
-            Vector3[] spots =
+            // Scaled out with the arena and roughly doubled. Sparse cover in a 90x90 space
+            // reads as an empty field; these are the anchors funnels get built against.
+            (Vector3 pos, Vector3 size)[] spots =
             {
-                new(-12f, 1.25f, 8f), new(14f, 1.25f, -6f), new(4f, 1.25f, 17f),
-                new(-18f, 1.25f, -14f), new(9f, 1.25f, 9f), new(-6f, 1.25f, -19f),
+                (new(-18f, 1.25f, 12f), new(3.5f, 2.5f, 3.5f)),
+                (new(21f, 1.25f, -9f),  new(3.5f, 2.5f, 3.5f)),
+                (new(6f, 1.25f, 26f),   new(3.5f, 2.5f, 3.5f)),
+                (new(-27f, 1.25f, -21f),new(3.5f, 2.5f, 3.5f)),
+                (new(14f, 1.25f, 14f),  new(3.5f, 2.5f, 3.5f)),
+                (new(-9f, 1.25f, -28f), new(3.5f, 2.5f, 3.5f)),
+                // Longer slabs give barricade lines something to anchor against.
+                (new(0f, 1.25f, -14f),  new(9f, 2.5f, 3f)),
+                (new(-33f, 1.25f, 4f),  new(3f, 2.5f, 9f)),
+                (new(33f, 1.25f, 18f),  new(3f, 2.5f, 9f)),
+                (new(18f, 1.25f, -30f), new(9f, 2.5f, 3f)),
+                (new(-20f, 1.25f, 30f), new(7f, 2.5f, 3f)),
+                (new(30f, 1.25f, -20f), new(3.5f, 2.5f, 3.5f)),
+                (new(-34f, 1.25f, -34f),new(3.5f, 2.5f, 3.5f)),
+                (new(34f, 1.25f, 34f),  new(3.5f, 2.5f, 3.5f)),
             };
             for (int i = 0; i < spots.Length; i++)
-                CreateWall(cover, $"Block_{i}", spots[i], new Vector3(3.5f, 2.5f, 3.5f), wallMat);
+                CreateWall(cover, $"Block_{i}", spots[i].pos, spots[i].size, wallMat);
         }
 
         static void CreateWall(Transform parent, string name, Vector3 position, Vector3 size, Material mat)
@@ -271,16 +298,14 @@ namespace ZombieShooter.EditorTools
                 f.Obj("weapon", weapon).F("swapCooldown", 0.25f).Arr("slots", arsenal);
             }
 
-            var placer = player.AddComponent<BarricadePlacer>();
+            var placer = player.AddComponent<DeployablePlacer>();
             using (var f = new Fields(placer))
             {
-                f.Obj("barricadePrefab", LoadBarricadePrefab())
+                f.Arr("deployables", LoadOrCreateDeployables())
                  .Obj("validGhostMat", LoadMaterial("M_Placement_Valid"))
                  .Obj("invalidGhostMat", LoadMaterial("M_Placement_Invalid"))
-                 .Obj("placeClip", LoadClip("SFX_Barricade_Place"))
-                 .I("startingBarricades", 1)
-                 .F("maxPlacementRange", 4.2f)
-                 .F("placeVolume", 0.55f);
+                 .F("arenaBound", ArenaHalfSize - PlacementMargin)
+                 .IArr("startingStock", new[] { 1, 0, 0 });
             }
 
             return player;
@@ -559,6 +584,145 @@ namespace ZombieShooter.EditorTools
                 return null;
             }
             return go.GetComponent<ZombieAI>();
+        }
+
+        static void BuildBarrelPrefab()
+        {
+            var mat = LoadMaterial("M_Barrel");
+            var sparkMat = LoadMaterial("M_Spark");
+
+            var go = new GameObject("ExplosiveBarrel");
+
+            var visuals = new GameObject("Visuals");
+            visuals.transform.SetParent(go.transform, false);
+
+            var body = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            body.name = "Body";
+            body.transform.SetParent(visuals.transform, false);
+            body.transform.localScale = new Vector3(0.85f, 0.62f, 0.85f);
+            body.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(body.GetComponent<CapsuleCollider>());
+
+            var col = go.AddComponent<CapsuleCollider>();
+            col.height = 1.24f;
+            col.radius = 0.43f;
+
+            var blast = CreateBurstSystem(go.transform, "Blast", sparkMat,
+                new Color(1f, 0.6f, 0.15f), 6f, 16f, 0.25f, 0.6f, 0.12f, 0.3f, 65f, 1.2f);
+
+            var barrel = go.AddComponent<ExplosiveBarrel>();
+            using (var f = new Fields(barrel))
+            {
+                f.F("maxHealth", 30f)
+                 .F("blastRadius", 6f).F("centreDamage", 220f).F("edgeDamageFraction", 0.25f)
+                 .F("knockbackMultiplier", 4f)
+                 .B("damagesPlayer", true).B("damagesStructures", false)
+                 .F("chainDelay", 0.08f)
+                 .Obj("visualRoot", visuals).Obj("blastParticles", blast)
+                 .Obj("explodeClip", LoadClip("SFX_Barricade_Break"))
+                 .F("explodeVolume", 0.85f).F("blastTrauma", 0.7f).F("despawnDelay", 1.4f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(go, BarrelPrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
+        static void BuildClaymorePrefab()
+        {
+            var mat = LoadMaterial("M_Claymore");
+            var lightMat = LoadMaterial("M_Claymore_Light");
+            var sparkMat = LoadMaterial("M_Spark");
+
+            var go = new GameObject("Claymore");
+
+            var visuals = new GameObject("Visuals");
+            visuals.transform.SetParent(go.transform, false);
+
+            // A low wedge that clearly points somewhere - the facing is the whole mechanic.
+            var body = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            body.name = "Body";
+            body.transform.SetParent(visuals.transform, false);
+            body.transform.localScale = new Vector3(0.7f, 0.34f, 0.18f);
+            body.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(body.GetComponent<BoxCollider>());
+
+            var indicator = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            indicator.name = "ArmedIndicator";
+            indicator.transform.SetParent(visuals.transform, false);
+            indicator.transform.localPosition = new Vector3(0f, 0.24f, 0f);
+            indicator.transform.localScale = new Vector3(0.16f, 0.1f, 0.16f);
+            var indicatorRenderer = indicator.GetComponent<MeshRenderer>();
+            indicatorRenderer.sharedMaterial = lightMat;
+            Object.DestroyImmediate(indicator.GetComponent<BoxCollider>());
+
+            var blast = CreateBurstSystem(go.transform, "Blast", sparkMat,
+                new Color(1f, 0.75f, 0.3f), 5f, 13f, 0.2f, 0.45f, 0.07f, 0.18f, 45f, 1.4f);
+
+            var claymore = go.AddComponent<Claymore>();
+            using (var f = new Fields(claymore))
+            {
+                f.F("armTime", 0.7f).F("triggerRadius", 4.5f).F("coneHalfAngle", 55f)
+                 .F("damage", 160f).F("blastRange", 9f).F("knockbackMultiplier", 3f)
+                 .B("damagesPlayer", false)
+                 .Obj("visualRoot", visuals).Obj("armedIndicator", indicatorRenderer)
+                 .Col("disarmedColor", new Color(0.35f, 0.35f, 0.38f))
+                 .Col("armedColor", new Color(0.95f, 0.25f, 0.20f))
+                 .Obj("blastParticles", blast)
+                 .Obj("detonateClip", LoadClip("SFX_Barricade_Break"))
+                 .F("detonateVolume", 0.8f).F("blastTrauma", 0.45f).F("despawnDelay", 1.2f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(go, ClaymorePrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
+        /// <summary>
+        /// The deployable catalogue, created once then left to hand-tuning - the same
+        /// create-if-missing contract as weapons and prices.
+        /// </summary>
+        static Object[] LoadOrCreateDeployables()
+        {
+            var barricade = LoadOrCreateDeployable("DEP_Barricade", d => d
+                .Str("displayName", "Barricade")
+                .Obj("prefab", AssetDatabase.LoadAssetAtPath<GameObject>(BarricadePrefabPath))
+                .I("cost", 40).F("gridSnap", 1f).B("rotatable", true)
+                .F("footprint", 0.9f).F("maxPlacementRange", 4.2f)
+                .V3("ghostSize", new Vector3(1.6f, 0.95f, 0.6f)).F("placementHeight", 0.5f)
+                .Obj("placeClip", LoadClip("SFX_Barricade_Place")).F("placeVolume", 0.55f));
+
+            var barrel = LoadOrCreateDeployable("DEP_Barrel", d => d
+                .Str("displayName", "Explosive Barrel")
+                .Obj("prefab", AssetDatabase.LoadAssetAtPath<GameObject>(BarrelPrefabPath))
+                .I("cost", 60).F("gridSnap", 1f).B("rotatable", false)
+                .F("footprint", 0.5f).F("maxPlacementRange", 4.2f)
+                .V3("ghostSize", new Vector3(0.9f, 1.24f, 0.9f)).F("placementHeight", 0.62f)
+                .Obj("placeClip", LoadClip("SFX_Barricade_Place")).F("placeVolume", 0.5f));
+
+            var claymore = LoadOrCreateDeployable("DEP_Claymore", d => d
+                .Str("displayName", "Claymore")
+                .Obj("prefab", AssetDatabase.LoadAssetAtPath<GameObject>(ClaymorePrefabPath))
+                .I("cost", 75).F("gridSnap", 1f).B("rotatable", true)
+                .F("footprint", 0.4f).F("maxPlacementRange", 4.2f)
+                .V3("ghostSize", new Vector3(0.7f, 0.34f, 0.25f)).F("placementHeight", 0.2f)
+                .Obj("placeClip", LoadClip("SFX_Barricade_Place")).F("placeVolume", 0.5f));
+
+            return new Object[] { barricade, barrel, claymore };
+        }
+
+        static DeployableDefinition LoadOrCreateDeployable(string fileName, System.Action<Fields> configure)
+        {
+            string path = $"{DeployableDir}/{fileName}.asset";
+
+            var existing = AssetDatabase.LoadAssetAtPath<DeployableDefinition>(path);
+            if (existing != null) return existing;
+
+            EnsureFolder(DeployableDir);
+
+            var asset = ScriptableObject.CreateInstance<DeployableDefinition>();
+            using (var f = new Fields(asset)) configure(f);
+
+            AssetDatabase.CreateAsset(asset, path);
+            return asset;
         }
 
         static void BuildProjectilePrefab()
@@ -888,7 +1052,7 @@ namespace ZombieShooter.EditorTools
                  .Obj("runnerPrefab", runnerPrefab)
                  .Obj("rangedPrefab", rangedPrefab)
                  .Obj("player", player.transform)
-                 .F("spawnRadius", 24f).F("minDistanceFromPlayer", 12f).F("spawnHeight", 1f)
+                 .F("spawnRadius", 38f).F("minDistanceFromPlayer", 14f).F("spawnHeight", 1f)
                  .I("firstWaveCount", 5).F("countGrowth", 2.5f).I("maxAliveAtOnce", 60).I("finalWave", 15)
                  .Obj("bossPrefab", LoadBossPrefab()).F("bossArrivesAt", 0.4f)
                  .F("timeBetweenSpawns", 0.45f)
@@ -994,7 +1158,7 @@ namespace ZombieShooter.EditorTools
                  .Obj("weapon", player.GetComponent<Weapon>())
                  .Obj("waves", waves)
                  .Obj("loadout", player.GetComponent<WeaponLoadout>())
-                 .Obj("placer", player.GetComponent<BarricadePlacer>())
+                 .Obj("placer", player.GetComponent<DeployablePlacer>())
                  .Obj("healthFill", fill)
                  .Obj("healthLabel", healthLabel)
                  .Obj("ammoLabel", ammoLabel)
@@ -1123,6 +1287,14 @@ namespace ZombieShooter.EditorTools
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(260f, -135f), new Vector2(480f, 30f), "— TACTICAL MOD CORES —");
             modHeader.color = new Color(1.0f, 0.55f, 0.35f);
 
+            var (barrelBtn, barrelTxt) = CreateShopItemButton(shopCard.transform, "BuyBarrel", uiSprite, font,
+                new Vector2(-260f, -365f), new Vector2(480f, 48f),
+                "EXPLOSIVE BARREL\n220 dmg blast, chains to other barrels. Hurts you too.", "$60 BUY");
+
+            var (claymoreBtn, claymoreTxt) = CreateShopItemButton(shopCard.transform, "BuyClaymore", uiSprite, font,
+                new Vector2(-260f, -425f), new Vector2(480f, 48f),
+                "CLAYMORE\nDirectional mine, 160 dmg in a cone. One use.", "$75 BUY");
+
             var (drumBtn, drumTxt) = CreateShopItemButton(shopCard.transform, "ModDrum", uiSprite, font,
                 new Vector2(260f, -185f), new Vector2(480f, 48f),
                 "DRUM MAGAZINES (Universal)\n+50% mag capacity across all weapons", "$180 INSTALL");
@@ -1164,6 +1336,8 @@ namespace ZombieShooter.EditorTools
                  .Obj("sniperButton", sniperBtn).Obj("sniperBtnText", sniperTxt)
                  .Obj("ammoButton", ammoBtn).Obj("ammoBtnText", ammoTxt)
                  .Obj("barricadeButton", barricadeBtn).Obj("barricadeBtnText", barricadeTxt)
+                 .Obj("barrelButton", barrelBtn).Obj("barrelBtnText", barrelTxt)
+                 .Obj("claymoreButton", claymoreBtn).Obj("claymoreBtnText", claymoreTxt)
                  .Obj("drumMagsButton", drumBtn).Obj("drumMagsBtnText", drumTxt)
                  .Obj("overclockButton", overclockBtn).Obj("overclockBtnText", overclockTxt)
                  .Obj("boreButton", boreBtn).Obj("boreBtnText", boreTxt)
@@ -1635,6 +1809,17 @@ namespace ZombieShooter.EditorTools
             public Fields Col(string n, Color v) { var p = Find(n); if (p != null) p.colorValue = v; return this; }
             public Fields Str(string n, string v) { var p = Find(n); if (p != null) p.stringValue = v; return this; }
             public Fields E(string n, int v) { var p = Find(n); if (p != null) p.enumValueIndex = v; return this; }
+
+            public Fields IArr(string n, int[] values)
+            {
+                var p = Find(n);
+                if (p == null) return this;
+
+                p.arraySize = values.Length;
+                for (int i = 0; i < values.Length; i++)
+                    p.GetArrayElementAtIndex(i).intValue = values[i];
+                return this;
+            }
 
             public Fields Arr(string n, Object[] values)
             {

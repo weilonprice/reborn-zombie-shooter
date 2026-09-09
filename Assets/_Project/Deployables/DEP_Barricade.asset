@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c5fd190c1b6e4313a4d865d34c7ff22, type: 3}
+  m_Name: DEP_Barricade
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.DeployableDefinition
+  displayName: Barricade
+  prefab: {fileID: 3387042508451980037, guid: e97256ab1b5004dd0973091dfa661fa5, type: 3}
+  cost: 40
+  gridSnap: 1
+  rotatable: 1
+  footprint: 0.9
+  maxPlacementRange: 4.2
+  ghostSize: {x: 1.6, y: 0.95, z: 0.6}
+  placementHeight: 0.5
+  placeClip: {fileID: 8300000, guid: a20555810491e4c12a23b45d7d80a62d, type: 3}
+  placeVolume: 0.55

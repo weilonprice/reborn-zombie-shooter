@@ -13,7 +13,7 @@ namespace ZombieShooter
         [SerializeField] Weapon weapon;
         [SerializeField] WaveManager waves;
         [SerializeField] WeaponLoadout loadout;
-        [SerializeField] BarricadePlacer placer;
+        [SerializeField] DeployablePlacer placer;
 
         [Header("Widgets")]
         [SerializeField] Image healthFill;
@@ -68,8 +68,9 @@ namespace ZombieShooter
 
             if (placer != null)
             {
-                placer.BarricadesChanged += OnBarricadesChanged;
-                OnBarricadesChanged(placer.BarricadesInStock);
+                placer.StockChanged += OnDeployableStockChanged;
+                placer.SelectionChanged += OnDeployableSelectionChanged;
+                OnDeployableSelectionChanged(placer.Selected);
             }
 
             if (GameManager.Instance != null)
@@ -106,7 +107,8 @@ namespace ZombieShooter
 
             if (placer != null)
             {
-                placer.BarricadesChanged -= OnBarricadesChanged;
+                placer.StockChanged -= OnDeployableStockChanged;
+                placer.SelectionChanged -= OnDeployableSelectionChanged;
             }
 
             if (GameManager.Instance != null)
@@ -214,10 +216,24 @@ namespace ZombieShooter
             if (goldLabel != null) goldLabel.text = $"GOLD ${gold}";
         }
 
-        void OnBarricadesChanged(int count)
+        // Both the count and the selection feed one label, so either changing redraws it.
+        void OnDeployableStockChanged(int index, int count) => RefreshDeployableLabel();
+        void OnDeployableSelectionChanged(DeployableDefinition definition) => RefreshDeployableLabel();
+
+        void RefreshDeployableLabel()
         {
-            if (barricadeLabel != null)
-                barricadeLabel.text = $"[F] BARRICADE  x{count}";
+            if (barricadeLabel == null) return;
+
+            if (placer == null || placer.Selected == null)
+            {
+                barricadeLabel.text = string.Empty;
+                return;
+            }
+
+            string name = placer.Selected.DisplayName.ToUpperInvariant();
+            barricadeLabel.text = placer.Count > 1
+                ? $"[Q] {name}  x{placer.SelectedStock}"
+                : $"{name}  x{placer.SelectedStock}";
         }
 
         void RefreshWaveLabel()

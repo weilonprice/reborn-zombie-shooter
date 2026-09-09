@@ -108,12 +108,17 @@ namespace ZombieShooter
             (Gamepad.current != null && Gamepad.current.buttonNorth.wasPressedThisFrame);
 
         public static bool DeployPressed =>
-            (Keyboard.current != null && (Keyboard.current.fKey.wasPressedThisFrame || Keyboard.current.eKey.wasPressedThisFrame)) ||
+            (Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame) ||
             (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame) ||
             (Gamepad.current != null && Gamepad.current.leftShoulder.wasPressedThisFrame);
 
         public static bool RotateDeployablePressed =>
-            (Keyboard.current != null && (Keyboard.current.rKey.wasPressedThisFrame || Keyboard.current.qKey.wasPressedThisFrame)) ||
+            (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) ||
             (Gamepad.current != null && Gamepad.current.rightShoulder.wasPressedThisFrame);
+
+        /// <summary>Cycles which deployable is selected. Q was freed up from rotate for this.</summary>
+        public static bool CycleDeployablePressed =>
+            (Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame) ||
+            (Gamepad.current != null && Gamepad.current.leftStickButton.wasPressedThisFrame);
     }
 }
