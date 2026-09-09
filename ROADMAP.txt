@@ -1,8 +1,8 @@
 REBORN - DEVELOPMENT ROADMAP
 Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
-Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 56 weeks.
-Status:  Gates 0 and 1 PASSED. Phase 1 complete and played through, boss
-         included. Design direction changes pending.
+Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 64 weeks.
+Status:  Gates 0 and 1 PASSED. Phase 1 complete. Phase order changed - content
+         now comes before art and the store page.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -128,6 +128,22 @@ PROGRESS LOG
             of the design. Boss health bar is polled rather than event-driven,
             because the boss is pooled and a bar lingering after death is
             worse than one frame of latency appearing.
+2026-09-08  Phase order changed. Content production moves ahead of both the
+            art pass and the Steam page. Two reasons it is sound: Phase 2
+            retires ArenaBuilder, and content production is precisely the work
+            that needs the builder alive - twelve enemies, ten weapons and
+            several arenas wired automatically rather than by hand; and art
+            direction is easier to lock once the content that must look
+            consistent exists. A light art pass still runs first - post
+            processing, lighting, VFX vocabulary - so content is built against
+            a locked look rather than needing a second pass.
+            The store page moving to month 8+ is a deliberate trade, recorded
+            in Phase 5. Wishlists compound, so this gives up roughly four
+            months of accumulation and lengthens the schedule from 56 to 64
+            weeks, because the page and the demo can no longer overlap
+            content. The upside is a page that launches showing a complete
+            game. Flagged as the thing to revisit if Gate 5 wishlist growth
+            looks weak.
 2026-09-08  Boss played through. The fight runs as expected end to end - all
             three low-confidence numbers (2000 HP, whether phase 1 registers
             during a horde fight, and the un-telegraphed artillery) held up
@@ -238,62 +254,94 @@ Everything from here is allowed to be polish and content.
 
 
 ===============================================================================
-PHASE 2 - VERTICAL SLICE & ART DIRECTION LOCK     Weeks 9-16
+PHASE 2 - ART DIRECTION LOCK (LIGHT PASS)         Weeks 9-11
 ===============================================================================
+
+Deliberately the cheap half only. Content gets built against a locked look
+instead of needing a second pass, and this is what turns greybox capsules into
+something that reads as intentional. Arena authoring and the UI redesign wait
+until after content - and so does retiring ArenaBuilder, because content
+production is exactly the work that needs it alive.
 
 [ ] URP post-processing stack - bloom, color grading, vignette, subtle grain.
     Does more for a minimal look than any model would.
 [ ] Lighting design - committed palette and mood, strong silhouettes,
     high contrast.
 [ ] VFX language - consistent rules for muzzles, impacts, deaths, pickups.
-[ ] Arena as level design - replace the generated box with a hand-authored
-    space: cover, chokepoints, sightlines, a reason to move.
-[ ] UI pass - migrate to TextMeshPro, design real HUD, main menu, pause.
-[ ] Audio pass - full mix, music bed, dynamic intensity between waves.
-[ ] RETIRE ArenaBuilder once hand-authoring starts (see debt item 1).
 
-GATE 2: Capture 60 seconds of unedited play you would put on a store page
-as-is. That clip becomes the Phase 3 trailer.
+GATE 2: A still frame from normal play reads as a deliberate art direction
+rather than an unfinished prototype. If a stranger would call it "programmer
+art", the look is not locked and content built on it will need redoing.
 
 
 ===============================================================================
-PHASE 3 - STEAM PAGE LIVE                         Weeks 14-18  (overlaps P2)
+PHASE 3 - CONTENT PRODUCTION                      Weeks 11-30
 ===============================================================================
 
-[ ] Store page - capsule art, screenshots, description, tags.
-    Capsule art is the click-through gate; weight it accordingly.
-[ ] Announce trailer cut from the Gate 2 capture.
-[ ] Steamworks setup - App ID, depots, build upload pipeline,
-    achievements scaffolding, Steam Cloud.
-[ ] Save system - settings persistence + meta progression storage.
-    Needed before Phase 4; expensive to retrofit.
-[ ] Migrate InputReader to Input Actions + rebinding UI (see debt item 2).
-[ ] Start devlog cadence.
+Moved ahead of art and the store page 2026-09-08. Target counts are budgets,
+not minimums. ArenaBuilder stays alive for this entire phase - every new enemy,
+weapon and arena gets wired by the builder instead of by hand, which is the
+main reason this now comes first.
 
-GATE 3: Page live and accumulating wishlists on its own.
-
-
-===============================================================================
-PHASE 4 - CONTENT PRODUCTION                      Weeks 17-34
-===============================================================================
-
-Target counts are budgets, not minimums.
-
-[ ] Enemy roster to ~12, including 2-3 bosses with real mechanics.
+[ ] Enemy roster to ~12, including 2-3 more bosses with real mechanics.
 [ ] Weapons to ~10, each with a distinct role.
-[ ] Upgrades to 60+, with intentional synergies.
-[ ] Arenas - 3-4 hand-designed spaces with different tactical character.
+[ ] Mod cores and upgrades to 60+, with intentional synergies.
+[ ] More deployables - explosive barrels and claymores were queued when
+    barricades landed.
+[ ] Arenas - 3-4 spaces with different tactical character.
 [ ] Meta progression - unlocks and persistent goals that give a losing run
-    value.
-[ ] Performance - profile the horde. Expect the O(n^2) separation to need a
-    spatial hash past ~100 agents (see debt item 6).
+    value. Needs the save system, which is debt item 4.
+[ ] Performance - profile the horde. The O(n^2) separation plus the per-zombie
+    barricade spherecast is debt item 6, deferred until exactly this point.
 
-GATE 4: 10+ hours of play without repetition becoming obvious, and no run
+GATE 3: 10+ hours of play without repetition becoming obvious, and no run
 feels like a strictly worse version of another.
 
 
 ===============================================================================
-PHASE 5 - DEMO & NEXT FEST                        Weeks 32-40
+PHASE 4 - VERTICAL SLICE COMPLETION               Weeks 30-36
+===============================================================================
+
+The expensive half of the art work, once every piece of content that has to
+look consistent actually exists.
+
+[ ] Arena as level design - replace the generated box with hand-authored
+    spaces: cover, chokepoints, sightlines, a reason to move.
+[ ] RETIRE ArenaBuilder here, not before (debt item 1). One-way door: after
+    this, every new prefab and its wiring is manual scene work.
+[ ] UI pass - migrate to TextMeshPro, design real HUD, main menu, pause.
+[ ] Audio pass - full mix, music bed, dynamic intensity between waves.
+[ ] Migrate InputReader to Input Actions + rebinding UI (debt item 2).
+
+GATE 4: Capture 60 seconds of unedited play you would put on a store page
+as-is. That clip becomes the announce trailer.
+
+
+===============================================================================
+PHASE 5 - STEAM PAGE LIVE                         Weeks 36-40
+===============================================================================
+
+Moved here from month 4 on 2026-09-08, deliberately. The trade, recorded so it
+stays a decision rather than an accident: wishlists compound, so a page live
+four months earlier reliably outperforms a better-looking page later. Taking
+this route gives up roughly four months of accumulation and lengthens the
+schedule, because the page and demo can no longer overlap content production.
+The upside is that the page launches showing a complete game rather than a
+promising slice. Revisit if wishlist growth looks weak at Gate 5.
+
+[ ] Store page - capsule art, screenshots, description, tags.
+    Capsule art is the click-through gate; weight it accordingly.
+[ ] Announce trailer cut from the Gate 4 capture.
+[ ] Steamworks setup - App ID, depots, build upload pipeline,
+    achievements, Steam Cloud.
+[ ] Start devlog cadence - later than ideal, so lean on the content backlog
+    for material.
+
+GATE 5: Page live and accumulating wishlists on its own.
+
+
+===============================================================================
+PHASE 6 - DEMO & NEXT FEST                        Weeks 40-48
 ===============================================================================
 
 [ ] Demo build - first 20 minutes, self-contained, ending on a hook.
@@ -304,24 +352,24 @@ PHASE 5 - DEMO & NEXT FEST                        Weeks 32-40
 [ ] Register for Next Fest deliberately - one-shot visibility spike, align it
     to a strong build.
 
-GATE 5: Demo retention holds past 10 minutes for most players, and the
+GATE 6: Demo retention holds past 10 minutes for most players, and the
 wishlist curve visibly steps up during the fest.
 
 
 ===============================================================================
-PHASE 6 - LAUNCH PREPARATION                      Weeks 41-56
+PHASE 7 - LAUNCH PREPARATION                      Weeks 48-64
 ===============================================================================
 
-[ ] CONTENT FREEZE at week 44. Bugs and balance only after that.
+[ ] CONTENT FREEZE at week 52. Bugs and balance only after that.
     Anything new becomes post-launch update material.
 [ ] Steam Deck verification.
-[ ] Accessibility & settings - full input rebinding, colorblind-safe palette,
-    difficulty options, screen shake toggle.
+[ ] Accessibility & settings - colorblind-safe palette, difficulty options,
+    screen shake toggle. Rebinding already landed in Phase 4.
 [ ] Localization for highest-value languages, if text budget allows.
 [ ] Launch trailer, press & streamer outreach, keys out several weeks ahead.
 [ ] Confirm pricing and release date.
 
-GATE 6: Release candidate runs 2 weeks with no new critical bugs, on both
+GATE 7: Release candidate runs 2 weeks with no new critical bugs, on both
 desktop and Steam Deck. Ship it.
 
 
@@ -343,19 +391,23 @@ KNOWN DEBT IN THE CURRENT BUILD
 ===============================================================================
 
 1. ARENA SCENE IS GENERATED.
-   ArenaBuilder overwrites Arena.unity wholesale. Retire the tool the moment
-   hand-authoring starts in Phase 2, or it will silently destroy level design.
+   ArenaBuilder overwrites Arena.unity wholesale. Retire it the moment
+   hand-authoring starts - now Phase 4, not Phase 2 - or it will silently
+   destroy level design work. Keeping it alive through content production is
+   deliberate: it wires every new enemy, weapon and arena automatically.
 
 2. INPUT IS POLLED DIRECTLY.
    InputReader reads devices rather than action maps. Commercial release needs
-   full rebinding. Migrate to Input Actions in Phase 3 with the settings menu.
+   full rebinding. Migrate to Input Actions in Phase 4 with the UI pass.
 
 3. HUD USES LEGACY uGUI TEXT.
    Chosen to avoid the TextMeshPro import prompt on first run.
-   Migrate in the Phase 2 UI pass.
+   Migrate in the Phase 4 UI pass.
 
 4. NO SAVE OR SETTINGS PERSISTENCE.
-   Needed before Phase 4 meta progression. Expensive to retrofit.
+   Needed for Phase 3 meta progression, and for making the endless-mode unlock
+   persist. Expensive to retrofit, and it now arrives sooner than planned
+   because content moved earlier.
 
 5. NO ASSEMBLY DEFINITIONS. - DEFERRED, deliberately.
    Everything compiles into Assembly-CSharp. Reviewed 2026-09-08: 31 scripts
@@ -375,8 +427,9 @@ KNOWN DEBT IN THE CURRENT BUILD
    cast to every few frames rather than every frame.
    DEFERRED, deliberately. Reviewed 2026-09-08: maxAliveAtOnce is 60, so this
    is ~3,600 distance checks and 60 casts per frame - trivial for a modern
-   CPU. A spatial hash now is premature optimisation. Revisit in Phase 4 when
-   content production raises horde counts, which is where it is scheduled.
+   CPU. A spatial hash now is premature optimisation. Revisit in Phase 3 when
+   content production raises horde counts - that phase moved earlier, so this
+   arrives sooner than originally scheduled.
 
 7. SCENE SINGLETONS FAIL SILENTLY. - RESOLVED 2026-09-08.
    SystemsCheck runs in Start, after every Awake has assigned its instance,
@@ -395,8 +448,8 @@ KNOWN DEBT IN THE CURRENT BUILD
 
 8. EVERY NEW SCENE COMPONENT NEEDS A BUILDER RE-RUN.
    Adding a component in code does nothing until ArenaBuilder is run again.
-   Easy to forget, and the symptom is silent (see item 7). Goes away when the
-   builder is retired at Phase 2.
+   Easy to forget, and the symptom is silent (see item 7). Now mitigated by
+   SystemsCheck, and goes away entirely when the builder retires in Phase 4.
 
 9. HIT TEST IS A RAY, NOT A SPHERECAST. - DEFERRED, deliberately.
    Reviewed 2026-09-08: switching to a spherecast would subtly widen every
@@ -412,6 +465,7 @@ KNOWN DEBT IN THE CURRENT BUILD
    Sparks and shell casings are sized in world units for a camera 22.8 units
    out (~45 px per unit). Any change to camera height or FOV silently changes
    how readable they are. Revisit if the camera framing moves in Phase 2.
+   The light art pass is exactly when that would happen.
 
 11. THE BUILDER WILL NOT UPDATE EXISTING WEAPON ASSETS.
    LoadOrCreateWeapon only creates what is missing, deliberately, so hand
@@ -506,7 +560,10 @@ OLD ITEM, now done - kept for the reasoning about ordering:
    fortification hook directly, for example by smashing barricades in a single
    hit, so walls buy time rather than safety.
 
-3. Then Phase 2 - art direction lock, and retire ArenaBuilder.
+3. Then Phase 2 - the light art pass.
+   Post-processing stack, lighting, and a VFX vocabulary. Roughly a week or
+   two, and it is what stops twelve enemies being built against a look that
+   has not been chosen. ArenaBuilder stays alive well past this now.
 
 3. Debt: reviewed 2026-09-08.
    Fixed: 7 (silent singletons), 12 (mods hardcoded by slot), 13 (prices as
