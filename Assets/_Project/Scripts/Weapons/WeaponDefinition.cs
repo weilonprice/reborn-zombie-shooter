@@ -56,14 +56,11 @@ namespace ZombieShooter
         [SerializeField] int pelletsPerShot = 1;
         [SerializeField] FireMode fireMode = FireMode.Automatic;
 
-        [Header("Mod compatibility")]
-        [Tooltip("What this weapon counts as. Mods apply by tag, never by loadout slot.")]
+        [Header("Classification")]
+        [Tooltip("What this weapon counts as. Currently unread - it was how mod cores chose " +
+                 "which weapons they applied to. Kept because it is authored data describing " +
+                 "the weapon, and a likely hook for upgrade tiers that target a family.")]
         [SerializeField] WeaponTags tags = WeaponTags.None;
-        [Tooltip("Fire rate multiplier when Overclocked Receiver is installed. 1 means the " +
-                 "mod does nothing to this weapon.")]
-        [SerializeField] float overclockedFireRateMultiplier = 1f;
-        [Tooltip("Whether Overclocked Receiver converts this weapon to full auto.")]
-        [SerializeField] bool overclockedConvertsToAuto;
 
         [Header("Penetration")]
         [Tooltip("Extra bodies a shot passes through beyond the first. 0 stops at the first.")]
@@ -111,8 +108,6 @@ namespace ZombieShooter
 
         public WeaponTags Tags => tags;
         public bool HasAnyTag(WeaponTags any) => (tags & any) != 0;
-        public float OverclockedFireRateMultiplier => overclockedFireRateMultiplier;
-        public bool OverclockedConvertsToAuto => overclockedConvertsToAuto;
 
         public int PierceCount => Mathf.Max(0, pierceCount);
         public float PenetrationFalloff => penetrationFalloff;

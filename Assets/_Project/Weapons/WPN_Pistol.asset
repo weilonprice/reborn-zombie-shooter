@@ -20,8 +20,6 @@ MonoBehaviour:
   pelletsPerShot: 1
   fireMode: 1
   tags: 1
-  overclockedFireRateMultiplier: 1.5
-  overclockedConvertsToAuto: 1
   pierceCount: 0
   penetrationFalloff: 0.65
   magazineSize: 12

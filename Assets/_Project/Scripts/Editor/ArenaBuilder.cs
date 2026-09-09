@@ -1334,49 +1334,32 @@ namespace ZombieShooter.EditorTools
                 "SNIPER RIFLE (Slot 4)\n5 Rounds · 150 Dmg Heavy Pierce", "$350 BUY");
 
             var ammoHeader = CreateText(shopCard.transform, "AmmoHeader", font, 20, TextAnchor.MiddleLeft,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-260f, -348f), new Vector2(480f, 26f), "— AMMO & FORTIFICATIONS —");
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-260f, -348f), new Vector2(480f, 26f), "— AMMO —");
             ammoHeader.color = new Color(0.45f, 0.82f, 1.0f);
 
             var (ammoBtn, ammoTxt) = CreateShopItemButton(shopCard.transform, "BuyAmmo", uiSprite, font,
                 new Vector2(-260f, -392f), new Vector2(480f, 48f),
                 "FULL AMMO CRATE\nRestocks reserve ammo for all guns", "$50 REFILL ALL");
 
+            // Right column, vacated by the mod cores. The deployables used to sit in the
+            // left column under the ammo crate at spacings tighter than the 48px buttons
+            // are tall, so the barrel overlapped the crate and the claymore overlapped the
+            // barricade. They get a column of their own rather than a nudge.
+            var fortHeader = CreateText(shopCard.transform, "FortHeader", font, 20, TextAnchor.MiddleLeft,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(260f, -135f), new Vector2(480f, 30f), "— FORTIFICATIONS —");
+            fortHeader.color = new Color(1.0f, 0.55f, 0.35f);
+
             var (barricadeBtn, barricadeTxt) = CreateShopItemButton(shopCard.transform, "BuyBarricade", uiSprite, font,
-                new Vector2(-260f, -448f), new Vector2(480f, 48f),
+                new Vector2(260f, -180f), new Vector2(480f, 48f),
                 "WOODEN BARRICADE (150 HP)\nBlocks horde path & enemy fire · [F] Place", "$40 BUY");
 
-            // Section 2: Mod Cores (Right column: X = +260)
-            var modHeader = CreateText(shopCard.transform, "ModHeader", font, 20, TextAnchor.MiddleLeft,
-                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(260f, -135f), new Vector2(480f, 30f), "— TACTICAL MOD CORES —");
-            modHeader.color = new Color(1.0f, 0.55f, 0.35f);
-
             var (barrelBtn, barrelTxt) = CreateShopItemButton(shopCard.transform, "BuyBarrel", uiSprite, font,
-                new Vector2(-260f, -365f), new Vector2(480f, 48f),
+                new Vector2(260f, -236f), new Vector2(480f, 48f),
                 "EXPLOSIVE BARREL\n220 dmg blast, chains to other barrels. Hurts you too.", "$60 BUY");
 
             var (claymoreBtn, claymoreTxt) = CreateShopItemButton(shopCard.transform, "BuyClaymore", uiSprite, font,
-                new Vector2(-260f, -425f), new Vector2(480f, 48f),
+                new Vector2(260f, -292f), new Vector2(480f, 48f),
                 "CLAYMORE\nDirectional mine, 160 dmg in a cone. One use.", "$75 BUY");
-
-            var (drumBtn, drumTxt) = CreateShopItemButton(shopCard.transform, "ModDrum", uiSprite, font,
-                new Vector2(260f, -185f), new Vector2(480f, 48f),
-                "DRUM MAGAZINES (Universal)\n+50% mag capacity across all weapons", "$180 INSTALL");
-
-            var (overclockBtn, overclockTxt) = CreateShopItemButton(shopCard.transform, "ModOverclock", uiSprite, font,
-                new Vector2(260f, -245f), new Vector2(480f, 48f),
-                "OVERCLOCKED RECEIVER (Pistol & AR)\nFull-auto Pistol + 50% rate; AR +35% rate", "$180 INSTALL");
-
-            var (boreBtn, boreTxt) = CreateShopItemButton(shopCard.transform, "ModBore", uiSprite, font,
-                new Vector2(260f, -305f), new Vector2(480f, 48f),
-                "BORE PIERCING ROUNDS (AR & Sniper)\n+2 Pierce count & 100% damage retention", "$220 INSTALL");
-
-            var (slugBtn, slugTxt) = CreateShopItemButton(shopCard.transform, "ModSlug", uiSprite, font,
-                new Vector2(260f, -365f), new Vector2(480f, 48f),
-                "HEAVY SLUG CORE (Shotgun)\n1 Pinpoint 120-dmg slug with 3.5x knockback", "$200 INSTALL");
-
-            var (dragonBtn, dragonTxt) = CreateShopItemButton(shopCard.transform, "ModDragon", uiSprite, font,
-                new Vector2(260f, -425f), new Vector2(480f, 48f),
-                "DRAGON'S BREATH CORE (Shotgun)\nIncendiary pellets ignite targets with DoT", "$200 INSTALL");
 
             // Footer action buttons
             var (deployBtn, deployTxt) = CreateActionButton(shopCard.transform, "DeployButton", uiSprite, font,
@@ -1389,7 +1372,7 @@ namespace ZombieShooter.EditorTools
 
             // ---- weapon upgrade panel -------------------------------------------
             // Its own overlay rather than more rows in the shop card: fifteen tiers plus
-            // three headers does not fit alongside weapons, ammo, deployables and mods.
+            // three headers does not fit alongside weapons, ammo and deployables.
             var (upgradeOpenBtn, _) = CreateActionButton(shopCard.transform, "OpenUpgrades", uiSprite, font,
                 new Vector2(-460f, 46f), new Vector2(300f, 54f),
                 "WEAPON UPGRADES", new Color(0.42f, 0.30f, 0.10f, 1f));
@@ -1471,11 +1454,6 @@ namespace ZombieShooter.EditorTools
                  .Obj("barricadeButton", barricadeBtn).Obj("barricadeBtnText", barricadeTxt)
                  .Obj("barrelButton", barrelBtn).Obj("barrelBtnText", barrelTxt)
                  .Obj("claymoreButton", claymoreBtn).Obj("claymoreBtnText", claymoreTxt)
-                 .Obj("drumMagsButton", drumBtn).Obj("drumMagsBtnText", drumTxt)
-                 .Obj("overclockButton", overclockBtn).Obj("overclockBtnText", overclockTxt)
-                 .Obj("boreButton", boreBtn).Obj("boreBtnText", boreTxt)
-                 .Obj("slugButton", slugBtn).Obj("slugBtnText", slugTxt)
-                 .Obj("dragonsBreathButton", dragonBtn).Obj("dragonsBreathBtnText", dragonTxt)
                  .Obj("deployButton", deployBtn).Obj("deployBtnText", deployTxt)
                  .Obj("closeButton", closeBtn);
             }
@@ -1703,7 +1681,6 @@ namespace ZombieShooter.EditorTools
                 .F("damage", 20f).F("fireRate", 200f).F("range", 45f).F("spread", 1.2f)
                 .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.SemiAuto)
                 .I("tags", (int)WeaponTags.Sidearm)
-                .F("overclockedFireRateMultiplier", 1.5f).B("overclockedConvertsToAuto", true)
                 .I("pierceCount", 0).F("penetrationFalloff", 0.65f)
                 .I("magazineSize", 12).I("maxReserveAmmo", 120).F("reloadTime", 1.0f)
                 .F("fireTrauma", 0.07f).F("recoilKick", 0.05f).F("knockbackMultiplier", 0.6f)
@@ -1729,7 +1706,7 @@ namespace ZombieShooter.EditorTools
                 .Str("displayName", "Assault Rifle")
                 .F("damage", 22f).F("fireRate", 600f).F("range", 60f).F("spread", 2.2f)
                 .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.Automatic)
-                .I("tags", (int)WeaponTags.Rifle).F("overclockedFireRateMultiplier", 1.35f)
+                .I("tags", (int)WeaponTags.Rifle)
                 .I("pierceCount", 2).F("penetrationFalloff", 0.6f)
                 .I("magazineSize", 30).I("maxReserveAmmo", 180).F("reloadTime", 1.7f)
                 .F("fireTrauma", 0.085f).F("recoilKick", 0.06f).F("knockbackMultiplier", 1f)
@@ -1776,6 +1753,32 @@ namespace ZombieShooter.EditorTools
         /// The pistol's three upgrade paths. Created once then left to hand-tuning, like the
         /// weapon definitions - balance numbers here are the whole point of the asset.
         /// </summary>
+        /// <summary>
+        /// The cost of tier 1 through 5, shared by every path on every weapon.
+        /// <para>
+        /// Steep on purpose. A flat curve meant a run could afford almost everything the
+        /// game sells, so buying was sequencing rather than choosing. At these numbers one
+        /// maxed path is most of a run's income, which is what makes committing to it a
+        /// decision. It also lands the expensive tiers late, where the money actually is -
+        /// over half a run's gold arrives in the last five waves.
+        /// </para>
+        /// </summary>
+        static readonly int[] TierCosts = { 60, 150, 350, 800, 2000 };
+
+        /// <summary>
+        /// Builds a path and prices it from <see cref="TierCosts"/>. Authoring a path is
+        /// choosing five effects; the costs are not a per-path decision, and with twelve
+        /// paths to write there is no version of hand-pricing sixty tiers that stays
+        /// consistent.
+        /// </summary>
+        static WeaponUpgradePath UpgradePath(string title, string summary, params UpgradeTier[] tiers)
+        {
+            for (int i = 0; i < tiers.Length && i < TierCosts.Length; i++)
+                tiers[i].cost = TierCosts[i];
+
+            return new WeaponUpgradePath { title = title, summary = summary, tiers = tiers };
+        }
+
         static WeaponUpgradeTree LoadOrCreatePistolUpgrades()
         {
             const string path = UpgradeDir + "/UPG_Pistol.asset";
@@ -1787,68 +1790,47 @@ namespace ZombieShooter.EditorTools
 
             // One authored path for now; the other two columns are placeholders so the panel
             // still lays out three and the 5-3-0 rule has somewhere to go once they exist.
-            var gunslinger = new WeaponUpgradePath
-            {
-                title = "Gunslinger",
-                summary = "Open hot, close hot, and eventually stop needing to aim at all.",
-                tiers = new[]
+            var gunslinger = UpgradePath(
+                "Gunslinger",
+                "Open hot, close hot, and eventually stop needing to aim at all.",
+                new UpgradeTier
                 {
-                    new UpgradeTier
-                    {
-                        title = "Quick Draw",
-                        description = "Fire rate 200 to 320, reload 1.0s to 0.75s. The first shot after every reload is a guaranteed crit for double damage.",
-                        cost = 60,
-                        fireRate = 320f, reloadTime = 0.75f,
-                        guaranteedCritAfterReload = true, critMultiplier = 2f,
-                    },
-                    new UpgradeTier
-                    {
-                        title = "Deadeye",
-                        description = "Damage 20 to 30, fire rate to 380, reload to 0.6s. 25% crit on every shot, and one click now fires two rounds.",
-                        cost = 130,
-                        damage = 30f, fireRate = 380f, reloadTime = 0.6f,
-                        critChance = 0.25f, doubleTap = true,
-                    },
-                    new UpgradeTier
-                    {
-                        title = "Fan the Hammer",
-                        description = "Hold to fire at 600 RPM, but accuracy bleeds away while you hold it. Tapping still fires an accurate double tap. Magazine 12 to 18, crit 35%.",
-                        cost = 200,
-                        magazineSize = 18, critChance = 0.35f,
-                        fanFireRate = 600f, fanMaxSpread = 9f, fanSpreadRamp = 1f,
-                    },
-                    new UpgradeTier
-                    {
-                        title = "True Gunslinger",
-                        description = "A second pistol, firing one after the other. Damage to 45, magazine to 30, reload to 0.45s, and the reserve never runs dry.",
-                        cost = 300,
-                        damage = 45f, magazineSize = 30, reloadTime = 0.45f,
-                        dualWield = true, infiniteReserve = true, fanFireRate = 750f,
-                    },
-                    new UpgradeTier
-                    {
-                        title = "Legend of the West",
-                        description = "30 pistol kills charge an ultimate. [V] reloads in a flourish, then the guns aim themselves while you spin - 80% crits until the magazine runs dry. Crit 45% the rest of the time.",
-                        cost = 450,
-                        critChance = 0.45f,
-                        ultimateKills = 30, ultimateCritChance = 0.8f, ultimateFireRate = 900f,
-                    },
+                    title = "Quick Draw",
+                    description = "Fire rate 200 to 320, reload 1.0s to 0.75s. The first shot after every reload is a guaranteed crit for double damage.",
+                    fireRate = 320f, reloadTime = 0.75f,
+                    guaranteedCritAfterReload = true, critMultiplier = 2f,
                 },
-            };
+                new UpgradeTier
+                {
+                    title = "Deadeye",
+                    description = "Damage 20 to 30, fire rate to 380, reload to 0.6s. 25% chance any shot crits for double damage.",
+                    damage = 30f, fireRate = 380f, reloadTime = 0.6f,
+                    critChance = 0.25f,
+                },
+                new UpgradeTier
+                {
+                    title = "Fan the Hammer",
+                    description = "Hold to fire at 600 RPM, but accuracy bleeds away while you hold it. Tapping still fires a single accurate shot. Magazine 12 to 18, crit 35%.",
+                    magazineSize = 18, critChance = 0.35f,
+                    fanFireRate = 600f, fanMaxSpread = 9f, fanSpreadRamp = 1f,
+                },
+                new UpgradeTier
+                {
+                    title = "True Gunslinger",
+                    description = "A second pistol, firing one after the other. Damage to 45, magazine to 30, reload to 0.45s, and the reserve never runs dry.",
+                    damage = 45f, magazineSize = 30, reloadTime = 0.45f,
+                    dualWield = true, infiniteReserve = true, fanFireRate = 750f,
+                },
+                new UpgradeTier
+                {
+                    title = "Legend of the West",
+                    description = "30 pistol kills charge an ultimate. [V] reloads in a flourish, then the guns aim themselves while you spin - 80% crits until the magazine runs dry. Crit 45% the rest of the time.",
+                    critChance = 0.45f,
+                    ultimateKills = 30, ultimateCritChance = 0.8f, ultimateFireRate = 900f,
+                });
 
-            var secondPath = new WeaponUpgradePath
-            {
-                title = "- TO BE DESIGNED -",
-                summary = "",
-                tiers = new UpgradeTier[0],
-            };
-
-            var thirdPath = new WeaponUpgradePath
-            {
-                title = "- TO BE DESIGNED -",
-                summary = "",
-                tiers = new UpgradeTier[0],
-            };
+            var secondPath = UpgradePath("- TO BE DESIGNED -", "");
+            var thirdPath = UpgradePath("- TO BE DESIGNED -", "");
 
             var tree = ScriptableObject.CreateInstance<WeaponUpgradeTree>();
             tree.EditorInitialise(LoadOrCreateWeapon("WPN_Pistol", _ => { }),

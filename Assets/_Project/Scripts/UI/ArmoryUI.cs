@@ -7,7 +7,7 @@ namespace ZombieShooter
 {
     /// <summary>
     /// Interactive pause/break menu for purchasing weapons, ammo crates,
-    /// and tangible weapon mod cores with accumulated gold.
+    /// and deployables with accumulated gold.
     /// Host GameObject stays active to receive input and wave events.
     /// </summary>
     public class ArmoryUI : MonoBehaviour
@@ -38,18 +38,6 @@ namespace ZombieShooter
         [SerializeField] Button claymoreButton;
         [SerializeField] Text claymoreBtnText;
         [SerializeField] DeployablePlacer placer;
-
-        [Header("Mod Buttons & Labels")]
-        [SerializeField] Button drumMagsButton;
-        [SerializeField] Text drumMagsBtnText;
-        [SerializeField] Button overclockButton;
-        [SerializeField] Text overclockBtnText;
-        [SerializeField] Button boreButton;
-        [SerializeField] Text boreBtnText;
-        [SerializeField] Button slugButton;
-        [SerializeField] Text slugBtnText;
-        [SerializeField] Button dragonsBreathButton;
-        [SerializeField] Text dragonsBreathBtnText;
 
         [Header("Actions")]
         [SerializeField] Button deployButton;
@@ -83,19 +71,6 @@ namespace ZombieShooter
                 barrelButton.onClick.AddListener(() => ArmoryManager.Instance?.TryBuyDeployable(placer, 1));
             if (claymoreButton != null)
                 claymoreButton.onClick.AddListener(() => ArmoryManager.Instance?.TryBuyDeployable(placer, 2));
-
-            // Wire mod buttons
-            if (drumMagsButton != null)
-                drumMagsButton.onClick.AddListener(() => ArmoryManager.Instance?.TryBuyMod(ModCoreType.ExtendedDrumMags, ArmoryManager.CostExtendedDrumMags));
-            if (overclockButton != null)
-                overclockButton.onClick.AddListener(() => ArmoryManager.Instance?.TryBuyMod(ModCoreType.OverclockedReceiver, ArmoryManager.CostOverclockedReceiver));
-            if (boreButton != null)
-                boreButton.onClick.AddListener(() => ArmoryManager.Instance?.TryBuyMod(ModCoreType.BorePiercing, ArmoryManager.CostBorePiercing));
-            if (slugButton != null)
-                slugButton.onClick.AddListener(() => ArmoryManager.Instance?.TryBuyMod(ModCoreType.HeavySlug, ArmoryManager.CostHeavySlug));
-            if (dragonsBreathButton != null)
-                dragonsBreathButton.onClick.AddListener(() => ArmoryManager.Instance?.TryBuyMod(ModCoreType.DragonsBreath, ArmoryManager.CostDragonsBreath));
-
             // Hide the visual panel while keeping this host GameObject active
             if (panel != null && panel != gameObject)
                 panel.SetActive(false);
@@ -212,8 +187,6 @@ namespace ZombieShooter
             if (goldLabel != null)
                 goldLabel.text = $"GOLD: ${gold}";
 
-            var armory = ArmoryManager.Instance;
-
             // Weapons
             UpdateButton(shotgunButton, shotgunBtnText,
                 loadout != null && loadout.IsSlotUnlocked(1),
@@ -244,35 +217,6 @@ namespace ZombieShooter
             RefreshDeployableButton(barricadeButton, barricadeBtnText, 0, gold);
             RefreshDeployableButton(barrelButton, barrelBtnText, 1, gold);
             RefreshDeployableButton(claymoreButton, claymoreBtnText, 2, gold);
-
-            // Mod Cores
-            if (armory != null)
-            {
-                UpdateButton(drumMagsButton, drumMagsBtnText,
-                    armory.HasMod(ModCoreType.ExtendedDrumMags),
-                    gold >= ArmoryManager.CostExtendedDrumMags,
-                    $"${ArmoryManager.CostExtendedDrumMags} INSTALL");
-
-                UpdateButton(overclockButton, overclockBtnText,
-                    armory.HasMod(ModCoreType.OverclockedReceiver),
-                    gold >= ArmoryManager.CostOverclockedReceiver,
-                    $"${ArmoryManager.CostOverclockedReceiver} INSTALL");
-
-                UpdateButton(boreButton, boreBtnText,
-                    armory.HasMod(ModCoreType.BorePiercing),
-                    gold >= ArmoryManager.CostBorePiercing,
-                    $"${ArmoryManager.CostBorePiercing} INSTALL");
-
-                UpdateButton(slugButton, slugBtnText,
-                    armory.HasMod(ModCoreType.HeavySlug),
-                    gold >= ArmoryManager.CostHeavySlug,
-                    $"${ArmoryManager.CostHeavySlug} INSTALL");
-
-                UpdateButton(dragonsBreathButton, dragonsBreathBtnText,
-                    armory.HasMod(ModCoreType.DragonsBreath),
-                    gold >= ArmoryManager.CostDragonsBreath,
-                    $"${ArmoryManager.CostDragonsBreath} INSTALL");
-            }
         }
 
         /// <summary>

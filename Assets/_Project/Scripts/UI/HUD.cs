@@ -179,7 +179,13 @@ namespace ZombieShooter
             if (ammoLabel == null) return;
 
             string reserveText = "∞";
-            if (loadout != null)
+
+            // A weapon whose definition declares no reserve limit, and one whose upgrades
+            // made the reserve bottomless, both read as infinite - the second only stops
+            // the counter from moving, so the number alone cannot tell you.
+            bool infinite = weapon != null && weapon.HasInfiniteReserve;
+
+            if (loadout != null && !infinite)
             {
                 int res = loadout.CurrentReserveAmmo;
                 if (res >= 0) reserveText = res.ToString();
