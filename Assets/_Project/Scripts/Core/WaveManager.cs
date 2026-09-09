@@ -32,8 +32,16 @@ namespace ZombieShooter
         [SerializeField] int maxAliveAtOnce = 60;
         [SerializeField] float timeBetweenSpawns = 0.45f;
 
-        [Tooltip("Wave that ends the run. Clearing it wins. 0 or less means endless.")]
+        [Tooltip("Wave that ends the run. 0 or less means endless.")]
         [SerializeField] int finalWave = 15;
+
+        [Header("Boss")]
+        [Tooltip("Arrives during the final wave. With one assigned, killing it is the win " +
+                 "rather than clearing the wave.")]
+        [SerializeField] ZombieAI bossPrefab;
+        [Tooltip("How far into the final wave the boss arrives, as a fraction of its spawns. " +
+                 "Part-way rather than immediately, so the wave establishes itself first.")]
+        [SerializeField, Range(0f, 1f)] float bossArrivesAt = 0.4f;
 
         [Header("Archetypes")]
         [Tooltip("Wave index at which brutes begin spawning (1-indexed).")]
@@ -107,6 +115,10 @@ namespace ZombieShooter
                 WaveStarted?.Invoke(WaveNumber);
                 RemainingChanged?.Invoke(Remaining);
 
+                bool isFinalWave = finalWave > 0 && WaveNumber >= finalWave;
+                int bossArrivalIndex = Mathf.RoundToInt(count * bossArrivesAt);
+                bool bossSpawned = false;
+
                 for (int i = 0; i < count; i++)
                 {
                     // Hold back if the arena is already saturated.
@@ -114,19 +126,34 @@ namespace ZombieShooter
                         yield return null;
 
                     Spawn();
+
+                    if (isFinalWave && bossPrefab != null && !bossSpawned && i >= bossArrivalIndex)
+                    {
+                        SpawnBoss();
+                        bossSpawned = true;
+                    }
+
                     yield return new WaitForSeconds(timeBetweenSpawns);
                 }
 
                 while (alive.Count > 0)
+                {
+                    // Killing the boss ends the run mid-wave, so stop spinning here rather
+                    // than waiting for a horde that has already stopped moving.
+                    if (GameManager.Instance != null && GameManager.Instance.State != GameState.Playing)
+                        yield break;
+
                     yield return null;
+                }
 
                 WaveCompleted?.Invoke(WaveNumber);
 
-                // The run ends here rather than opening another Armory break: clearing the
-                // final wave is the win, so there is nothing left to shop for.
-                if (finalWave > 0 && WaveNumber >= finalWave)
+                // The run ends here rather than opening another Armory break. With a boss,
+                // the win already came from its death; without one, clearing the final wave
+                // is itself the win.
+                if (isFinalWave)
                 {
-                    GameManager.Instance?.Win();
+                    if (bossPrefab == null) GameManager.Instance?.Win();
                     yield break;
                 }
 
@@ -157,6 +184,10 @@ namespace ZombieShooter
 
             finalWave = 0;
             GameManager.Instance.ResumeForEndless();
+
+            // The previous run may still be parked in its wait loop; two live wave loops
+            // would spawn everything twice.
+            if (loop != null) StopCoroutine(loop);
             loop = StartCoroutine(RunWaves());
         }
 
@@ -183,6 +214,18 @@ namespace ZombieShooter
         void OnDestroy()
         {
             if (Instance == this) Instance = null;
+        }
+
+        void SpawnBoss()
+        {
+            var boss = Rent(bossPrefab);
+            boss.transform.SetPositionAndRotation(PickSpawnPoint(), Quaternion.identity);
+            boss.gameObject.SetActive(true);
+            boss.SetTarget(player);
+            alive.Add(boss);
+
+            // The horde is loud by wave 15; the arrival has to cut through it.
+            CameraShake.Instance?.AddTrauma(0.9f);
         }
 
         void Spawn()

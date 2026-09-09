@@ -84,7 +84,8 @@ namespace ZombieShooter
             if (InputReader.ReloadPressed) BeginReload();
 
             FireMode effectiveMode = definition.Mode;
-            if (slotIndex == 0 && ArmoryManager.Instance != null && ArmoryManager.Instance.HasMod(ModCoreType.OverclockedReceiver))
+            if (definition.OverclockedConvertsToAuto
+                && ArmoryManager.ModAppliesTo(ModCoreType.OverclockedReceiver, definition))
                 effectiveMode = FireMode.Automatic;
 
             bool pullingTrigger = effectiveMode == FireMode.Automatic
@@ -105,11 +106,8 @@ namespace ZombieShooter
             }
 
             float fireRate = definition.FireRate;
-            if (ArmoryManager.Instance != null && ArmoryManager.Instance.HasMod(ModCoreType.OverclockedReceiver))
-            {
-                if (slotIndex == 0) fireRate *= 1.5f;       // Pistol
-                else if (slotIndex == 2) fireRate *= 1.35f;  // Assault Rifle
-            }
+            if (ArmoryManager.ModAppliesTo(ModCoreType.OverclockedReceiver, definition))
+                fireRate *= definition.OverclockedFireRateMultiplier;
 
             nextFireTime = Time.time + (60f / Mathf.Max(1f, fireRate));
             Ammo--;
@@ -123,9 +121,8 @@ namespace ZombieShooter
             if (shellEject != null && definition.ShellsPerShot > 0)
                 shellEject.Emit(definition.ShellsPerShot);
 
-            bool isShotgun = slotIndex == 1;
-            bool heavySlug = isShotgun && ArmoryManager.Instance != null && ArmoryManager.Instance.HasMod(ModCoreType.HeavySlug);
-            bool dragonsBreath = isShotgun && ArmoryManager.Instance != null && ArmoryManager.Instance.HasMod(ModCoreType.DragonsBreath);
+            bool heavySlug = ArmoryManager.ModAppliesTo(ModCoreType.HeavySlug, definition);
+            bool dragonsBreath = ArmoryManager.ModAppliesTo(ModCoreType.DragonsBreath, definition);
 
             int pellets = heavySlug ? 1 : definition.PelletsPerShot;
             bool anyHit = false;
@@ -167,7 +164,7 @@ namespace ZombieShooter
                 float damage = heavySlug ? 120f : definition.Damage;
                 float knockback = heavySlug ? 3.5f : definition.KnockbackMultiplier;
 
-                bool bore = (slotIndex == 2 || slotIndex == 3) && ArmoryManager.Instance != null && ArmoryManager.Instance.HasMod(ModCoreType.BorePiercing);
+                bool bore = ArmoryManager.ModAppliesTo(ModCoreType.BorePiercing, definition);
                 int pierceLimit = definition.PierceCount + (bore ? 2 : 0);
                 float falloff = bore ? 1.0f : definition.PenetrationFalloff;
 

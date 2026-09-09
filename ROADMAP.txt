@@ -1,8 +1,8 @@
 REBORN - DEVELOPMENT ROADMAP
 Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
 Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 56 weeks.
-Status:  Gates 0 and 1 PASSED. The hook holds up across repeated runs.
-         Boss and endless still unbuilt; refinement wanted, not redesign.
+Status:  Gates 0 and 1 PASSED. Phase 1 complete and played through, boss
+         included. Design direction changes pending.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -115,6 +115,23 @@ PROGRESS LOG
             field and survives the coroutine ending, which is what makes the
             continuation free. The unlock is session-only until the save
             system lands in Phase 3.
+2026-09-08  Boss built. Rather than a second AI, BossController switches an
+            ordinary ZombieAI between behaviours it already supported:
+            isRanged for the artillery phase, then melee charger at 50%
+            health. That reused steering, separation, knockback, pooling and
+            barricade sensing wholesale - the boss cost one small script plus
+            five setters on ZombieAI. 2000 HP, 2.2x scale, knockbackForce
+            0.35 against a standard 4.0 so the shotgun cannot hold it off.
+            The phase-two barricade multiplier is 10x, chosen so 35 damage
+            clears a 150 HP wall in exactly one hit - at two hits the phase
+            stops reading as "walls no longer help", which is the entire point
+            of the design. Boss health bar is polled rather than event-driven,
+            because the boss is pooled and a bar lingering after death is
+            worse than one frame of latency appearing.
+2026-09-08  Boss played through. The fight runs as expected end to end - all
+            three low-confidence numbers (2000 HP, whether phase 1 registers
+            during a horde fight, and the un-telegraphed artillery) held up
+            well enough not to need tuning before moving on.
 2026-09-08  GATE 1 PASSED. Core mechanics validated across repeated runs and
             the hook is stateable. Noted honestly: gameplay and game design
             still want refinement. That is the correct outcome for this gate -
@@ -197,16 +214,19 @@ PHASE 1 - FIND THE HOOK                           Weeks 3-8
     progression stays a Phase 4 problem. Beating the boss unlocks endless
     survival. At current pacing that is ~337 zombies and 20-25 minutes, close
     enough to the Phase 5 demo length to reuse.
-[~] Implement the run structure - PARTLY DONE 2026-09-08.
+[x] Implement the run structure - BUILT 2026-09-08.
     DONE: wave cap at 15, GameState.Victory, win screen, and a WAVE n / 15
     counter so the run reads as an arc rather than a treadmill. Played end to
     end and validated - the 20-25 minute arc holds up, so that is the length
     the boss gets designed against.
     DONE: endless mode - [E] on the victory screen drops the wave cap and
     resumes the same run at wave 16, carrying health, gold, weapons and mods.
-    STILL TO DO: the boss encounter. Endless is currently unlocked only within
-    the session that won it; making the unlock persist needs the save system,
-    which is debt item 4 and due in Phase 3.
+    DONE: the boss. Arrives 40% into wave 15 alongside the horde. Two phases -
+    artillery at range, then an enraged charger at 50% health that smashes
+    barricades in a single blow. Killing it is the win; clearing the wave is
+    no longer the trigger. Played through 2026-09-08 and ran as expected.
+    NOTE: endless is unlocked only within the session that won it. Making the
+    unlock persist needs the save system, which is debt item 4, due Phase 3.
 [x] Write the hook in one sentence - DONE 2026-09-08: "A top-down wave survival
     shooter where you spend blood money to physically engineer fortified
     killboxes and mod firearms into crowd-shredding weapons of war."
@@ -337,9 +357,10 @@ KNOWN DEBT IN THE CURRENT BUILD
 4. NO SAVE OR SETTINGS PERSISTENCE.
    Needed before Phase 4 meta progression. Expensive to retrofit.
 
-5. NO ASSEMBLY DEFINITIONS.
-   Everything compiles into Assembly-CSharp. Add asmdefs before iteration
-   times start costing real minutes.
+5. NO ASSEMBLY DEFINITIONS. - DEFERRED, deliberately.
+   Everything compiles into Assembly-CSharp. Reviewed 2026-09-08: 31 scripts
+   do not cost real minutes yet, and asmdefs carry their own setup risk around
+   editor and package references. Revisit when a compile is actually annoying.
 
 6. ZOMBIE STEERING IS O(n^2), NOW WITH A PER-FRAME SPHERECAST ON TOP.
    ZombieAI.Separation walks every other live zombie each frame
@@ -352,8 +373,18 @@ KNOWN DEBT IN THE CURRENT BUILD
    for the spatial hash, so keep it at number 6.
    Fix: spatial hash or grid buckets for separation, and cache the barricade
    cast to every few frames rather than every frame.
+   DEFERRED, deliberately. Reviewed 2026-09-08: maxAliveAtOnce is 60, so this
+   is ~3,600 distance checks and 60 casts per frame - trivial for a modern
+   CPU. A spatial hash now is premature optimisation. Revisit in Phase 4 when
+   content production raises horde counts, which is where it is scheduled.
 
-7. SCENE SINGLETONS FAIL SILENTLY - AND THE PATTERN HAS SPREAD.
+7. SCENE SINGLETONS FAIL SILENTLY. - RESOLVED 2026-09-08.
+   SystemsCheck runs in Start, after every Awake has assigned its instance,
+   and reports any missing singleton as one Console error naming exactly what
+   is absent and how to fix it. The null-conditional call sites stay - they
+   are correct - but the whole class of failure is now loud instead of silent.
+   Original entry follows.
+   ---
    Reached through null-conditional calls, so one missing from the scene
    simply does nothing - no error, no warning. Now 27 call sites:
    ArmoryManager 10, SfxPlayer 9, CameraShake 4, ImpactEffects 2, TracerPool 1,
@@ -367,7 +398,11 @@ KNOWN DEBT IN THE CURRENT BUILD
    Easy to forget, and the symptom is silent (see item 7). Goes away when the
    builder is retired at Phase 2.
 
-9. HIT TEST IS A RAY, NOT A SPHERECAST.
+9. HIT TEST IS A RAY, NOT A SPHERECAST. - DEFERRED, deliberately.
+   Reviewed 2026-09-08: switching to a spherecast would subtly widen every
+   shot, changing hit feel that has now been validated through two gates. Not
+   worth destabilising for a case that cannot currently occur. Fix it when an
+   enemy actually closes inside the player's centre, not before.
    Shots are correct now that the ray starts at the player's centre, but an
    enemy that closes inside that centre would still be missed. Cannot happen
    at current values - zombies stop at 1.6 units - but a fast archetype in
@@ -385,7 +420,15 @@ KNOWN DEBT IN THE CURRENT BUILD
    edited in the inspector or deleted and regenerated. Expect this every time
    a weapon default changes.
 
-12. WEAPON MODS ARE HARDCODED BY SLOT INDEX.
+12. WEAPON MODS ARE HARDCODED BY SLOT INDEX. - RESOLVED 2026-09-08.
+   WeaponDefinition now carries WeaponTags (Sidearm / Shotgun / Rifle /
+   Precision) plus its own Overclocked response values, and
+   ArmoryManager.ModAppliesTo owns the mod-to-tag rules. Weapon.cs has no
+   slot-index branching left; slotIndex survives only for reserve ammo
+   lookup, which is legitimately positional. Reordering slots or adding a
+   fifth weapon can no longer mis-assign a mod.
+   Original entry follows.
+   ---
    Weapon.cs branches on slotIndex == 0, isShotgun = slotIndex == 1, and
    slotIndex == 2 || slotIndex == 3. Reordering the loadout silently
    reassigns every mod to the wrong gun, and a fifth weapon means editing
@@ -394,11 +437,29 @@ KNOWN DEBT IN THE CURRENT BUILD
    Fix: mods declare what they apply to, or WeaponDefinition carries tags
    (shotgun / precision / sidearm) the mods match against.
 
-13. ARMORY PRICES ARE COMPILE-TIME CONSTANTS.
+13. ARMORY PRICES ARE COMPILE-TIME CONSTANTS. - RESOLVED 2026-09-08.
+   Costs live in an ArmoryPrices ScriptableObject, created once and then left
+   alone on the same create-if-missing contract as the weapon definitions, so
+   tuning survives a rebuild. ArmoryManager keeps static passthrough
+   properties, so all ~20 UI call sites are unchanged.
+   Original entry follows.
+   ---
    ArmoryManager holds every cost as const int, so balancing the economy is a
    recompile rather than an edit. Painful once run structure is fixed and the
    economy actually needs tuning against it.
    Fix: move costs into a ScriptableObject alongside the weapon definitions.
+
+14. NEVER HAND-EDIT ASSET YAML FOR FIELDS THAT ARE NOT COMPILED YET.
+   Learned the hard way 2026-09-08. Weapon tags were written straight into the
+   .asset files while Unity was still compiling the WeaponDefinition change,
+   so on reimport the keys were unknown and Unity silently discarded all
+   twelve of them. Four of the five mods went dead - they check tags that were
+   suddenly None - and nothing reported it, because the drum mags mod applies
+   unconditionally and so still appeared to work.
+   Rule: let Unity compile the field first, then write the value, then verify
+   it survived a reimport. For anything larger than a few keys, use an editor
+   script with SerializedObject instead of touching YAML - that path cannot
+   write a field the assembly does not have.
 
 
 -------------------------------------------------------------------------------
@@ -418,7 +479,20 @@ ZOMBIE STEERING VS DEPLOYABLE BARRICADES - resolved 2026-09-08.
 START HERE - THIS WEEK
 ===============================================================================
 
-1. Build the boss - and do it BEFORE retiring ArenaBuilder.
+1. Play wave 15 and tune the boss.
+   Three numbers are low-confidence. 2000 HP against a full wave 15 could be
+   trivial with a saved-up loadout or brutal without one. Phase 1 may be
+   invisible - a ranged attacker sitting at 14 units during a horde fight may
+   simply never get noticed. And the artillery is currently just the Ranged
+   archetype's straight projectile; the telegraphed ground-marker AoE is not
+   built, so phase 1 may feel thin until it is.
+
+2. Then: the artillery telegraph.
+   A ground marker before impact. Wave 15 plus a boss is the most crowded the
+   screen ever gets, and an untelegraphed area attack in that is unreadable.
+
+OLD ITEM, now done - kept for the reasoning about ordering:
+   Build the boss - and do it BEFORE retiring ArenaBuilder.
    Phase 2 retires the builder when the arena becomes hand-authored, and that
    is a one-way door: after it, every new prefab and wiring is manual scene
    work. The boss is the last thing Phase 1 owes, and it is much cheaper to
@@ -432,13 +506,11 @@ START HERE - THIS WEEK
    fortification hook directly, for example by smashing barricades in a single
    hit, so walls buy time rather than safety.
 
-2. Run Gate 1.
-   Five runs back to back, voluntarily, and a hook sentence a stranger finds
-   interesting. Both halves are finally testable: the hook is written and a
-   run now has an ending. This is the gate that decides whether Phase 1
-   actually found something, so do not soften it - if you do not want a
-   fourth run, that is the answer.
+3. Then Phase 2 - art direction lock, and retire ArenaBuilder.
 
-3. Pay down debt 6 and 7 before Phase 2, not during it.
-   Both are load-bearing: 6 is the first thing that breaks as waves grow, and
-   7 has now cost debugging time three separate times.
+3. Debt: reviewed 2026-09-08.
+   Fixed: 7 (silent singletons), 12 (mods hardcoded by slot), 13 (prices as
+   constants). Deliberately deferred with reasons recorded: 5 (asmdefs, not
+   costing time yet), 6 (O(n^2), trivial at 60 agents - Phase 4), 9
+   (spherecast, would alter validated hit feel). The rest are phase-scheduled
+   or by design. Nothing in the register is now unexamined.

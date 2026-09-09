@@ -20,6 +20,11 @@ namespace ZombieShooter
         [SerializeField] Text healthLabel;
         [SerializeField] Text ammoLabel;
         [SerializeField] Text weaponLabel;
+
+        [Header("Boss")]
+        [SerializeField] GameObject bossBarRoot;
+        [SerializeField] Image bossFill;
+        [SerializeField] Text bossLabel;
         [SerializeField] Text waveLabel;
         [SerializeField] Text scoreLabel;
         [SerializeField] Text goldLabel;
@@ -114,6 +119,8 @@ namespace ZombieShooter
 
         void Update()
         {
+            RefreshBossBar();
+
             // Two things aren't event-driven: the between-wave countdown and reload state.
             if (waves != null && waves.OnBreak) RefreshCentreLabel();
 
@@ -121,6 +128,31 @@ namespace ZombieShooter
             {
                 lastReloading = weapon.IsReloading;
                 OnAmmoChanged(weapon.Ammo, weapon.MagazineSize);
+            }
+        }
+
+        /// <summary>
+        /// Polled rather than event-driven: the boss is pooled, so it comes and goes without
+        /// the HUD being rewired, and a bar that lingered after its death would be worse than
+        /// one frame of latency appearing.
+        /// </summary>
+        void RefreshBossBar()
+        {
+            if (bossBarRoot == null) return;
+
+            var boss = BossController.Active;
+            bool show = boss != null && boss.Health != null && boss.Health.IsAlive;
+
+            if (bossBarRoot.activeSelf != show) bossBarRoot.SetActive(show);
+            if (!show) return;
+
+            if (bossFill != null) bossFill.fillAmount = boss.Health.Normalized;
+
+            if (bossLabel != null)
+            {
+                bossLabel.text = boss.Phase >= 2
+                    ? "THE BUTCHER   ·   ENRAGED"
+                    : "THE BUTCHER";
             }
         }
 
