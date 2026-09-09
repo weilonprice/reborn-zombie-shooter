@@ -66,7 +66,15 @@ namespace ZombieShooter
             (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) ||
             (Gamepad.current != null && Gamepad.current.buttonWest.wasPressedThisFrame);
 
-        /// <summary>Weapon slot requested this frame, 0-3, or -1 for none.</summary>
+        /// <summary>
+        /// Weapon slot requested this frame, 0-9, or -1 for none. The number row maps in
+        /// reading order, so 0 is the tenth slot rather than the first.
+        /// <para>
+        /// The d-pad only reaches the first four. A gamepad has no tenth face button, so
+        /// full parity needs a cycle binding rather than a direct one - see the note in
+        /// ROADMAP.txt.
+        /// </para>
+        /// </summary>
         public static int WeaponSlotPressed
         {
             get
@@ -78,6 +86,12 @@ namespace ZombieShooter
                     if (kb.digit2Key.wasPressedThisFrame) return 1;
                     if (kb.digit3Key.wasPressedThisFrame) return 2;
                     if (kb.digit4Key.wasPressedThisFrame) return 3;
+                    if (kb.digit5Key.wasPressedThisFrame) return 4;
+                    if (kb.digit6Key.wasPressedThisFrame) return 5;
+                    if (kb.digit7Key.wasPressedThisFrame) return 6;
+                    if (kb.digit8Key.wasPressedThisFrame) return 7;
+                    if (kb.digit9Key.wasPressedThisFrame) return 8;
+                    if (kb.digit0Key.wasPressedThisFrame) return 9;
                 }
 
                 var pad = Gamepad.current;

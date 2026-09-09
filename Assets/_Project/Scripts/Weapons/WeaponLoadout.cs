@@ -1,17 +1,32 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace ZombieShooter
 {
     /// <summary>
     /// The weapons the player carries, selected with 1-4 or the gamepad d-pad.
-    /// Manages slot unlocking (progression) and finite reserve ammo pools.
+    /// <para>
+    /// The catalogue is every weapon in the game; <c>carried</c> is the handful you can hold
+    /// at once. Buying moves a weapon from the first into a free slot of the second, and
+    /// once the slots are full there are no more purchases - a run commits to what it picked.
+    /// That is the design: with one upgrade path per weapon and only enough gold to max one,
+    /// carrying everything would leave the nine guns you did not invest in as a safety net,
+    /// which is exactly the commitment the run is supposed to be about.
+    /// </para>
+    /// <para>
+    /// Slots used to be a fixed array of four known weapons with a parallel unlocked[] flag.
+    /// That could not express ten. A slot is now live simply by holding something.
+    /// </para>
     /// </summary>
     public class WeaponLoadout : MonoBehaviour
     {
         [SerializeField] Weapon weapon;
-        [SerializeField] WeaponDefinition[] slots = new WeaponDefinition[4];
-        [SerializeField] bool[] unlocked = new bool[4] { true, false, false, false };
+        [Tooltip("Every weapon the Armory can sell, in shop order.")]
+        [SerializeField] WeaponDefinition[] catalogue = new WeaponDefinition[0];
+        [Tooltip("What the player is holding. Index 0 is the starting weapon; the rest fill " +
+                 "as they are bought. Length is the carry limit.")]
+        [SerializeField] WeaponDefinition[] carried = new WeaponDefinition[4];
         [Tooltip("Minimum seconds between swaps, so mashing the number row cannot cancel every reload for free.")]
         [SerializeField] float swapCooldown = 0.25f;
 
@@ -23,41 +38,68 @@ namespace ZombieShooter
 
         public int CurrentSlot => current;
         public WeaponDefinition CurrentDefinition =>
-            current >= 0 && current < slots.Length ? slots[current] : null;
+            current >= 0 && current < carried.Length ? carried[current] : null;
+
+        public IReadOnlyList<WeaponDefinition> Catalogue => catalogue;
+        public int CarryCapacity => carried != null ? carried.Length : 0;
+
+        public WeaponDefinition CarriedAt(int slot) =>
+            carried != null && slot >= 0 && slot < carried.Length ? carried[slot] : null;
+
+        public bool HasFreeSlot
+        {
+            get
+            {
+                for (int i = 0; i < carried.Length; i++)
+                    if (carried[i] == null) return true;
+                return false;
+            }
+        }
+
+        public bool Owns(WeaponDefinition definition)
+        {
+            if (definition == null) return false;
+
+            for (int i = 0; i < carried.Length; i++)
+                if (carried[i] == definition) return true;
+            return false;
+        }
 
         public int CurrentReserveAmmo =>
             current >= 0 && current < reserveAmmo.Length ? reserveAmmo[current] : -1;
 
         public event Action<WeaponDefinition> WeaponChanged;
         public event Action<int, int> ReserveAmmoChanged;
-        public event Action<int> SlotUnlocked;
+        /// <summary>A weapon was added to a carried slot.</summary>
+        public event Action<int> LoadoutChanged;
 
         void Awake()
         {
             if (weapon == null) weapon = GetComponent<Weapon>();
 
-            ammoInSlot = new int[slots.Length];
-            holsterTimers = new float[slots.Length];
-            reserveAmmo = new int[slots.Length];
+            ammoInSlot = new int[carried.Length];
+            holsterTimers = new float[carried.Length];
+            reserveAmmo = new int[carried.Length];
 
-            for (int i = 0; i < slots.Length; i++)
+            for (int i = 0; i < carried.Length; i++)
             {
-                if (slots[i] == null) continue;
-                ammoInSlot[i] = ArmoryManager.EffectiveMagazineSize(slots[i]);
-                reserveAmmo[i] = slots[i].MaxReserveAmmo;
+                if (carried[i] == null) continue;
+                ammoInSlot[i] = ArmoryManager.EffectiveMagazineSize(carried[i]);
+                reserveAmmo[i] = carried[i].MaxReserveAmmo;
             }
         }
 
         void Start()
         {
-            for (int i = 0; i < slots.Length; i++)
+            for (int i = 0; i < carried.Length; i++)
             {
-                if (slots[i] == null || !IsSlotUnlocked(i)) continue;
+                if (carried[i] == null) continue;
                 Select(i, force: true);
                 return;
             }
 
-            Debug.LogError($"{nameof(WeaponLoadout)}: no unlocked weapons in any slot.", this);
+            Debug.LogError($"{nameof(WeaponLoadout)}: carrying nothing - slot 0 needs a " +
+                           "starting weapon.", this);
         }
 
         void Update()
@@ -68,23 +110,34 @@ namespace ZombieShooter
             TickHolsteredReload();
 
             int requested = InputReader.WeaponSlotPressed;
-            if (requested >= 0 && IsSlotUnlocked(requested))
-                Select(requested);
+            if (requested >= 0) Select(requested);
         }
 
-        public bool IsSlotUnlocked(int slot) =>
-            slot >= 0 && slot < unlocked.Length && unlocked[slot];
-
-        public void UnlockSlot(int slot)
+        /// <summary>
+        /// Puts a weapon in the first free carried slot and equips it. Fails when the
+        /// loadout is full or the weapon is already held - the caller checks before charging.
+        /// </summary>
+        public bool TryCarry(WeaponDefinition definition)
         {
-            if (slot < 0 || slot >= unlocked.Length) return;
-            unlocked[slot] = true;
+            if (definition == null || Owns(definition)) return false;
 
-            if (slots[slot] != null && reserveAmmo[slot] <= 0)
-                reserveAmmo[slot] = slots[slot].MaxReserveAmmo;
+            for (int slot = 0; slot < carried.Length; slot++)
+            {
+                if (carried[slot] != null) continue;
 
-            SlotUnlocked?.Invoke(slot);
-            ReserveAmmoChanged?.Invoke(slot, reserveAmmo[slot]);
+                carried[slot] = definition;
+                ammoInSlot[slot] = ArmoryManager.EffectiveMagazineSize(definition);
+                reserveAmmo[slot] = definition.MaxReserveAmmo;
+                holsterTimers[slot] = 0f;
+
+                LoadoutChanged?.Invoke(slot);
+                ReserveAmmoChanged?.Invoke(slot, reserveAmmo[slot]);
+
+                Select(slot, force: true);
+                return true;
+            }
+
+            return false;
         }
 
         public int GetReserveAmmo(int slot) =>
@@ -92,8 +145,8 @@ namespace ZombieShooter
 
         public int ConsumeReserve(int slot, int needed)
         {
-            if (slot < 0 || slot >= slots.Length || slots[slot] == null) return needed;
-            if (slots[slot].MaxReserveAmmo < 0) return needed; // Infinite reserve
+            if (slot < 0 || slot >= carried.Length || carried[slot] == null) return needed;
+            if (carried[slot].MaxReserveAmmo < 0) return needed; // Infinite reserve
 
             int available = reserveAmmo[slot];
             int taken = Mathf.Min(needed, available);
@@ -105,12 +158,12 @@ namespace ZombieShooter
 
         public void RefillAllReserves()
         {
-            for (int i = 0; i < slots.Length; i++)
+            for (int i = 0; i < carried.Length; i++)
             {
-                if (slots[i] != null && slots[i].MaxReserveAmmo > 0)
+                if (carried[i] != null && carried[i].MaxReserveAmmo > 0)
                 {
-                    reserveAmmo[i] = slots[i].MaxReserveAmmo;
-                    ammoInSlot[i] = ArmoryManager.EffectiveMagazineSize(slots[i]);
+                    reserveAmmo[i] = carried[i].MaxReserveAmmo;
+                    ammoInSlot[i] = ArmoryManager.EffectiveMagazineSize(carried[i]);
                     ReserveAmmoChanged?.Invoke(i, reserveAmmo[i]);
                 }
             }
@@ -123,9 +176,9 @@ namespace ZombieShooter
         public void AddReserve(int slot, int amount)
         {
             if (reserveAmmo == null || slot < 0 || slot >= reserveAmmo.Length || amount <= 0) return;
-            if (slots[slot] == null || slots[slot].MaxReserveAmmo < 0) return;
+            if (carried[slot] == null || carried[slot].MaxReserveAmmo < 0) return;
 
-            reserveAmmo[slot] = Mathf.Min(reserveAmmo[slot] + amount, slots[slot].MaxReserveAmmo);
+            reserveAmmo[slot] = Mathf.Min(reserveAmmo[slot] + amount, carried[slot].MaxReserveAmmo);
             ReserveAmmoChanged?.Invoke(slot, reserveAmmo[slot]);
         }
 
@@ -133,16 +186,16 @@ namespace ZombieShooter
         // sidearm is full when you swap to it in an emergency.
         void TickHolsteredReload()
         {
-            if (slots == null) return;
+            if (carried == null) return;
 
-            for (int i = 0; i < slots.Length; i++)
+            for (int i = 0; i < carried.Length; i++)
             {
-                if (i == current || slots[i] == null || !IsSlotUnlocked(i)) continue;
+                if (i == current || carried[i] == null) continue;
 
-                var stats = UpgradeManager.Resolve(slots[i]);
+                var stats = UpgradeManager.Resolve(carried[i]);
                 if (!stats.HolsteredReload) continue;
 
-                int capacity = ArmoryManager.EffectiveMagazineSize(slots[i]);
+                int capacity = ArmoryManager.EffectiveMagazineSize(carried[i]);
                 if (ammoInSlot[i] >= capacity || reserveAmmo[i] <= 0) continue;
 
                 holsterTimers[i] += Time.deltaTime;
@@ -158,8 +211,8 @@ namespace ZombieShooter
 
         public void Select(int slot, bool force = false)
         {
-            if (weapon == null || slot < 0 || slot >= slots.Length) return;
-            if (slots[slot] == null || !IsSlotUnlocked(slot)) return;
+            if (weapon == null || slot < 0 || slot >= carried.Length) return;
+            if (carried[slot] == null) return;
             if (!force && (slot == current || Time.time < nextSwapTime)) return;
 
             // Bank what the outgoing weapon had left before its magazine is replaced.
@@ -168,10 +221,10 @@ namespace ZombieShooter
             current = slot;
             nextSwapTime = Time.time + swapCooldown;
 
-            weapon.Equip(slots[slot], slot);
+            weapon.Equip(carried[slot], slot);
             weapon.SetAmmo(ammoInSlot[slot]);
 
-            WeaponChanged?.Invoke(slots[slot]);
+            WeaponChanged?.Invoke(carried[slot]);
             ReserveAmmoChanged?.Invoke(current, CurrentReserveAmmo);
         }
     }

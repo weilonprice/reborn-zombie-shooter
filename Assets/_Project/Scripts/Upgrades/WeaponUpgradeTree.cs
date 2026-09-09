@@ -27,6 +27,12 @@ namespace ZombieShooter
         public float reloadTime = -1f;
         public int pierceCount = -1;
         public float knockbackMultiplier = -1f;
+        [Tooltip("Pellets per trigger pull. -1 leaves it alone.")]
+        public int pelletCount = -1;
+        [Tooltip("Base spread in degrees. -1 leaves it alone.")]
+        public float spread = -1f;
+        [Tooltip("Damage retained per body pierced. Above 1 the round gains. -1 leaves it alone.")]
+        public float penetrationFalloff = -1f;
 
         [Header("Behaviour")]
         public bool convertToFullAuto;
@@ -68,6 +74,20 @@ namespace ZombieShooter
         public float ultimateCritChance = -1f;
         [Tooltip("Rate of fire while the ultimate is running. -1 leaves it alone.")]
         public float ultimateFireRate = -1f;
+
+        [Header("Marksman")]
+        [Tooltip("Damage added per consecutive hit on the same target, as a fraction. " +
+                 "Resets when you hit something else. -1 leaves it alone.")]
+        public float focusBonusPerHit = -1f;
+        [Tooltip("Ceiling on the focus bonus, as a fraction. -1 leaves it alone.")]
+        public float focusMaxBonus = -1f;
+        [Tooltip("Spread the weapon tightens to while the trigger is held - the inverse of " +
+                 "fanMaxSpread. -1 leaves it alone.")]
+        public float sustainedSpreadMin = -1f;
+
+        [Header("Executioner")]
+        [Tooltip("Fraction of max health at or below which a hit is simply lethal. -1 for none.")]
+        public float executeThreshold = -1f;
     }
 
     [Serializable]

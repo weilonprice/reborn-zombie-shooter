@@ -3,89 +3,79 @@ Snapshot of what is actually IN the build. Not a design document - if it is
 written here, it exists in code and has been compiled. Ideas that have been
 discussed but not built are listed at the bottom, clearly separated.
 
-Last updated: 2026-09-09, after the mod-core removal and the cost-curve
-rework. Uncommitted at time of writing.
+Last updated: 2026-09-09, after the move to one path per weapon and the
+ten-slot loadout.
 NOTHING IN THIS FILE HAS BEEN PLAY-TESTED.
 
 
 ===============================================================================
-TWO SYSTEMS, BOTH LIVE
+THE SHAPE OF IT
 ===============================================================================
 
-The game currently has two separate ways to make a weapon stronger, and they
-do not know about each other:
+Every weapon has ONE upgrade path of five tiers, bought with gold at the
+Armory between waves. The run's decision is which weapon to pour gold into: a
+maxed path costs 3360 against 6580 of run income, so a run can only ever max
+one. The player carries all ten weapons; exactly one of them feels powerful.
 
-  1. WEAPON UPGRADE TREES - the new system. Data-driven, per weapon, three
-     paths of five tiers under a 5-3-0 rule. Only the pistol has a tree, and
-     only one of its three paths is authored.
+That is the third structure this has had. Three paths per weapon under a 5-3-0
+rule came first, and needed all three authored before any of them was a
+choice - 60 tiers before the design could be judged. The variety now comes
+from the arsenal instead.
 
-  2. MOD CORES - the older system. A fixed enum of five global mods bought
-     once and applied to every weapon whose tags match.
+5-3-0 IS STILL IN THE CODE AND IS INERT.
+  UpgradeManager still enforces "one path to 5, a second to 3, the third
+  locked", but a single open path can never breach it, so it never triggers.
+  Giving one weapon three paths later is data plus a wider panel - the rule,
+  the resolver and the purchase flow all already handle it.
 
-This overlap is deliberate for now but is not a resting state. Retiring mod
-cores into trees is Tech Debt #15, and Tech Debt #17 covers the flat flag
-vocabulary the trees use. Both should be done as one rework, not two.
-
-Order of application matters: upgrades set the base magazine, mods then scale
-it. So Extended Drum Mags multiplies the UPGRADED size, not the printed one.
-That single source of truth lives in ArmoryManager.EffectiveMagazineSize, and
-it has to stay there - computing it twice is what caused the bug where the
-Armory topped an upgraded rifle to 30 rounds while it held 45.
-
-
-===============================================================================
-SYSTEM 1 - WEAPON UPGRADE TREES
-===============================================================================
-
-Bought with gold at the Armory between waves, via the WEAPON UPGRADES button.
-Gold resets each run, so trees reset with it.
 
 TIER COSTS
   T1 60   T2 150   T3 350   T4 800   T5 2000
 
   One curve, shared by every path on every weapon, defined once as
-  ArenaBuilder.TierCosts and applied by the UpgradePath helper. Authoring a
-  path is choosing five effects; costs are not a per-path decision.
+  ArenaBuilder.TierCosts and applied by the UpgradePath helper. Tiers carry no
+  cost field at all - authoring a path is choosing five effects.
 
-  Full path 3360. Dip to T3 560. Under 5-3-0 one weapon can absorb 3920.
+  Full path 3360.
 
   The curve is steep on purpose. Measured 2026-09-09: a 15-wave run earns
-  6580 gold (338 enemies at 18.7 average, plus 250 from the boss), and under
-  the previous flat curve the maximum possible spend across all four weapons
-  was 6870 - so a run could buy 96% of everything the game sells. Nothing was
-  a choice; buying was just sequencing. It also lands the expensive tiers
-  late, where the money actually is: 55% of a run's gold arrives in the last
-  five waves.
+  6580 gold (338 enemies at 18.7 average, plus 250 from the boss). Under the
+  previous flat curve a run could buy 96% of everything the game sells, so
+  nothing was a choice. It also lands the expensive tiers late, where the
+  money actually is: 55% of a run's gold arrives in the last five waves.
 
 
-THE 5-3-0 RULE
-  One path may reach tier 5.
-  A second path may reach tier 3.
-  The third is locked at 0 and can never be started.
+THE LOADOUT
+  Ten carried slots on the number row, 1-9 then 0. WeaponLoadout holds a
+  catalogue (everything the Armory sells) and a carried array (what the run
+  holds). Weapon prices live on WeaponDefinition, so a new weapon is an asset
+  plus a catalogue entry - no constant, no branch, no button.
 
-  Enforced in UpgradeManager.IsNextTierAllowed, which evaluates the rule
-  against the configuration a purchase WOULD produce rather than the one it
-  starts from - the rule is about the result, not the starting point.
+  All ten weapons cost 2200 together. With a maxed path at 3360 that leaves
+  roughly 1000 for ammo crates and deployables, so a run wanting a real
+  barricade line has to skip a couple of guns.
 
-  The panel draws "locked by 5-3-0" and "you cannot afford this yet" as
-  visibly different states. Greying both identically makes the rule read as
-  arbitrary rather than as a consequence of a choice already made.
+  KNOWN GAP: the gamepad d-pad reaches the first four slots only. See debt 18.
 
-WHICH WEAPONS HAVE TREES
-  Pistol     - one authored path, two placeholder columns
-  Shotgun    - none
-  Rifle      - none
-  Sniper     - none
 
-  A weapon with no tree runs on its definition values plus mod cores, and
-  its panel reads "This weapon has no upgrade paths yet."
+MOD CORES: REMOVED 2026-09-09
+  Five global mods (Dragon's Breath, Heavy Slug, Bore Piercing, Extended Drum
+  Mags, Overclocked Receiver) were bought once and applied by weapon tag.
+  Deleted outright once upgrade trees landed - two systems making a weapon
+  stronger, neither aware of the other, with untested stacking between them.
+  Closed Tech Debt #15 by deletion rather than by migration. WeaponTags
+  survives but is unread; it is kept as a hook for tiers that might one day
+  target a weapon family.
 
+
+===============================================================================
+AUTHORED PATHS - 4 OF 10
+===============================================================================
 
 -------------------------------------------------------------------------------
-PISTOL - PATH 1 OF 3: "GUNSLINGER"
+PISTOL - "GUNSLINGER"
 -------------------------------------------------------------------------------
 Summary: open hot, close hot, and eventually stop needing to aim at all.
-Full path costs 3360 gold. See TIER COSTS below.
 
 Pistol base for reference: 20 damage, 200 RPM, 12 magazine, 120 reserve,
 1.0s reload, 1.2 degree spread, semi-automatic.
@@ -141,63 +131,139 @@ SHOTS TO KILL A STANDARD ZOMBIE (100 HP), by tier:
 
 
 -------------------------------------------------------------------------------
-PISTOL - PATHS 2 AND 3: NOT DESIGNED
+SHOTGUN - "STREETSWEEPER"
 -------------------------------------------------------------------------------
-Both render in the panel as "- TO BE DESIGNED -" with no tiers, so every
-button in those columns is inert.
+Summary: stops being a gun and becomes a wall of lead that moves the horde.
+Base: 22 dmg x 5 pellets, 75 RPM, 8 shells, 48 reserve, 2.4s reload, 7 spread.
 
-Until they exist the 5-3-0 rule has nothing to bite on. One path is a ladder,
-not a build - there is currently no choice to make, only an affordability
-question.
+T1  CHOKE                                                            60 gold
+    7 pellets instead of 5, spread 7 to 5.5 degrees.
+T2  SPEEDLOADER                                                     150 gold
+    Reload 2.4s to 1.2s, magazine 8 to 10.
+T3  AUTO LOADER                                                     350 gold
+    Hold to fire, 75 to 160 RPM.
+T4  RIOT GUN                                                        800 gold
+    10 pellets at 26 damage, knockback 2.2 to 4.
+T5  STREETSWEEPER                                                  2000 gold
+    12 pellets, 200 RPM, 20 shells, 0.9s reload, spread out to 9 degrees.
+    Every kill refunds one shell to the reserve, which is the only reason it
+    can sustain that rate - 48 shells would otherwise last about 25 seconds.
+    In a crowd it runs a net surplus; in a sparse wave it still drains.
 
 
-===============================================================================
-SYSTEM 2 - MOD CORES: REMOVED 2026-09-09
-===============================================================================
+-------------------------------------------------------------------------------
+ASSAULT RIFLE - "MARKSMAN"
+-------------------------------------------------------------------------------
+Summary: rewards staying on one target - the opposite of spraying a crowd.
+Base: 22 dmg, 600 RPM, 30 mag, 180 reserve, 1.7s reload, 2.2 spread, pierce 2.
 
-Five global mods (Dragon's Breath, Heavy Slug, Bore Piercing, Extended Drum
-Mags, Overclocked Receiver) were bought once at the Armory and applied to
-every weapon whose tags matched. Deleted outright once upgrade trees landed -
-two systems making a weapon stronger, neither aware of the other, with
-untested stacking between them. This closed Tech Debt #15 by deletion rather
-than by migrating them into trees.
+T1  MATCH BARREL                                                     60 gold
+    Damage 22 to 25, spread 2.2 to 1.2.
+T2  FOCUS FIRE                                                      150 gold
+    Consecutive hits on the SAME enemy add 4% damage each, up to 40%.
+    Hitting anything else starts over. A stack expires 1.5s after its last hit.
+T3  STABILISED                                                      350 gold
+    Holding the trigger tightens spread to 0.4 instead of widening it.
+    Magazine 30 to 45.
+T4  ARMOUR BREAKER                                                  800 gold
+    Damage to 32, focus ceiling to 100%, full damage through pierced bodies.
+T5  MARKSMAN                                                       2000 gold
+    Focus ceiling 200%, 700 RPM, pierce 4. A held burst ends up hitting three
+    times as hard as it started. Roughly 1100 single-target DPS once ramped,
+    and worth nothing at all against a crowd.
 
-Gone with them: ModCoreType, the five prices, the shop's right-hand column,
-and WeaponDefinition's OverclockedFireRateMultiplier and
-OverclockedConvertsToAuto. WeaponTags survives but is now unread - it was how
-mods chose their weapons, and it is kept only as a likely hook for tiers that
-target a weapon family.
+    NOTE: focus is counted per HIT, not per shot. Correct only while the
+    weapons that have it fire one pellet - a multi-pellet weapon with focus
+    would stack it once per pellet.
+
+
+-------------------------------------------------------------------------------
+SNIPER RIFLE - "EXECUTIONER"
+-------------------------------------------------------------------------------
+Summary: one round, one line, and everything standing in it.
+Base: 150 dmg, 45 RPM, 5 mag, 30 reserve, 2.8s reload, pierce 6, falloff 0.85.
+
+T1  MATCH ROUNDS                                                     60 gold
+    Damage 150 to 190, falloff to 1.0 - the last enemy in a line takes as
+    much as the first.
+T2  BREACH                                                          150 gold
+    Pierce 6 to 10, magazine 5 to 7.
+T3  CYCLED BOLT                                                     350 gold
+    Fire rate 45 to 75, reload 2.8s to 1.8s.
+T4  OVERPENETRATION                                                 800 gold
+    Damage 220, and each body pierced makes the round 20% STRONGER.
+T5  EXECUTIONER                                                    2000 gold
+    300 damage, pierce 12, 20% gain per body, and anything at or under 30%
+    health dies outright whatever its maximum.
+
+    TWO NUMBERS TO WATCH. The gain compounds: 1.2 over 12 bodies is roughly
+    9x on the last one, so a perfectly lined-up corridor shot deals north of
+    10,000 total. And the execute applies to the boss, deleting its last 600
+    HP for free - that is the promise of the weapon, but it is a big one.
+
+
+-------------------------------------------------------------------------------
+NOT YET BUILT - 6 OF 10
+-------------------------------------------------------------------------------
+Roster drafted 2026-09-09. All six need firing modes Weapon.cs does not have
+(debt 19), so the projectile/cone/chain work comes before any of them.
+
+  SMG            120   Mobility.      "Adrenaline" - kills stack speed and
+                                      fire rate, standing still bleeds it away.
+  NAIL GUN       180   Fortification. "Lawman" - repairs barricades by
+                                      shooting them, pins enemies to walls,
+                                      and at T5 every barricade mounts a
+                                      turret. The ONLY weapon that touches the
+                                      fortification pillar.
+  FLAMETHROWER   250   Crowds.        "Wildfire" - ignite rather than kill,
+                                      fire spreads through packs, corpses
+                                      leave burning ground, and burn damage
+                                      scales with how many are alight.
+  GRENADE LNCHR  280   Burst AoE.     "Bombardier" - cluster rounds, and
+                                      reloading lobs a live stick.
+  TESLA COIL     300   Control.       "Storm" - chains, slows, stuns, ending
+                                      in a permanent arc that chains outward.
+  SIPHON RIFLE   380   Sustain.       "Reaper" - kills heal, damage scales
+                                      with missing health, and once a wave
+                                      lethal damage leaves you at 1 HP.
+                                      The ONLY healing in the entire game.
 
 
 ===============================================================================
 OTHER ARMORY PURCHASES (not upgrades, but they spend the same gold)
 ===============================================================================
 
-  Shotgun          150      Ammo crate        50   (refills all reserves)
-  Assault rifle    250      Barricade         40
-  Sniper           350      Explosive barrel  60
-                            Claymore          75
+  Ammo crate        50   (refills every reserve)
+  Barricade         40
+  Explosive barrel  60
+  Claymore          75
 
-All prices live in ArmoryPrices.asset, not in code - balancing the economy is
-an edit, not a recompile. The constants in ArmoryManager are only a fallback
-for an unwired manager.
+Weapon prices live on WeaponDefinition and deployable prices on
+DeployableDefinition. ArmoryPrices.asset is down to the ammo crate alone - the
+only purchasable that is not an object someone owns.
 
 
 ===============================================================================
 HOW TO ADD TO THIS
 ===============================================================================
 
-A new TIER or a whole new PATH is pure data: add an UpgradeTier to the
-authoring in ArenaBuilder.LoadOrCreatePistolUpgrades and re-run the builder.
-No code.
+A new TIER or a whole new PATH is pure data: add an UpgradeTier to the path
+helper in ArenaBuilder (GunslingerPath, StreetsweeperPath, MarksmanPath,
+ExecutionerPath) and re-run the builder. No code.
+
+A new WEAPON is an asset plus a catalogue entry plus a path helper - as long
+as it fires the way the four existing ones do. See debt 19 if it does not.
 
 A new KIND of effect is not. It costs a field on UpgradeTier, a member on
 WeaponStats, a line in UpgradeManager.Apply, and a branch in the firing path.
-UpgradeTier currently carries 18 behaviour fields for this reason. That is
-Tech Debt #17, deliberately unfixed - designing the abstraction against a
-single authored path would be guessing.
+UpgradeTier carries around 30 fields for this reason. That is Tech Debt #17,
+deliberately unfixed. Four paths in, there is a distinction the count hides:
+of the seven fields the shotgun, rifle and sniper paths needed, three were
+plain stat overrides that should have existed from the start (pelletCount,
+spread, penetrationFalloff) and only Focus was a genuinely new mechanic. The
+abstraction to design is narrower than 30 fields suggests.
 
-The tier data asset (Assets/_Project/Upgrades/UPG_Pistol.asset) is generated
+The tier data assets (Assets/_Project/Upgrades/UPG_*.asset) are generated
 by the builder under a create-if-missing contract: it is written once and
 never overwritten, so hand-tuning survives a rebuild. The consequence is that
 CHANGING AUTHORED TIERS IN CODE REQUIRES DELETING THE ASSET FIRST, or the
@@ -206,37 +272,24 @@ one near-miss where a regenerated asset held a design we had replaced.
 
 
 ===============================================================================
-DESIGNED BUT NOT BUILT
+IDEAS NOT ON THE ROSTER
 ===============================================================================
 
-Kept short on purpose - this file documents what exists. These are candidates
-for the pistol's two empty paths, brainstormed 2026-09-09 and not started:
+Brainstormed 2026-09-09 and not selected. Kept because the reasoning may be
+worth reusing when a weapon needs an identity:
 
-  Lawman      Fortification. Repair barricades by shooting them, cripple,
-              stand-still damage bonus, barricade turrets. The only concept
-              that makes deployables matter to a weapon.
-  Reaper      Sustain. Life-steal on kill, damage scaling with missing
-              health, one revive per wave. Blocked on a real question: there
-              is NO healing anywhere in the game, so this would not be a
-              playstyle, it would be the only sustain that exists.
-  Marksman    Elites. Bonus damage to high-HP enemies, ramping damage on a
-              single target, infinite pierce, one charged shot per magazine.
-              Cheapest to build; answers the boss, which Gunslinger does not.
-  Powder Keg  Crowds. Splash, dynamite every sixth round, reload throws a
-              stick, corpses chain-detonate.
-  Drifter     Mobility. Dash with i-frames, burning trail, blink through
-              enemies. Adds a movement verb to the game, which is a decision
-              about the game rather than about the gun.
-  Undertaker  Chain death. Stacking poison that spreads on death, and a
-              summon at T5.
-  Wildfire    Fire. Ignite rather than kill, burning spreads through packs,
-              ground fire, corpses explode, and a capstone that scales with
-              how many enemies are alight. Weak early, apocalyptic late, and
-              bad against the boss unless burn is allowed to stack on single
-              targets.
-  Hexslinger  Multi-element with reactions - shock a burning enemy to
-              detonate it, and so on. Judged the most interesting and the
-              most expensive, and a better fit for the rifle or shotgun than
-              for a precision sidearm.
-
-Every one of these needs new code. None of them are data-only.
+  Lawman, Reaper, Marksman, Wildfire and Storm all became roster weapons.
+  Powder Keg   Crowds via explosives - dynamite every sixth round, reload
+               lobs a stick, corpses chain-detonate. Folded into Bombardier.
+  Drifter      Mobility with a dash and i-frames. Rejected as a pistol path
+               because it adds a movement VERB to the game, which is a
+               decision about the game rather than about a gun. Partly
+               survives as the SMG's Adrenaline.
+  Undertaker   Stacking poison that spreads on death, with a summon at T5.
+               The most memorable capstone brainstormed and the second most
+               expensive. Still unclaimed.
+  Hexslinger   Multi-element with reactions - shock a burning enemy to
+               detonate it, freeze then shatter. Judged the most interesting
+               design and the most expensive by a wide margin. A better fit
+               for a rifle or shotgun than a precision sidearm, and it wants
+               the firing-mode work done first.

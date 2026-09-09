@@ -42,6 +42,8 @@ namespace ZombieShooter
         const float FanEngageDelay = 0.2f;
         const float FanCoolSeconds = 0.4f;
         const float UltimateRange = 22f;
+        /// <summary>How long a focus stack survives without a hit landing on that target.</summary>
+        const float FocusMemorySeconds = 1.5f;
 
         int slotIndex;
         float nextFireTime;
@@ -54,8 +56,14 @@ namespace ZombieShooter
 
         float triggerHeldSince;
         bool fanEngaged;
-        float fanHeat;
+        float triggerHeat;
         bool pendingReloadCrit;
+
+        // Marksman focus: consecutive hits on one body. Held as the Health rather than an id
+        // so a pooled enemy that despawns and returns cannot inherit the previous one's stack.
+        Health focusTarget;
+        int focusStacks;
+        float focusExpiresAt;
 
         // Reused every shot so target seeking allocates nothing in the firing path.
         readonly List<Health> offHandTargets = new();
@@ -188,7 +196,7 @@ namespace ZombieShooter
             if (GameManager.Instance != null && GameManager.Instance.State != GameState.Playing) return;
             if (ownerHealth != null && !ownerHealth.IsAlive) return;
 
-            UpdateFanHeat();
+            UpdateTriggerHeat();
 
             if (UltimateActive)
             {
@@ -232,13 +240,17 @@ namespace ZombieShooter
             }
         }
 
-        /// <summary>Accuracy bleeds away while the fan runs and recovers when it stops.</summary>
-        void UpdateFanHeat()
+        /// <summary>
+        /// How long the trigger has been held, normalised. One value drives both directions:
+        /// the fan uses it to lose accuracy, the marksman rifle uses it to gain accuracy.
+        /// </summary>
+        void UpdateTriggerHeat()
         {
-            float toward = fanEngaged ? 1f : 0f;
-            float seconds = fanEngaged ? Mathf.Max(0.05f, stats.FanSpreadRamp) : FanCoolSeconds;
+            bool holding = fanEngaged || (stats.FullAuto && InputReader.FireHeld);
+            float toward = holding ? 1f : 0f;
+            float seconds = holding ? Mathf.Max(0.05f, stats.FanSpreadRamp) : FanCoolSeconds;
 
-            fanHeat = Mathf.MoveTowards(fanHeat, toward, Time.deltaTime / seconds);
+            triggerHeat = Mathf.MoveTowards(triggerHeat, toward, Time.deltaTime / seconds);
         }
 
         float CurrentFireRate()
@@ -251,11 +263,40 @@ namespace ZombieShooter
 
         float CurrentSpread()
         {
-            float spread = definition.Spread;
+            float basis = stats.Spread >= 0f ? stats.Spread : definition.Spread;
 
-            return stats.FanMaxSpread > spread && fanHeat > 0f
-                ? Mathf.Lerp(spread, stats.FanMaxSpread, fanHeat)
-                : spread;
+            // Fan the hammer widens as you hold; the marksman barrel narrows. A weapon can
+            // only do one, and the fan wins if something ever sets both.
+            if (stats.FanMaxSpread > basis) return Mathf.Lerp(basis, stats.FanMaxSpread, triggerHeat);
+
+            if (stats.SustainedSpreadMin >= 0f && stats.SustainedSpreadMin < basis)
+                return Mathf.Lerp(basis, stats.SustainedSpreadMin, triggerHeat);
+
+            return basis;
+        }
+
+        /// <summary>
+        /// Damage multiplier from staying on one target.
+        /// <para>
+        /// Counted per HIT, not per shot, which is only correct while the weapons that have
+        /// focus fire one pellet. Give a multi-pellet weapon this and a single trigger pull
+        /// would stack it once per pellet - split the counting out of here if that day comes.
+        /// </para>
+        /// </summary>
+        float FocusMultiplier(Health target)
+        {
+            if (stats.FocusBonusPerHit <= 0f || target == null) return 1f;
+
+            if (target != focusTarget || Time.time > focusExpiresAt)
+            {
+                focusTarget = target;
+                focusStacks = 0;
+            }
+
+            focusStacks++;
+            focusExpiresAt = Time.time + FocusMemorySeconds;
+
+            return 1f + Mathf.Min(focusStacks * stats.FocusBonusPerHit, stats.FocusMaxBonus);
         }
 
         /// <summary>
@@ -293,6 +334,8 @@ namespace ZombieShooter
 
             nextFireTime = 0f;
             fanEngaged = false;
+            focusStacks = 0;
+            focusTarget = null;
             pendingReloadCrit = stats.GuaranteedCritAfterReload;
         }
 
@@ -378,7 +421,7 @@ namespace ZombieShooter
             }
             else
             {
-                int pellets = definition.PelletsPerShot;
+                int pellets = stats.PelletCount > 0 ? stats.PelletCount : definition.PelletsPerShot;
                 float spreadAngle = CurrentSpread();
 
                 for (int i = 0; i < pellets; i++)
@@ -465,7 +508,9 @@ namespace ZombieShooter
                 float knockback = stats.KnockbackMultiplier;
 
                 int pierceLimit = stats.PierceCount;
-                float falloff = definition.PenetrationFalloff;
+                float falloff = stats.PenetrationFalloff >= 0f
+                    ? stats.PenetrationFalloff
+                    : definition.PenetrationFalloff;
 
                 int bodiesHit = 0;
 
@@ -516,6 +561,20 @@ namespace ZombieShooter
                        float damage, float knockback)
         {
             if (target == null || !target.IsAlive) return false;
+
+            // Barricades and barrels are damageable too. Executing your own half-dead wall
+            // because a pellet clipped it would be an infuriating way to lose one.
+            bool enemy = health != null && health.GetComponent<ZombieAI>() != null;
+
+            if (enemy) damage *= FocusMultiplier(health);
+
+            // Under the threshold the shot is simply lethal, whatever it would have rolled.
+            if (stats.ExecuteThreshold > 0f && enemy &&
+                health.Normalized <= stats.ExecuteThreshold)
+            {
+                damage = Mathf.Max(damage, health.Current);
+                ImpactEffects.Instance?.PlayImpact(point, normal);
+            }
 
             target.TakeDamage(new DamageInfo(damage, point, normal, knockback,
                                              gameObject, definition));

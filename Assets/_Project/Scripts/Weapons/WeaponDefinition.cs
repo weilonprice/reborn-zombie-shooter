@@ -56,6 +56,12 @@ namespace ZombieShooter
         [SerializeField] int pelletsPerShot = 1;
         [SerializeField] FireMode fireMode = FireMode.Automatic;
 
+        [Header("Economy")]
+        [Tooltip("Armory price. On the definition rather than in a price table so a tenth " +
+                 "weapon is an asset plus a catalogue entry, not another named constant - " +
+                 "the same shape deployables already use.")]
+        [SerializeField] int cost = 150;
+
         [Header("Classification")]
         [Tooltip("What this weapon counts as. Currently unread - it was how mod cores chose " +
                  "which weapons they applied to. Kept because it is authored data describing " +
@@ -106,6 +112,7 @@ namespace ZombieShooter
         public int PelletsPerShot => Mathf.Max(1, pelletsPerShot);
         public FireMode Mode => fireMode;
 
+        public int Cost => cost;
         public WeaponTags Tags => tags;
         public bool HasAnyTag(WeaponTags any) => (tags & any) != 0;
 
