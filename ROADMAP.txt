@@ -1,8 +1,9 @@
 REBORN - DEVELOPMENT ROADMAP
 Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
-Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 56 weeks.
-Status:  Gates 0 and 1 PASSED. Phase 1 complete and played through, boss
-         included. Design direction changes pending.
+Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 64 weeks.
+Status:  Gates 0 and 1 PASSED. Phase 2 content production underway - bigger
+         arena, deployables, and a data-driven weapon upgrade tree in. No art
+         until the content exists.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -128,6 +129,44 @@ PROGRESS LOG
             of the design. Boss health bar is polled rather than event-driven,
             because the boss is pooled and a bar lingering after death is
             worse than one frame of latency appearing.
+2026-09-08  Deployables in, and the placer generalised. Explosive barrels chain
+            a frame apart rather than instantly - it prevents unbounded
+            recursion in one frame and reads better, since the chain visibly
+            travels. Barrels hurt the player, which is what makes placing one
+            a bet rather than free damage. Claymores are directional and
+            one-use: walls choose where the horde walks, claymores punish the
+            lane the walls chose. BarricadePlacer became DeployablePlacer
+            driven by a catalogue of DeployableDefinition assets, so a fourth
+            deployable is an asset and a button rather than a third
+            near-identical script. Also fixed an input conflict introduced
+            with endless mode - E was bound to both deploy and continue.
+2026-09-08  Arena enlarged from 60x60 to 90x90, cover from 6 blocks to 14.
+            Fixed a latent coupling in the process: the placement bound was a
+            hardcoded copy of the old arena size, so resizing would have left
+            a 90x90 map buildable only in its middle 54x54, with no error
+            explaining why placement failed near the walls.
+2026-09-08  Phase order changed again: no art at all until the content exists.
+            The light art pass merged into Phase 3. Low risk here specifically
+            because everything is builder-generated primitives - a late
+            palette or silhouette change is a few lines in ArenaBuilder, not a
+            re-authoring pass. The usual "you will build it twice" warning
+            applies to projects with hand-made art; this one can absorb it.
+2026-09-08  Phase order changed. Content production moves ahead of both the
+            art pass and the Steam page. Two reasons it is sound: Phase 2
+            retires ArenaBuilder, and content production is precisely the work
+            that needs the builder alive - twelve enemies, ten weapons and
+            several arenas wired automatically rather than by hand; and art
+            direction is easier to lock once the content that must look
+            consistent exists. A light art pass still runs first - post
+            processing, lighting, VFX vocabulary - so content is built against
+            a locked look rather than needing a second pass.
+            The store page moving to month 8+ is a deliberate trade, recorded
+            in Phase 5. Wishlists compound, so this gives up roughly four
+            months of accumulation and lengthens the schedule from 56 to 64
+            weeks, because the page and the demo can no longer overlap
+            content. The upside is a page that launches showing a complete
+            game. Flagged as the thing to revisit if Gate 5 wishlist growth
+            looks weak.
 2026-09-08  Boss played through. The fight runs as expected end to end - all
             three low-confidence numbers (2000 HP, whether phase 1 registers
             during a horde fight, and the un-telegraphed artillery) held up
@@ -164,6 +203,41 @@ PROGRESS LOG
             player bullets (with piercing rounds punching through), and wood
             splinter destruction. Zombies detect blocking barricades and claw them
             down, resolving Tech Debt #6.
+2026-09-09  Weapon upgrade trees in, Bloons-style. Three paths per weapon, five
+            tiers each, bought with gold, restricted 5-3-0: one path to tier 5,
+            a second to tier 3, the third locked out entirely. Weapons only -
+            no player or economy trees. WeaponUpgradeTree/UpgradeTier are data,
+            UpgradeManager owns purchases and enforces the rule against the
+            configuration a purchase WOULD produce rather than the one it
+            starts from, and resolves stats once per purchase into a cached
+            struct so the firing path never walks tiers per shot.
+2026-09-09  Upgrade panel in. Its one real design decision: "locked by 5-3-0"
+            and "you cannot afford this yet" are drawn differently. Greying
+            both identically makes the restriction read as arbitrary rather
+            than as a consequence of a choice already made.
+2026-09-09  Pistol tree designed three times, and the churn is worth recording.
+            First draft was stat curves - damage up, fire rate up, money up -
+            and was correctly rejected as three spreadsheets. Second draft
+            (akimbo / ricochet chains / marks-and-detonate) was built and
+            compiling before being replaced by the owner's own design; the
+            ricochet and mark code was deleted rather than left dormant. Third
+            and current: a single Gunslinger path, authored, with two columns
+            left as placeholders for paths still to be designed.
+2026-09-09  Gunslinger path live. T1 guaranteed crit on the first shot after
+            every reload; T2 25% crit and double tap; T3 fan the hammer, hold
+            to fire at 600 RPM with spread bleeding 1.2 to 9 degrees and
+            recovering on release, while a click stays an accurate double tap;
+            T4 dual pistols, 45 damage, infinite reserve; T5 an ultimate at 30
+            pistol kills - flourish reload, then the guns auto-aim while the
+            player spins, 80% crits until the magazine runs dry.
+            Two things checked rather than assumed: reload-spamming for the
+            free crit is worse DPS than simply shooting, at every tier; and
+            the guaranteed crit only arms on a reload that actually loaded
+            rounds, so a dry reserve cannot hand one out.
+            NOT PLAYED YET. Numbers most likely to need tuning are the 0.2s
+            hold threshold that separates a tap from a fan, and the ultimate's
+            duration - 30 rounds at 900 RPM is 2.0 seconds, which may be short
+            for something that costs 30 kills.
 
 
 ===============================================================================
@@ -238,62 +312,95 @@ Everything from here is allowed to be polish and content.
 
 
 ===============================================================================
-PHASE 2 - VERTICAL SLICE & ART DIRECTION LOCK     Weeks 9-16
+PHASE 2 - CONTENT PRODUCTION                      Weeks 9-28
 ===============================================================================
+
+Reordered again 2026-09-08: no art at all until the game has its content. The
+light art pass that briefly sat here has merged into Phase 3. This is lower
+risk than it sounds - everything is builder-generated primitives, so a late
+palette or silhouette change is a few lines in ArenaBuilder rather than a
+re-authoring pass. ArenaBuilder stays alive for this entire phase; that is the
+main reason content comes first.
+
+[x] Bigger arena - DONE 2026-09-08. 60x60 to 90x90, 2.25x the area, cover
+    from 6 blocks to 14 including long slabs for barricade lines to anchor
+    against. Fixed a latent coupling while doing it: BarricadePlacer had the
+    old arena bound hardcoded, so a resize would have silently confined
+    building to the middle of the new map with no error.
+[x] Deployables - DONE 2026-09-08. Explosive barrels and claymores, and the
+    placer generalised so a fourth deployable is an asset plus a button, not
+    another script. Barrels chain and hurt the player; claymores are
+    directional and one-use.
+[ ] More enemy archetypes, toward a roster of ~12.
+[ ] More weapons, toward ~10. BLOCKED on a design decision: WeaponLoadout has
+    exactly 4 slots on keys 1-4. Ten weapons needs either more keys or a
+    carry-two-and-swap-at-the-Armory model. Decide before building them.
+[~] Mod cores and upgrades to 60+. Weapon upgrade trees are in and are data,
+    not branches: three paths x five tiers per weapon under a 5-3-0 rule,
+    bought with gold. Pistol has one authored path (Gunslinger); its other two
+    and all of shotgun, rifle and sniper are still to design. This does NOT
+    close debt item 15 - ModCoreType and its hardcoded branches still exist
+    alongside the trees, and retiring it is now a task in its own right.
+    New constraint discovered while building: UpgradeTier's behaviour flags are
+    a fixed vocabulary (18 and counting). Adding tiers and paths is free;
+    adding a new KIND of effect is still code. See debt item 17.
+[ ] Arenas - 3-4 spaces with different tactical character.
+[ ] Meta progression - needs the save system, debt item 4.
+[ ] Performance - profile the horde. Debt item 6, deferred to exactly here.
+
+GATE 2: 10+ hours of play without repetition becoming obvious, and no run
+feels like a strictly worse version of another.
+
+
+===============================================================================
+PHASE 3 - ART DIRECTION & VERTICAL SLICE          Weeks 28-36
+===============================================================================
+
+All art now happens here, cheap half and expensive half together, once every
+piece of content that has to look consistent exists.
 
 [ ] URP post-processing stack - bloom, color grading, vignette, subtle grain.
     Does more for a minimal look than any model would.
 [ ] Lighting design - committed palette and mood, strong silhouettes,
     high contrast.
 [ ] VFX language - consistent rules for muzzles, impacts, deaths, pickups.
-[ ] Arena as level design - replace the generated box with a hand-authored
-    space: cover, chokepoints, sightlines, a reason to move.
+[ ] Arena as level design - replace the generated box with hand-authored
+    spaces: cover, chokepoints, sightlines, a reason to move.
+[ ] RETIRE ArenaBuilder here (debt item 1). One-way door: after this, every
+    new prefab and its wiring is manual scene work.
 [ ] UI pass - migrate to TextMeshPro, design real HUD, main menu, pause.
 [ ] Audio pass - full mix, music bed, dynamic intensity between waves.
-[ ] RETIRE ArenaBuilder once hand-authoring starts (see debt item 1).
+[ ] Migrate InputReader to Input Actions + rebinding UI (debt item 2).
 
-GATE 2: Capture 60 seconds of unedited play you would put on a store page
-as-is. That clip becomes the Phase 3 trailer.
+GATE 3: Capture 60 seconds of unedited play you would put on a store page
+as-is. That clip becomes the announce trailer.
 
 
 ===============================================================================
-PHASE 3 - STEAM PAGE LIVE                         Weeks 14-18  (overlaps P2)
+PHASE 4 - STEAM PAGE LIVE                         Weeks 36-40
 ===============================================================================
+
+Moved here from month 4 on 2026-09-08, deliberately. The trade, recorded so it
+stays a decision rather than an accident: wishlists compound, so a page live
+four months earlier reliably outperforms a better-looking page later. This
+route gives up roughly four months of accumulation and lengthens the schedule,
+because the page and demo can no longer overlap content production. The upside
+is a page that launches showing a complete game. Revisit if wishlist growth
+looks weak at Gate 4.
 
 [ ] Store page - capsule art, screenshots, description, tags.
     Capsule art is the click-through gate; weight it accordingly.
-[ ] Announce trailer cut from the Gate 2 capture.
+[ ] Announce trailer cut from the Gate 3 capture.
 [ ] Steamworks setup - App ID, depots, build upload pipeline,
-    achievements scaffolding, Steam Cloud.
-[ ] Save system - settings persistence + meta progression storage.
-    Needed before Phase 4; expensive to retrofit.
-[ ] Migrate InputReader to Input Actions + rebinding UI (see debt item 2).
-[ ] Start devlog cadence.
+    achievements, Steam Cloud.
+[ ] Start devlog cadence - later than ideal, so lean on the content backlog
+    for material.
 
-GATE 3: Page live and accumulating wishlists on its own.
+GATE 4: Page live and accumulating wishlists on its own.
 
 
 ===============================================================================
-PHASE 4 - CONTENT PRODUCTION                      Weeks 17-34
-===============================================================================
-
-Target counts are budgets, not minimums.
-
-[ ] Enemy roster to ~12, including 2-3 bosses with real mechanics.
-[ ] Weapons to ~10, each with a distinct role.
-[ ] Upgrades to 60+, with intentional synergies.
-[ ] Arenas - 3-4 hand-designed spaces with different tactical character.
-[ ] Meta progression - unlocks and persistent goals that give a losing run
-    value.
-[ ] Performance - profile the horde. Expect the O(n^2) separation to need a
-    spatial hash past ~100 agents (see debt item 6).
-
-GATE 4: 10+ hours of play without repetition becoming obvious, and no run
-feels like a strictly worse version of another.
-
-
-===============================================================================
-PHASE 5 - DEMO & NEXT FEST                        Weeks 32-40
+PHASE 5 - DEMO & NEXT FEST                        Weeks 40-48
 ===============================================================================
 
 [ ] Demo build - first 20 minutes, self-contained, ending on a hook.
@@ -309,14 +416,14 @@ wishlist curve visibly steps up during the fest.
 
 
 ===============================================================================
-PHASE 6 - LAUNCH PREPARATION                      Weeks 41-56
+PHASE 6 - LAUNCH PREPARATION                      Weeks 48-64
 ===============================================================================
 
-[ ] CONTENT FREEZE at week 44. Bugs and balance only after that.
+[ ] CONTENT FREEZE at week 52. Bugs and balance only after that.
     Anything new becomes post-launch update material.
 [ ] Steam Deck verification.
-[ ] Accessibility & settings - full input rebinding, colorblind-safe palette,
-    difficulty options, screen shake toggle.
+[ ] Accessibility & settings - colorblind-safe palette, difficulty options,
+    screen shake toggle. Rebinding already landed in Phase 3.
 [ ] Localization for highest-value languages, if text budget allows.
 [ ] Launch trailer, press & streamer outreach, keys out several weeks ahead.
 [ ] Confirm pricing and release date.
@@ -343,19 +450,23 @@ KNOWN DEBT IN THE CURRENT BUILD
 ===============================================================================
 
 1. ARENA SCENE IS GENERATED.
-   ArenaBuilder overwrites Arena.unity wholesale. Retire the tool the moment
-   hand-authoring starts in Phase 2, or it will silently destroy level design.
+   ArenaBuilder overwrites Arena.unity wholesale. Retire it the moment
+   hand-authoring starts - now Phase 3, not Phase 2 - or it will silently
+   destroy level design work. Keeping it alive through content production is
+   deliberate: it wires every new enemy, weapon and arena automatically.
 
 2. INPUT IS POLLED DIRECTLY.
    InputReader reads devices rather than action maps. Commercial release needs
-   full rebinding. Migrate to Input Actions in Phase 3 with the settings menu.
+   full rebinding. Migrate to Input Actions in Phase 3 with the UI pass.
 
 3. HUD USES LEGACY uGUI TEXT.
    Chosen to avoid the TextMeshPro import prompt on first run.
-   Migrate in the Phase 2 UI pass.
+   Migrate in the Phase 3 UI pass.
 
 4. NO SAVE OR SETTINGS PERSISTENCE.
-   Needed before Phase 4 meta progression. Expensive to retrofit.
+   Needed for Phase 2 meta progression, and for making the endless-mode unlock
+   persist. Expensive to retrofit, and it now arrives sooner than planned
+   because content moved earlier.
 
 5. NO ASSEMBLY DEFINITIONS. - DEFERRED, deliberately.
    Everything compiles into Assembly-CSharp. Reviewed 2026-09-08: 31 scripts
@@ -375,8 +486,9 @@ KNOWN DEBT IN THE CURRENT BUILD
    cast to every few frames rather than every frame.
    DEFERRED, deliberately. Reviewed 2026-09-08: maxAliveAtOnce is 60, so this
    is ~3,600 distance checks and 60 casts per frame - trivial for a modern
-   CPU. A spatial hash now is premature optimisation. Revisit in Phase 4 when
-   content production raises horde counts, which is where it is scheduled.
+   CPU. A spatial hash now is premature optimisation. Revisit in Phase 2 when
+   content production raises horde counts - that phase moved earlier, so this
+   arrives sooner than originally scheduled.
 
 7. SCENE SINGLETONS FAIL SILENTLY. - RESOLVED 2026-09-08.
    SystemsCheck runs in Start, after every Awake has assigned its instance,
@@ -395,8 +507,8 @@ KNOWN DEBT IN THE CURRENT BUILD
 
 8. EVERY NEW SCENE COMPONENT NEEDS A BUILDER RE-RUN.
    Adding a component in code does nothing until ArenaBuilder is run again.
-   Easy to forget, and the symptom is silent (see item 7). Goes away when the
-   builder is retired at Phase 2.
+   Easy to forget, and the symptom is silent (see item 7). Now mitigated by
+   SystemsCheck, and goes away entirely when the builder retires in Phase 3.
 
 9. HIT TEST IS A RAY, NOT A SPHERECAST. - DEFERRED, deliberately.
    Reviewed 2026-09-08: switching to a spherecast would subtly widen every
@@ -412,6 +524,7 @@ KNOWN DEBT IN THE CURRENT BUILD
    Sparks and shell casings are sized in world units for a camera 22.8 units
    out (~45 px per unit). Any change to camera height or FOV silently changes
    how readable they are. Revisit if the camera framing moves in Phase 2.
+   The light art pass is exactly when that would happen.
 
 11. THE BUILDER WILL NOT UPDATE EXISTING WEAPON ASSETS.
    LoadOrCreateWeapon only creates what is missing, deliberately, so hand
@@ -449,6 +562,36 @@ KNOWN DEBT IN THE CURRENT BUILD
    economy actually needs tuning against it.
    Fix: move costs into a ScriptableObject alongside the weapon definitions.
 
+15. MOD CORES ARE AN ENUM WITH HARDCODED BRANCHES.
+   ModCoreType is an enum and every effect is a branch in Weapon.cs - Heavy
+   Slug swaps pellets and damage, Dragon's Breath starts a coroutine, Bore
+   Piercing edits pierce and falloff. Five was fine. Phase 2 targets 60+
+   upgrades, which under this design means 60 branches in one file, each
+   needing an enum value, a UI field and manual wiring.
+   This BLOCKS the upgrades task - it is not a tidy-up, it is a prerequisite.
+   Fix: upgrades become ScriptableObjects that describe their effect, the way
+   weapons and deployables already do. Deployables are the worked example -
+   DeployableDefinition plus one generic placer replaced what would have been
+   three near-identical scripts.
+
+16. WEAPON LOADOUT IS FIXED AT FOUR SLOTS.
+   WeaponLoadout is hardcoded to 4 entries on keys 1-4. The Phase 2 target of
+   ~10 weapons needs a decision first: more keys, or carry two or three and
+   swap loadout at the Armory. A design choice rather than a defect, but it
+   blocks the weapons task the same way.
+
+17. UPGRADE BEHAVIOUR FLAGS ARE A FLAT, GROWING VOCABULARY.
+   UpgradeTier now carries 18 behaviour fields - dualWield, doubleTap,
+   fanFireRate, critChance, ultimateKills and so on - each read by an if in
+   Weapon.cs. This is a real improvement on ModCoreType: new tiers and whole
+   new paths are pure data. But a new KIND of effect still costs a field, a
+   WeaponStats member, a line in UpgradeManager.Apply and a branch in the
+   firing path, so the file grows once per idea rather than once per upgrade.
+   Deliberately NOT fixed yet: designing the abstraction against a single
+   authored path would be guessing. Fix it when the second and third pistol
+   paths exist and there are real examples to generalise from - and fold
+   ModCoreType (debt 15) into the same rework rather than doing two.
+
 14. NEVER HAND-EDIT ASSET YAML FOR FIELDS THAT ARE NOT COMPILED YET.
    Learned the hard way 2026-09-08. Weapon tags were written straight into the
    .asset files while Unity was still compiling the WeaponDefinition change,
@@ -479,7 +622,35 @@ ZOMBIE STEERING VS DEPLOYABLE BARRICADES - resolved 2026-09-08.
 START HERE - THIS WEEK
 ===============================================================================
 
-1. Play wave 15 and tune the boss.
+1. Play the arena, the deployables and the whole Gunslinger path.
+   None of it has been played. The upgrade panel, every tier, the ultimate and
+   the second pistol are all unverified. The full path costs 1140 gold, so
+   reaching T5 in one run is itself the first thing the economy gets tested
+   against. Watch the 0.2s tap-versus-hold threshold on T3 and the ultimate's
+   2.0-second duration on T5.
+
+2. Design the pistol's other two paths.
+   The panel already lays out three columns; two say "TO BE DESIGNED" and are
+   inert. Until they exist the 5-3-0 rule has nothing to bite on - one path is
+   a ladder, not a build.
+
+3. Decide the two Phase 2 blockers.
+   Weapons need the loadout question answered (debt 16). Upgrades needed the
+   mod system moved to data (debt 15) - the trees now do that for weapon
+   upgrades, but ModCoreType still exists beside them, so the item is narrowed
+   rather than closed. Fold it into the debt 17 rework.
+
+4. Then the rest of Phase 2 - enemy archetypes and arenas.
+
+STILL OPEN, kept for the specifics:
+   The arena and deployables have not been played either. Two things to watch:
+   the horde may feel thin, since maxAliveAtOnce is still 60 spread over 2.25x
+   the space, and barrels damaging the player may prove more annoying than
+   tense - both are single values to change. Buy a couple of each deployable
+   on the first break; you start with one barricade and none of the explosives.
+
+OLD ITEMS, kept for the reasoning:
+   Play wave 15 and tune the boss.
    Three numbers are low-confidence. 2000 HP against a full wave 15 could be
    trivial with a saved-up loadout or brutal without one. Phase 1 may be
    invisible - a ranged attacker sitting at 14 units during a horde fight may
@@ -506,7 +677,7 @@ OLD ITEM, now done - kept for the reasoning about ordering:
    fortification hook directly, for example by smashing barricades in a single
    hit, so walls buy time rather than safety.
 
-3. Then Phase 2 - art direction lock, and retire ArenaBuilder.
+   Then Phase 2 - the light art pass. SUPERSEDED: all art moved to Phase 3.
 
 3. Debt: reviewed 2026-09-08.
    Fixed: 7 (silent singletons), 12 (mods hardcoded by slot), 13 (prices as

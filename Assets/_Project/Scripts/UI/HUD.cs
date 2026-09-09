@@ -13,7 +13,8 @@ namespace ZombieShooter
         [SerializeField] Weapon weapon;
         [SerializeField] WaveManager waves;
         [SerializeField] WeaponLoadout loadout;
-        [SerializeField] BarricadePlacer placer;
+        [SerializeField] DeployablePlacer placer;
+        [SerializeField] UltimateAbility ultimate;
 
         [Header("Widgets")]
         [SerializeField] Image healthFill;
@@ -29,6 +30,7 @@ namespace ZombieShooter
         [SerializeField] Text scoreLabel;
         [SerializeField] Text goldLabel;
         [SerializeField] Text barricadeLabel;
+        [SerializeField] Text ultimateLabel;
         [SerializeField] Text centreLabel;
 
         bool lastReloading;
@@ -66,10 +68,17 @@ namespace ZombieShooter
                 OnWeaponChanged(loadout.CurrentDefinition);
             }
 
+            if (ultimate != null)
+            {
+                ultimate.Changed += RefreshUltimateLabel;
+                RefreshUltimateLabel();
+            }
+
             if (placer != null)
             {
-                placer.BarricadesChanged += OnBarricadesChanged;
-                OnBarricadesChanged(placer.BarricadesInStock);
+                placer.StockChanged += OnDeployableStockChanged;
+                placer.SelectionChanged += OnDeployableSelectionChanged;
+                OnDeployableSelectionChanged(placer.Selected);
             }
 
             if (GameManager.Instance != null)
@@ -104,9 +113,12 @@ namespace ZombieShooter
                 loadout.ReserveAmmoChanged -= OnReserveAmmoChanged;
             }
 
+            if (ultimate != null) ultimate.Changed -= RefreshUltimateLabel;
+
             if (placer != null)
             {
-                placer.BarricadesChanged -= OnBarricadesChanged;
+                placer.StockChanged -= OnDeployableStockChanged;
+                placer.SelectionChanged -= OnDeployableSelectionChanged;
             }
 
             if (GameManager.Instance != null)
@@ -214,10 +226,24 @@ namespace ZombieShooter
             if (goldLabel != null) goldLabel.text = $"GOLD ${gold}";
         }
 
-        void OnBarricadesChanged(int count)
+        // Both the count and the selection feed one label, so either changing redraws it.
+        void OnDeployableStockChanged(int index, int count) => RefreshDeployableLabel();
+        void OnDeployableSelectionChanged(DeployableDefinition definition) => RefreshDeployableLabel();
+
+        void RefreshDeployableLabel()
         {
-            if (barricadeLabel != null)
-                barricadeLabel.text = $"[F] BARRICADE  x{count}";
+            if (barricadeLabel == null) return;
+
+            if (placer == null || placer.Selected == null)
+            {
+                barricadeLabel.text = string.Empty;
+                return;
+            }
+
+            string name = placer.Selected.DisplayName.ToUpperInvariant();
+            barricadeLabel.text = placer.Count > 1
+                ? $"[Q] {name}  x{placer.SelectedStock}"
+                : $"{name}  x{placer.SelectedStock}";
         }
 
         void RefreshWaveLabel()
@@ -227,6 +253,38 @@ namespace ZombieShooter
             waveLabel.text = waves.FinalWave > 0
                 ? $"WAVE {waves.WaveNumber} / {waves.FinalWave}    LEFT {waves.Remaining}"
                 : $"WAVE {waves.WaveNumber}    LEFT {waves.Remaining}";
+        }
+
+        /// <summary>
+        /// Blank until the tier is bought, so a player who never takes it never sees a
+        /// widget for an ability they do not have.
+        /// </summary>
+        void RefreshUltimateLabel()
+        {
+            if (ultimateLabel == null) return;
+
+            if (ultimate == null || !ultimate.Available)
+            {
+                ultimateLabel.text = string.Empty;
+                return;
+            }
+
+            if (ultimate.Active)
+            {
+                ultimateLabel.text = "LEGEND OF THE WEST";
+                ultimateLabel.color = new Color(1f, 0.45f, 0.15f);
+                return;
+            }
+
+            if (ultimate.Charged)
+            {
+                ultimateLabel.text = "[V]  ULTIMATE READY";
+                ultimateLabel.color = new Color(1f, 0.85f, 0.25f);
+                return;
+            }
+
+            ultimateLabel.text = $"ULT  {ultimate.Kills} / {ultimate.Required}";
+            ultimateLabel.color = new Color(0.62f, 0.64f, 0.68f);
         }
 
         void RefreshCentreLabel()

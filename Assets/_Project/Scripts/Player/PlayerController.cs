@@ -29,6 +29,15 @@ namespace ZombieShooter
         /// <summary>World-space point the player is currently aiming at, on the aim plane.</summary>
         public Vector3 AimPoint { get; private set; }
 
+        /// <summary>
+        /// While set, the mouse and right stick stop steering facing and the player spins at
+        /// <see cref="SpinDegreesPerSecond"/> instead. Movement is deliberately left alone -
+        /// during the ultimate it is the only agency the player has, and taking it away too
+        /// would make the ability something that happens to you rather than something you do.
+        /// </summary>
+        public bool AimOverridden { get; set; }
+        public float SpinDegreesPerSecond { get; set; }
+
         void Awake()
         {
             controller = GetComponent<CharacterController>();
@@ -66,6 +75,13 @@ namespace ZombieShooter
 
         void HandleAim()
         {
+            if (AimOverridden)
+            {
+                transform.Rotate(Vector3.up, SpinDegreesPerSecond * Time.deltaTime, Space.World);
+                AimPoint = transform.position + transform.forward * 10f;
+                return;
+            }
+
             Vector3 target;
 
             var stick = InputReader.AimStick;

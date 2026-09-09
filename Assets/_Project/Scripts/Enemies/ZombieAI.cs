@@ -17,6 +17,15 @@ namespace ZombieShooter
         /// <summary>Every live zombie, used for O(n^2) local separation at prototype scale.</summary>
         static readonly List<ZombieAI> Active = new();
 
+        /// <summary>
+        /// Read-only view of the live horde, so target-seeking effects (ricochet chains, the
+        /// akimbo off-hand, blast radii) can find enemies without a physics query. Entries
+        /// stay listed through the death linger, so callers must check <see cref="Health"/>.
+        /// </summary>
+        public static IReadOnlyList<ZombieAI> ActiveZombies => Active;
+
+        public Health Health => health;
+
         [Header("Movement")]
         [SerializeField] float moveSpeed = 2.6f;
         [SerializeField] float turnSpeed = 360f;
@@ -284,7 +293,12 @@ namespace ZombieShooter
             dying = true;
 
             GameManager.Instance?.AddScore(scoreValue);
-            GameManager.Instance?.AddGold(goldReward);
+            // Bounty Hunter pays double, so the award must know which weapon landed the
+            // killing blow - DamageInfo.Source is the player for every gun.
+            var killer = health.LastDamage.SourceWeapon;
+            bool doubled = killer != null && UpgradeManager.Resolve(killer).DoubleGoldOnKill;
+
+            GameManager.Instance?.AddGold(doubled ? goldReward * 2 : goldReward);
             HitStop.Instance?.FreezeForKill();
             SfxPlayer.Instance?.PlayAt(deathClip, transform.position, deathVolume);
             CameraShake.Instance?.AddTrauma(killTrauma);

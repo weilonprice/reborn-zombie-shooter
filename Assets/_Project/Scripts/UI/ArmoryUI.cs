@@ -33,7 +33,11 @@ namespace ZombieShooter
         [Header("Deployable Fortifications")]
         [SerializeField] Button barricadeButton;
         [SerializeField] Text barricadeBtnText;
-        [SerializeField] BarricadePlacer placer;
+        [SerializeField] Button barrelButton;
+        [SerializeField] Text barrelBtnText;
+        [SerializeField] Button claymoreButton;
+        [SerializeField] Text claymoreBtnText;
+        [SerializeField] DeployablePlacer placer;
 
         [Header("Mod Buttons & Labels")]
         [SerializeField] Button drumMagsButton;
@@ -74,7 +78,11 @@ namespace ZombieShooter
 
             // Wire barricade button
             if (barricadeButton != null)
-                barricadeButton.onClick.AddListener(() => ArmoryManager.Instance?.TryBuyBarricade(placer));
+                barricadeButton.onClick.AddListener(() => ArmoryManager.Instance?.TryBuyDeployable(placer, 0));
+            if (barrelButton != null)
+                barrelButton.onClick.AddListener(() => ArmoryManager.Instance?.TryBuyDeployable(placer, 1));
+            if (claymoreButton != null)
+                claymoreButton.onClick.AddListener(() => ArmoryManager.Instance?.TryBuyDeployable(placer, 2));
 
             // Wire mod buttons
             if (drumMagsButton != null)
@@ -104,7 +112,7 @@ namespace ZombieShooter
             if (placer == null)
             {
                 var player = GameObject.FindGameObjectWithTag("Player");
-                if (player != null) placer = player.GetComponent<BarricadePlacer>();
+                if (player != null) placer = player.GetComponent<DeployablePlacer>();
             }
 
             if (WaveManager.Instance != null)
@@ -114,7 +122,7 @@ namespace ZombieShooter
                 ArmoryManager.Instance.Changed += RefreshUI;
 
             if (placer != null)
-                placer.BarricadesChanged += _ => RefreshUI();
+                placer.StockChanged += (_, __) => RefreshUI();
 
             if (GameManager.Instance != null)
                 GameManager.Instance.GoldChanged += _ => RefreshUI();
@@ -231,15 +239,11 @@ namespace ZombieShooter
                     ammoBtnText.text = $"${ArmoryManager.CostAmmoCrate} REFILL ALL";
             }
 
-            // Barricades
-            if (barricadeButton != null)
-            {
-                bool canAfford = gold >= ArmoryManager.CostBarricade;
-                barricadeButton.interactable = canAfford;
-                int count = placer != null ? placer.BarricadesInStock : 0;
-                if (barricadeBtnText != null)
-                    barricadeBtnText.text = $"${ArmoryManager.CostBarricade} BUY  [x{count}]";
-            }
+            // Deployables. Price and stock both come from the catalogue, so a fourth one
+            // needs a button here and nothing else - no constant, no branch.
+            RefreshDeployableButton(barricadeButton, barricadeBtnText, 0, gold);
+            RefreshDeployableButton(barrelButton, barrelBtnText, 1, gold);
+            RefreshDeployableButton(claymoreButton, claymoreBtnText, 2, gold);
 
             // Mod Cores
             if (armory != null)
@@ -269,6 +273,29 @@ namespace ZombieShooter
                     gold >= ArmoryManager.CostDragonsBreath,
                     $"${ArmoryManager.CostDragonsBreath} INSTALL");
             }
+        }
+
+        /// <summary>
+        /// Draws one deployable's buy button from its definition. Hides the button entirely
+        /// if the catalogue has no entry at that index, so an unfinished slot cannot be
+        /// bought from.
+        /// </summary>
+        void RefreshDeployableButton(Button button, Text label, int index, int gold)
+        {
+            if (button == null) return;
+
+            var definition = placer != null ? placer.DefinitionAt(index) : null;
+            if (definition == null)
+            {
+                button.gameObject.SetActive(false);
+                return;
+            }
+
+            if (!button.gameObject.activeSelf) button.gameObject.SetActive(true);
+
+            button.interactable = gold >= definition.Cost;
+            if (label != null)
+                label.text = $"${definition.Cost} BUY  [x{placer.StockOf(index)}]";
         }
 
         static void UpdateButton(Button btn, Text label, bool isOwned, bool canAfford, string buyText)
