@@ -74,8 +74,11 @@ namespace ZombieShooter
         {
             if (definition == null) return 0;
 
+            // Upgrades set the base magazine, mods then scale it - so a drum-mag bonus
+            // applies to the upgraded size rather than the printed one.
+            int baseSize = UpgradeManager.Resolve(definition).MagazineSize;
             float mult = Instance != null && Instance.HasMod(ModCoreType.ExtendedDrumMags) ? 1.5f : 1f;
-            return Mathf.RoundToInt(definition.MagazineSize * mult);
+            return Mathf.RoundToInt(baseSize * mult);
         }
 
         /// <summary>

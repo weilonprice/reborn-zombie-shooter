@@ -26,6 +26,9 @@ namespace ZombieShooter
         /// </summary>
         public event Action<DamageInfo> Damaged;
 
+        /// <summary>The most recent damage taken, so a death can be attributed to a weapon.</summary>
+        public DamageInfo LastDamage { get; private set; }
+
         void Awake()
         {
             Current = maxHealth;
@@ -42,6 +45,7 @@ namespace ZombieShooter
         {
             if (!IsAlive || info.Amount <= 0f) return;
 
+            LastDamage = info;
             Current = Mathf.Max(0f, Current - info.Amount);
             Damaged?.Invoke(info);
             Changed?.Invoke(Current, maxHealth);

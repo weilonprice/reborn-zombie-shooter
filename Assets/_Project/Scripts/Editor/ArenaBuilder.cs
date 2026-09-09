@@ -23,6 +23,7 @@ namespace ZombieShooter.EditorTools
         const string BarrelPrefabPath = Root + "/Prefabs/ExplosiveBarrel.prefab";
         const string ClaymorePrefabPath = Root + "/Prefabs/Claymore.prefab";
         const string DeployableDir = Root + "/Deployables";
+        const string UpgradeDir = Root + "/Upgrades";
         const string MaterialDir = Root + "/Materials";
         const string AudioDir = Root + "/Audio";
         const string WeaponDir = Root + "/Weapons";
@@ -216,6 +217,17 @@ namespace ZombieShooter.EditorTools
             gun.GetComponent<MeshRenderer>().sharedMaterial = gunMat;
             Object.DestroyImmediate(gun.GetComponent<BoxCollider>());
 
+            // Second pistol, hidden until the Akimbo tier is bought. Built here rather than
+            // instantiated on purchase so nothing has to load a prefab mid-fight.
+            var offHandGun = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            offHandGun.name = "OffHandGun";
+            offHandGun.transform.SetParent(player.transform, false);
+            offHandGun.transform.localPosition = new Vector3(-0.30f, 0f, 0.75f);
+            offHandGun.transform.localScale = new Vector3(0.22f, 0.22f, 1.2f);
+            offHandGun.GetComponent<MeshRenderer>().sharedMaterial = gunMat;
+            Object.DestroyImmediate(offHandGun.GetComponent<BoxCollider>());
+            offHandGun.SetActive(false);
+
             player.AddComponent<AudioListener>();
 
             var controller = player.AddComponent<CharacterController>();
@@ -266,6 +278,32 @@ namespace ZombieShooter.EditorTools
                  .F("lightIntensity", 12f).F("duration", 0.035f).I("particlesPerShot", 4);
             }
 
+            var offHandMuzzle = new GameObject("OffHandMuzzle").transform;
+            offHandMuzzle.SetParent(player.transform, false);
+            offHandMuzzle.localPosition = new Vector3(-0.30f, 0f, 1.35f);
+
+            var offHandFlashLightGo = new GameObject("FlashLight");
+            offHandFlashLightGo.transform.SetParent(offHandMuzzle, false);
+            var offHandFlashLight = offHandFlashLightGo.AddComponent<Light>();
+            offHandFlashLight.type = LightType.Point;
+            offHandFlashLight.color = new Color(1f, 0.87f, 0.55f);
+            offHandFlashLight.range = 8f;
+            offHandFlashLight.intensity = 12f;
+            offHandFlashLight.shadows = LightShadows.None;
+            offHandFlashLight.enabled = false;
+
+            var offHandSparks = CreateBurstSystem(offHandMuzzle, "FlashSparks", sparkMat,
+                new Color(1f, 0.88f, 0.5f), 3f, 7f, 0.04f, 0.1f, 0.03f, 0.07f, 14f, 0.2f);
+
+            // Left alive even when the gun is holstered: nothing calls Play on it until the
+            // weapon is actually dual wielding, and a disabled object cannot run coroutines.
+            var offHandMuzzleFlash = offHandMuzzle.gameObject.AddComponent<MuzzleFlash>();
+            using (var f = new Fields(offHandMuzzleFlash))
+            {
+                f.Obj("flashLight", offHandFlashLight).Obj("spark", offHandSparks)
+                 .F("lightIntensity", 12f).F("duration", 0.035f).I("particlesPerShot", 4);
+            }
+
             // Right-hand side of the gun, angled out, up and slightly back - roughly where
             // a real ejection port throws brass.
             var ejectPort = new GameObject("EjectPort").transform;
@@ -289,13 +327,26 @@ namespace ZombieShooter.EditorTools
                  .Obj("rayOrigin", player.transform)
                  .Obj("muzzle", muzzle)
                  .Obj("muzzleFlash", muzzleFlash)
-                 .Obj("shellEject", shells);
+                 .Obj("shellEject", shells)
+                 .Obj("mainGunVisual", gun.transform)
+                 .Obj("offHandGun", offHandGun)
+                 .Obj("offHandMuzzle", offHandMuzzle)
+                 .Obj("offHandMuzzleFlash", offHandMuzzleFlash);
             }
 
             var loadout = player.AddComponent<WeaponLoadout>();
             using (var f = new Fields(loadout))
             {
                 f.Obj("weapon", weapon).F("swapCooldown", 0.25f).Arr("slots", arsenal);
+            }
+
+            var ultimate = player.AddComponent<UltimateAbility>();
+            using (var f = new Fields(ultimate))
+            {
+                f.Obj("weapon", weapon).Obj("movement", move).Obj("health", health)
+                 .F("spinDegreesPerSecond", 540f)
+                 .F("openingSlowMotion", 0.35f).F("openingTimeScale", 0.35f)
+                 .F("openingTrauma", 0.5f);
             }
 
             var placer = player.AddComponent<DeployablePlacer>();
@@ -1026,6 +1077,12 @@ namespace ZombieShooter.EditorTools
                 f.I("lines", 16).Obj("material", LoadMaterial("M_Tracer"));
             }
 
+            var upgrades = go.AddComponent<UpgradeManager>();
+            using (var f = new Fields(upgrades))
+            {
+                f.Arr("trees", new Object[] { LoadOrCreatePistolUpgrades() });
+            }
+
             var sfx = go.AddComponent<SfxPlayer>();
             using (var f = new Fields(sfx))
             {
@@ -1115,6 +1172,10 @@ namespace ZombieShooter.EditorTools
                 new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 142f), new Vector2(340f, 32f), "[F] BARRICADE  x1");
             barricadeLabel.color = new Color(0.95f, 0.75f, 0.35f);
 
+            var ultimateLabel = CreateText(canvasGo.transform, "UltimateLabel", font, 22, TextAnchor.LowerRight,
+                new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 178f), new Vector2(340f, 32f), string.Empty);
+            ultimateLabel.color = new Color(0.62f, 0.64f, 0.68f);
+
             var waveLabel = CreateText(canvasGo.transform, "WaveLabel", font, 30, TextAnchor.UpperLeft,
                 new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -40f), new Vector2(520f, 44f), "WAVE 1");
 
@@ -1159,6 +1220,7 @@ namespace ZombieShooter.EditorTools
                  .Obj("waves", waves)
                  .Obj("loadout", player.GetComponent<WeaponLoadout>())
                  .Obj("placer", player.GetComponent<DeployablePlacer>())
+                 .Obj("ultimate", player.GetComponent<UltimateAbility>())
                  .Obj("healthFill", fill)
                  .Obj("healthLabel", healthLabel)
                  .Obj("ammoLabel", ammoLabel)
@@ -1167,6 +1229,7 @@ namespace ZombieShooter.EditorTools
                  .Obj("bossFill", bossFill)
                  .Obj("bossLabel", bossLabel)
                  .Obj("barricadeLabel", barricadeLabel)
+                 .Obj("ultimateLabel", ultimateLabel)
                  .Obj("waveLabel", waveLabel)
                  .Obj("scoreLabel", scoreLabel)
                  .Obj("goldLabel", goldLabel)
@@ -1323,6 +1386,76 @@ namespace ZombieShooter.EditorTools
             var (closeBtn, closeTxt) = CreateActionButton(shopCard.transform, "CloseButton", uiSprite, font,
                 new Vector2(280f, 46f), new Vector2(240f, 54f),
                 "EXIT SHOP [B]", new Color(0.28f, 0.30f, 0.36f, 1f));
+
+            // ---- weapon upgrade panel -------------------------------------------
+            // Its own overlay rather than more rows in the shop card: fifteen tiers plus
+            // three headers does not fit alongside weapons, ammo, deployables and mods.
+            var (upgradeOpenBtn, _) = CreateActionButton(shopCard.transform, "OpenUpgrades", uiSprite, font,
+                new Vector2(-460f, 46f), new Vector2(300f, 54f),
+                "WEAPON UPGRADES", new Color(0.42f, 0.30f, 0.10f, 1f));
+
+            var upgradeOverlay = CreatePanel(armoryRoot.transform, "UpgradeOverlay", uiSprite,
+                new Color(0.04f, 0.05f, 0.06f, 0.94f),
+                Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+
+            var upgradeCard = CreatePanel(upgradeOverlay.transform, "UpgradeCard", uiSprite,
+                new Color(0.10f, 0.11f, 0.13f, 1f),
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                Vector2.zero, new Vector2(1180f, 760f));
+
+            var upgradeWeaponLabel = CreateText(upgradeCard.transform, "UpgradeWeapon", font, 34,
+                TextAnchor.UpperCenter, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -30f), new Vector2(900f, 44f), "PISTOL");
+
+            var upgradeRuleLabel = CreateText(upgradeCard.transform, "UpgradeRule", font, 18,
+                TextAnchor.UpperCenter, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(0f, -76f), new Vector2(1000f, 28f),
+                "One path to 5  ·  a second to 3  ·  the third stays locked");
+            upgradeRuleLabel.color = new Color(0.72f, 0.62f, 0.42f);
+
+            var pathTitles = new Object[3];
+            var tierButtons = new Object[15];
+            var tierLabels = new Object[15];
+
+            for (int path = 0; path < 3; path++)
+            {
+                float columnX = -370f + path * 370f;
+
+                pathTitles[path] = CreateText(upgradeCard.transform, $"PathTitle_{path}", font, 22,
+                    TextAnchor.MiddleCenter, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                    new Vector2(columnX, -126f), new Vector2(340f, 30f), "PATH");
+
+                for (int tier = 0; tier < 5; tier++)
+                {
+                    int index = path * 5 + tier;
+                    var (btn, btnLabel) = CreateButton(upgradeCard.transform, $"Tier_{path}_{tier}",
+                        uiSprite, new Color(0.18f, 0.19f, 0.22f, 0.85f),
+                        new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                        new Vector2(columnX, -178f - tier * 96f), new Vector2(340f, 84f),
+                        "", font, 16);
+
+                    tierButtons[index] = btn;
+                    tierLabels[index] = btnLabel;
+                }
+            }
+
+            var (upgradeCloseBtn, _) = CreateActionButton(upgradeCard.transform, "CloseUpgrades", uiSprite, font,
+                new Vector2(0f, 42f), new Vector2(320f, 52f),
+                "BACK TO SHOP", new Color(0.28f, 0.30f, 0.36f, 1f));
+
+            var upgradePanel = armoryRoot.AddComponent<UpgradePanel>();
+            using (var f = new Fields(upgradePanel))
+            {
+                f.Obj("root", upgradeOverlay)
+                 .Obj("loadout", loadout)
+                 .Obj("openButton", upgradeOpenBtn)
+                 .Obj("closeButton", upgradeCloseBtn)
+                 .Obj("weaponLabel", upgradeWeaponLabel)
+                 .Obj("ruleLabel", upgradeRuleLabel)
+                 .Arr("pathTitles", pathTitles)
+                 .Arr("tierButtons", tierButtons)
+                 .Arr("tierLabels", tierLabels);
+            }
 
             var armoryUI = armoryRoot.AddComponent<ArmoryUI>();
             using (var f = new Fields(armoryUI))
@@ -1637,6 +1770,92 @@ namespace ZombieShooter.EditorTools
             var asset = ScriptableObject.CreateInstance<ArmoryPrices>();
             AssetDatabase.CreateAsset(asset, path);
             return asset;
+        }
+
+        /// <summary>
+        /// The pistol's three upgrade paths. Created once then left to hand-tuning, like the
+        /// weapon definitions - balance numbers here are the whole point of the asset.
+        /// </summary>
+        static WeaponUpgradeTree LoadOrCreatePistolUpgrades()
+        {
+            const string path = UpgradeDir + "/UPG_Pistol.asset";
+
+            var existing = AssetDatabase.LoadAssetAtPath<WeaponUpgradeTree>(path);
+            if (existing != null) return existing;
+
+            EnsureFolder(UpgradeDir);
+
+            // One authored path for now; the other two columns are placeholders so the panel
+            // still lays out three and the 5-3-0 rule has somewhere to go once they exist.
+            var gunslinger = new WeaponUpgradePath
+            {
+                title = "Gunslinger",
+                summary = "Open hot, close hot, and eventually stop needing to aim at all.",
+                tiers = new[]
+                {
+                    new UpgradeTier
+                    {
+                        title = "Quick Draw",
+                        description = "Fire rate 200 to 320, reload 1.0s to 0.75s. The first shot after every reload is a guaranteed crit for double damage.",
+                        cost = 60,
+                        fireRate = 320f, reloadTime = 0.75f,
+                        guaranteedCritAfterReload = true, critMultiplier = 2f,
+                    },
+                    new UpgradeTier
+                    {
+                        title = "Deadeye",
+                        description = "Damage 20 to 30, fire rate to 380, reload to 0.6s. 25% crit on every shot, and one click now fires two rounds.",
+                        cost = 130,
+                        damage = 30f, fireRate = 380f, reloadTime = 0.6f,
+                        critChance = 0.25f, doubleTap = true,
+                    },
+                    new UpgradeTier
+                    {
+                        title = "Fan the Hammer",
+                        description = "Hold to fire at 600 RPM, but accuracy bleeds away while you hold it. Tapping still fires an accurate double tap. Magazine 12 to 18, crit 35%.",
+                        cost = 200,
+                        magazineSize = 18, critChance = 0.35f,
+                        fanFireRate = 600f, fanMaxSpread = 9f, fanSpreadRamp = 1f,
+                    },
+                    new UpgradeTier
+                    {
+                        title = "True Gunslinger",
+                        description = "A second pistol, firing one after the other. Damage to 45, magazine to 30, reload to 0.45s, and the reserve never runs dry.",
+                        cost = 300,
+                        damage = 45f, magazineSize = 30, reloadTime = 0.45f,
+                        dualWield = true, infiniteReserve = true, fanFireRate = 750f,
+                    },
+                    new UpgradeTier
+                    {
+                        title = "Legend of the West",
+                        description = "30 pistol kills charge an ultimate. [V] reloads in a flourish, then the guns aim themselves while you spin - 80% crits until the magazine runs dry. Crit 45% the rest of the time.",
+                        cost = 450,
+                        critChance = 0.45f,
+                        ultimateKills = 30, ultimateCritChance = 0.8f, ultimateFireRate = 900f,
+                    },
+                },
+            };
+
+            var secondPath = new WeaponUpgradePath
+            {
+                title = "- TO BE DESIGNED -",
+                summary = "",
+                tiers = new UpgradeTier[0],
+            };
+
+            var thirdPath = new WeaponUpgradePath
+            {
+                title = "- TO BE DESIGNED -",
+                summary = "",
+                tiers = new UpgradeTier[0],
+            };
+
+            var tree = ScriptableObject.CreateInstance<WeaponUpgradeTree>();
+            tree.EditorInitialise(LoadOrCreateWeapon("WPN_Pistol", _ => { }),
+                                  new[] { gunslinger, secondPath, thirdPath });
+
+            AssetDatabase.CreateAsset(tree, path);
+            return tree;
         }
 
         static WeaponDefinition LoadOrCreateWeapon(string fileName, System.Action<Fields> configure)

@@ -16,6 +16,7 @@ namespace ZombieShooter
         [SerializeField] float swapCooldown = 0.25f;
 
         int[] ammoInSlot;
+        float[] holsterTimers;
         int[] reserveAmmo;
         int current = -1;
         float nextSwapTime;
@@ -36,6 +37,7 @@ namespace ZombieShooter
             if (weapon == null) weapon = GetComponent<Weapon>();
 
             ammoInSlot = new int[slots.Length];
+            holsterTimers = new float[slots.Length];
             reserveAmmo = new int[slots.Length];
 
             for (int i = 0; i < slots.Length; i++)
@@ -62,6 +64,8 @@ namespace ZombieShooter
         {
             if (GameManager.Instance != null && GameManager.Instance.State != GameState.Playing) return;
             if (Time.timeScale <= 0f) return;
+
+            TickHolsteredReload();
 
             int requested = InputReader.WeaponSlotPressed;
             if (requested >= 0 && IsSlotUnlocked(requested))
@@ -113,6 +117,43 @@ namespace ZombieShooter
 
             if (current >= 0 && weapon != null)
                 weapon.SetAmmo(ammoInSlot[current]);
+        }
+
+        /// <summary>Gives reserve rounds back, capped at the weapon's maximum.</summary>
+        public void AddReserve(int slot, int amount)
+        {
+            if (reserveAmmo == null || slot < 0 || slot >= reserveAmmo.Length || amount <= 0) return;
+            if (slots[slot] == null || slots[slot].MaxReserveAmmo < 0) return;
+
+            reserveAmmo[slot] = Mathf.Min(reserveAmmo[slot] + amount, slots[slot].MaxReserveAmmo);
+            ReserveAmmoChanged?.Invoke(slot, reserveAmmo[slot]);
+        }
+
+        // Holstered weapons with the upgrade quietly refill from their own reserve, so the
+        // sidearm is full when you swap to it in an emergency.
+        void TickHolsteredReload()
+        {
+            if (slots == null) return;
+
+            for (int i = 0; i < slots.Length; i++)
+            {
+                if (i == current || slots[i] == null || !IsSlotUnlocked(i)) continue;
+
+                var stats = UpgradeManager.Resolve(slots[i]);
+                if (!stats.HolsteredReload) continue;
+
+                int capacity = ArmoryManager.EffectiveMagazineSize(slots[i]);
+                if (ammoInSlot[i] >= capacity || reserveAmmo[i] <= 0) continue;
+
+                holsterTimers[i] += Time.deltaTime;
+                float perRound = stats.ReloadTime > 0f ? stats.ReloadTime : 0.5f;
+                if (holsterTimers[i] < perRound) continue;
+
+                holsterTimers[i] = 0f;
+                ammoInSlot[i]++;
+                reserveAmmo[i]--;
+                ReserveAmmoChanged?.Invoke(i, reserveAmmo[i]);
+            }
         }
 
         public void Select(int slot, bool force = false)

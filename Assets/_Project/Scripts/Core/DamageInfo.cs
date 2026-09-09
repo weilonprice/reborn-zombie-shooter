@@ -22,15 +22,23 @@ namespace ZombieShooter
         /// </summary>
         public readonly float KnockbackMultiplier;
         public readonly GameObject Source;
+        /// <summary>
+        /// The weapon responsible, when there is one. Source is the shooter, which is the
+        /// player for every gun - so anything keyed to "kills with this specific weapon"
+        /// needs this instead.
+        /// </summary>
+        public readonly WeaponDefinition SourceWeapon;
 
         public DamageInfo(float amount, Vector3 point, Vector3 normal,
-                          float knockbackMultiplier = 1f, GameObject source = null)
+                          float knockbackMultiplier = 1f, GameObject source = null,
+                          WeaponDefinition sourceWeapon = null)
         {
             Amount = amount;
             Point = point;
             Normal = normal;
             KnockbackMultiplier = knockbackMultiplier;
             Source = source;
+            SourceWeapon = sourceWeapon;
         }
     }
 }

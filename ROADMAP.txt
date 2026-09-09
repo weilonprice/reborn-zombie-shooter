@@ -2,7 +2,8 @@ REBORN - DEVELOPMENT ROADMAP
 Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
 Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 64 weeks.
 Status:  Gates 0 and 1 PASSED. Phase 2 content production underway - bigger
-         arena and deployables in. No art until the content exists.
+         arena, deployables, and a data-driven weapon upgrade tree in. No art
+         until the content exists.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -202,6 +203,41 @@ PROGRESS LOG
             player bullets (with piercing rounds punching through), and wood
             splinter destruction. Zombies detect blocking barricades and claw them
             down, resolving Tech Debt #6.
+2026-09-09  Weapon upgrade trees in, Bloons-style. Three paths per weapon, five
+            tiers each, bought with gold, restricted 5-3-0: one path to tier 5,
+            a second to tier 3, the third locked out entirely. Weapons only -
+            no player or economy trees. WeaponUpgradeTree/UpgradeTier are data,
+            UpgradeManager owns purchases and enforces the rule against the
+            configuration a purchase WOULD produce rather than the one it
+            starts from, and resolves stats once per purchase into a cached
+            struct so the firing path never walks tiers per shot.
+2026-09-09  Upgrade panel in. Its one real design decision: "locked by 5-3-0"
+            and "you cannot afford this yet" are drawn differently. Greying
+            both identically makes the restriction read as arbitrary rather
+            than as a consequence of a choice already made.
+2026-09-09  Pistol tree designed three times, and the churn is worth recording.
+            First draft was stat curves - damage up, fire rate up, money up -
+            and was correctly rejected as three spreadsheets. Second draft
+            (akimbo / ricochet chains / marks-and-detonate) was built and
+            compiling before being replaced by the owner's own design; the
+            ricochet and mark code was deleted rather than left dormant. Third
+            and current: a single Gunslinger path, authored, with two columns
+            left as placeholders for paths still to be designed.
+2026-09-09  Gunslinger path live. T1 guaranteed crit on the first shot after
+            every reload; T2 25% crit and double tap; T3 fan the hammer, hold
+            to fire at 600 RPM with spread bleeding 1.2 to 9 degrees and
+            recovering on release, while a click stays an accurate double tap;
+            T4 dual pistols, 45 damage, infinite reserve; T5 an ultimate at 30
+            pistol kills - flourish reload, then the guns auto-aim while the
+            player spins, 80% crits until the magazine runs dry.
+            Two things checked rather than assumed: reload-spamming for the
+            free crit is worse DPS than simply shooting, at every tier; and
+            the guaranteed crit only arms on a reload that actually loaded
+            rounds, so a dry reserve cannot hand one out.
+            NOT PLAYED YET. Numbers most likely to need tuning are the 0.2s
+            hold threshold that separates a tap from a fan, and the ultimate's
+            duration - 30 rounds at 900 RPM is 2.0 seconds, which may be short
+            for something that costs 30 kills.
 
 
 ===============================================================================
@@ -299,9 +335,15 @@ main reason content comes first.
 [ ] More weapons, toward ~10. BLOCKED on a design decision: WeaponLoadout has
     exactly 4 slots on keys 1-4. Ten weapons needs either more keys or a
     carry-two-and-swap-at-the-Armory model. Decide before building them.
-[ ] Mod cores and upgrades to 60+. BLOCKED on debt item 15 - mods are an enum
-    with hardcoded branches, so 60 upgrades means 60 branches in Weapon.cs.
-    Do the data rework first or this task cannot be finished.
+[~] Mod cores and upgrades to 60+. Weapon upgrade trees are in and are data,
+    not branches: three paths x five tiers per weapon under a 5-3-0 rule,
+    bought with gold. Pistol has one authored path (Gunslinger); its other two
+    and all of shotgun, rifle and sniper are still to design. This does NOT
+    close debt item 15 - ModCoreType and its hardcoded branches still exist
+    alongside the trees, and retiring it is now a task in its own right.
+    New constraint discovered while building: UpgradeTier's behaviour flags are
+    a fixed vocabulary (18 and counting). Adding tiers and paths is free;
+    adding a new KIND of effect is still code. See debt item 17.
 [ ] Arenas - 3-4 spaces with different tactical character.
 [ ] Meta progression - needs the save system, debt item 4.
 [ ] Performance - profile the horde. Debt item 6, deferred to exactly here.
@@ -538,6 +580,18 @@ KNOWN DEBT IN THE CURRENT BUILD
    swap loadout at the Armory. A design choice rather than a defect, but it
    blocks the weapons task the same way.
 
+17. UPGRADE BEHAVIOUR FLAGS ARE A FLAT, GROWING VOCABULARY.
+   UpgradeTier now carries 18 behaviour fields - dualWield, doubleTap,
+   fanFireRate, critChance, ultimateKills and so on - each read by an if in
+   Weapon.cs. This is a real improvement on ModCoreType: new tiers and whole
+   new paths are pure data. But a new KIND of effect still costs a field, a
+   WeaponStats member, a line in UpgradeManager.Apply and a branch in the
+   firing path, so the file grows once per idea rather than once per upgrade.
+   Deliberately NOT fixed yet: designing the abstraction against a single
+   authored path would be guessing. Fix it when the second and third pistol
+   paths exist and there are real examples to generalise from - and fold
+   ModCoreType (debt 15) into the same rework rather than doing two.
+
 14. NEVER HAND-EDIT ASSET YAML FOR FIELDS THAT ARE NOT COMPILED YET.
    Learned the hard way 2026-09-08. Weapon tags were written straight into the
    .asset files while Unity was still compiling the WeaponDefinition change,
@@ -568,19 +622,32 @@ ZOMBIE STEERING VS DEPLOYABLE BARRICADES - resolved 2026-09-08.
 START HERE - THIS WEEK
 ===============================================================================
 
-1. Play the new arena and deployables.
-   Neither has been played. Two things to watch: the horde may feel thin,
-   since maxAliveAtOnce is still 60 spread over 2.25x the space, and barrels
-   damaging the player may prove more annoying than tense - both are single
-   values to change. Buy a couple of each deployable on the first break;
-   you start with one barricade and none of the explosives.
+1. Play the arena, the deployables and the whole Gunslinger path.
+   None of it has been played. The upgrade panel, every tier, the ultimate and
+   the second pistol are all unverified. The full path costs 1140 gold, so
+   reaching T5 in one run is itself the first thing the economy gets tested
+   against. Watch the 0.2s tap-versus-hold threshold on T3 and the ultimate's
+   2.0-second duration on T5.
 
-2. Decide the two Phase 2 blockers.
-   Weapons need the loadout question answered (debt 16) and upgrades need the
-   mod system moved to data (debt 15). Neither task can finish without them,
-   and both get more expensive the more content exists.
+2. Design the pistol's other two paths.
+   The panel already lays out three columns; two say "TO BE DESIGNED" and are
+   inert. Until they exist the 5-3-0 rule has nothing to bite on - one path is
+   a ladder, not a build.
 
-3. Then the rest of Phase 2 - enemy archetypes and arenas.
+3. Decide the two Phase 2 blockers.
+   Weapons need the loadout question answered (debt 16). Upgrades needed the
+   mod system moved to data (debt 15) - the trees now do that for weapon
+   upgrades, but ModCoreType still exists beside them, so the item is narrowed
+   rather than closed. Fold it into the debt 17 rework.
+
+4. Then the rest of Phase 2 - enemy archetypes and arenas.
+
+STILL OPEN, kept for the specifics:
+   The arena and deployables have not been played either. Two things to watch:
+   the horde may feel thin, since maxAliveAtOnce is still 60 spread over 2.25x
+   the space, and barrels damaging the player may prove more annoying than
+   tense - both are single values to change. Buy a couple of each deployable
+   on the first break; you start with one barricade and none of the explosives.
 
 OLD ITEMS, kept for the reasoning:
    Play wave 15 and tune the boss.

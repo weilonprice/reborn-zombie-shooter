@@ -23,6 +23,7 @@ namespace ZombieShooter
         [SerializeField, Range(0f, 1f)] float frozenTimeScale = 0f;
 
         float resumeAt;
+        float activeScale;
         Coroutine routine;
 
         void Awake()
@@ -47,17 +48,41 @@ namespace ZombieShooter
 
         public void Freeze(float seconds)
         {
-            if (!enableHitStop || seconds <= 0f) return;
+            if (!enableHitStop) return;
+            Request(seconds, frozenTimeScale);
+        }
 
-            // Simultaneous kills extend one freeze instead of stacking coroutines that
-            // would each try to restore timeScale on their own schedule.
-            resumeAt = Mathf.Max(resumeAt, Time.realtimeSinceStartup + seconds);
+        /// <summary>
+        /// A held slow-motion window rather than an impact accent.
+        /// <para>
+        /// Deliberately not gated by <c>enableHitStop</c>: that switch exists to kill the
+        /// per-kill stutter if it fights the pacing, but bullet time is an upgrade the player
+        /// paid gold for. Turning off one must not silently refund the other.
+        /// </para>
+        /// </summary>
+        public void SlowMotion(float seconds, float scale) => Request(seconds, scale);
+
+        void Request(float seconds, float scale)
+        {
+            if (seconds <= 0f) return;
+
+            float until = Time.realtimeSinceStartup + seconds;
+
+            // The longest outstanding request owns both the end time and the scale. Without
+            // that, the 0.05s kill freeze fired by a kill would hard-stop the 1.5s bullet
+            // time that the very same kill just started.
+            if (until <= resumeAt) return;
+
+            resumeAt = until;
+            activeScale = Mathf.Clamp01(scale);
+
+            if (routine != null) Time.timeScale = activeScale;
             routine ??= StartCoroutine(FreezeRoutine());
         }
 
         IEnumerator FreezeRoutine()
         {
-            Time.timeScale = frozenTimeScale;
+            Time.timeScale = activeScale;
 
             // yield return null still ticks at timeScale 0 - it waits on frames, not seconds.
             while (Time.realtimeSinceStartup < resumeAt)

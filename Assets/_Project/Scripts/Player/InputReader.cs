@@ -116,6 +116,15 @@ namespace ZombieShooter
             (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) ||
             (Gamepad.current != null && Gamepad.current.rightShoulder.wasPressedThisFrame);
 
+        /// <summary>
+        /// Fires the pistol's ultimate. V rather than Space, which is already the restart
+        /// key on the death screen, and rather than Q/F/R/E/B which the deployables, reload
+        /// and shop have taken.
+        /// </summary>
+        public static bool UltimatePressed =>
+            (Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame) ||
+            (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame);
+
         /// <summary>Cycles which deployable is selected. Q was freed up from rotate for this.</summary>
         public static bool CycleDeployablePressed =>
             (Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame) ||
