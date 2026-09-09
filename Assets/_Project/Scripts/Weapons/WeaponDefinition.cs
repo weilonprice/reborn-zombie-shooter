@@ -56,6 +56,11 @@ namespace ZombieShooter
         [SerializeField] int pelletsPerShot = 1;
         [SerializeField] FireMode fireMode = FireMode.Automatic;
 
+        [Header("Delivery")]
+        [Tooltip("How this weapon's shot reaches the world. Empty means an ordinary hitscan " +
+                 "line, which is what the first four weapons are.")]
+        [SerializeField] WeaponDelivery delivery;
+
         [Header("Economy")]
         [Tooltip("Armory price. On the definition rather than in a price table so a tenth " +
                  "weapon is an asset plus a catalogue entry, not another named constant - " +
@@ -112,6 +117,7 @@ namespace ZombieShooter
         public int PelletsPerShot => Mathf.Max(1, pelletsPerShot);
         public FireMode Mode => fireMode;
 
+        public WeaponDelivery Delivery => delivery;
         public int Cost => cost;
         public WeaponTags Tags => tags;
         public bool HasAnyTag(WeaponTags any) => (tags & any) != 0;

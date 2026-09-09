@@ -1,0 +1,184 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1456e13800fb3426c8f567a15c0d0c43, type: 3}
+  m_Name: UPG_Sniper
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.WeaponUpgradeTree
+  weapon: {fileID: 11400000, guid: f199138ccdea5445baa1c9b3b7ae0d67, type: 2}
+  paths:
+  - title: Executioner
+    summary: One round, one line, and everything standing in it.
+    tiers:
+    - title: Match Rounds
+      description: Damage 150 to 190, and the round stops losing power through bodies - the last enemy in a line takes as much as the first.
+      cost: 60
+      damage: 190
+      fireRate: -1
+      magazineSize: -1
+      reloadTime: -1
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: 1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: Breach
+      description: Pierce 6 to 10, magazine 5 to 7. Line up a corridor.
+      cost: 150
+      damage: -1
+      fireRate: -1
+      magazineSize: 7
+      reloadTime: -1
+      pierceCount: 10
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: Cycled Bolt
+      description: Fire rate 45 to 75, reload 2.8s to 1.8s. The damage was never the problem; the wait between shots was.
+      cost: 350
+      damage: -1
+      fireRate: 75
+      magazineSize: -1
+      reloadTime: 1.8
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: Overpenetration
+      description: Damage 220, and each body the round passes through makes it 20% STRONGER rather than weaker. The back of the queue is the worst place to stand.
+      cost: 800
+      damage: 220
+      fireRate: -1
+      magazineSize: -1
+      reloadTime: -1
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: 1.2
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: Executioner
+      description: 300 damage, pierce 12, 20% gain per body. Any enemy at or under 30% health dies outright, whatever its maximum - which is what makes this the answer to the boss.
+      cost: 2000
+      damage: 300
+      fireRate: -1
+      magazineSize: -1
+      reloadTime: -1
+      pierceCount: 12
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: 1.2
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: 0.3

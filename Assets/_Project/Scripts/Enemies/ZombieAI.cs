@@ -6,9 +6,15 @@ using UnityEngine;
 namespace ZombieShooter
 {
     /// <summary>
-    /// Horde-friendly chaser. Steers straight at the player and pushes off neighbours instead
-    /// of pathfinding — the arena is open, and this scales to far more agents than NavMesh
-    /// avoidance would. Swap in a NavMeshAgent if the map ever gains real obstacles.
+    /// Horde-friendly chaser. Reads a shared <see cref="FlowField"/> for its direction and
+    /// pushes off neighbours locally, so sixty agents cost one array lookup each rather than
+    /// sixty pathfinding queries.
+    /// <para>
+    /// This used to steer in a straight line, which was right while the arena was an empty
+    /// box and wrong once it gained cover - a zombie behind a slab pressed into it forever.
+    /// The field replaces only the chase direction; separation, knockback and the ranged
+    /// backpedal are untouched.
+    /// </para>
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     [RequireComponent(typeof(Health))]
@@ -177,9 +183,22 @@ namespace ZombieShooter
                 transform.position, -transform.forward, 1f, gameObject));
         }
 
+        /// <summary>How close before the field is abandoned for a straight line.</summary>
+        const float DirectApproachRange = 3f;
+
         void Steer(Vector3 toTarget, float distance)
         {
             var chase = distance > 0.001f ? toTarget / distance : Vector3.zero;
+
+            // The field is a grid, so its direction is coarse next to the player. Inside a few
+            // metres the straight line is both more accurate and what the attack range wants,
+            // and any failure of the field degrades to exactly the old behaviour rather than
+            // to standing still.
+            if (distance > DirectApproachRange && FlowField.Instance != null)
+            {
+                var routed = FlowField.Instance.DirectionAt(transform.position);
+                if (routed.sqrMagnitude > 0.0001f) chase = routed;
+            }
             var move = chase;
 
             if (isRanged)

@@ -1,0 +1,184 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1456e13800fb3426c8f567a15c0d0c43, type: 3}
+  m_Name: UPG_Pistol
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.WeaponUpgradeTree
+  weapon: {fileID: 11400000, guid: 77aaba869fc354702b7b4ef214391708, type: 2}
+  paths:
+  - title: Gunslinger
+    summary: Open hot, close hot, and eventually stop needing to aim at all.
+    tiers:
+    - title: Quick Draw
+      description: Fire rate 200 to 320, reload 1.0s to 0.75s. The first shot after every reload is a guaranteed crit for double damage.
+      cost: 60
+      damage: -1
+      fireRate: 320
+      magazineSize: -1
+      reloadTime: 0.75
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: 2
+      guaranteedCritAfterReload: 1
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: Deadeye
+      description: Damage 20 to 30, fire rate to 380, reload to 0.6s. 25% chance any shot crits for double damage.
+      cost: 150
+      damage: 30
+      fireRate: 380
+      magazineSize: -1
+      reloadTime: 0.6
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: 0.25
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: Fan the Hammer
+      description: Hold to fire at 600 RPM, but accuracy bleeds away while you hold it. Tapping still fires a single accurate shot. Magazine 12 to 18, crit 35%.
+      cost: 350
+      damage: -1
+      fireRate: -1
+      magazineSize: 18
+      reloadTime: -1
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: 0.35
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: 600
+      fanMaxSpread: 9
+      fanSpreadRamp: 1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: True Gunslinger
+      description: A second pistol, firing one after the other. Damage to 45, magazine to 30, reload to 0.45s, and the reserve never runs dry.
+      cost: 800
+      damage: 45
+      fireRate: -1
+      magazineSize: 30
+      reloadTime: 0.45
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 1
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: 750
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 1
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: Legend of the West
+      description: 30 pistol kills charge an ultimate. [V] reloads in a flourish, then the guns aim themselves while you spin - 80% crits until the magazine runs dry. Crit 45% the rest of the time.
+      cost: 2000
+      damage: -1
+      fireRate: -1
+      magazineSize: -1
+      reloadTime: -1
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: 0.45
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 30
+      ultimateCritChance: 0.8
+      ultimateFireRate: 900
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections;
 using UnityEngine;
 
@@ -36,6 +37,30 @@ namespace ZombieShooter
         Color[] restColors;
         Coroutine flashRoutine;
         bool isDestroyed;
+
+        /// <summary>
+        /// Every standing barricade. The flow field stamps these as expensive rather than
+        /// impassable, so it needs to find them without a physics sweep of the whole arena
+        /// every time it rebuilds.
+        /// </summary>
+        static readonly List<Barricade> Active = new();
+
+        public static IReadOnlyList<Barricade> ActiveBarricades => Active;
+
+        /// <summary>Bumped whenever the set changes, so listeners can skip needless work.</summary>
+        public static int Version { get; private set; }
+
+        void OnEnable()
+        {
+            Active.Add(this);
+            Version++;
+        }
+
+        void OnDisable()
+        {
+            Active.Remove(this);
+            Version++;
+        }
         Camera mainCam;
 
         public bool IsAlive => currentHealth > 0f && !isDestroyed;
