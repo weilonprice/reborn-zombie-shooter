@@ -34,6 +34,14 @@ namespace ZombieShooter
 
         static readonly RaycastHit[] HitBuffer = new RaycastHit[24];
 
+        // Weapons authored before deliveries existed, and every plain firearm since, leave
+        // the field empty rather than each needing an identical asset.
+        static WeaponDelivery defaultDelivery;
+        static WeaponDelivery DefaultDelivery =>
+            defaultDelivery != null
+                ? defaultDelivery
+                : defaultDelivery = ScriptableObject.CreateInstance<HitscanDelivery>();
+
         /// <summary>How far Split Focus will look for a target of its own.</summary>
         const float OffHandRange = 26f;
         const float AkimboOffset = 0.30f;
@@ -386,6 +394,8 @@ namespace ZombieShooter
                 shellEject.Emit(definition.ShellsPerShot);
 
             var origin = rayOrigin != null ? rayOrigin.position : transform.position;
+            var delivery = definition.Delivery != null ? definition.Delivery : DefaultDelivery;
+
             bool anyHit = false;
             var impactPoint = Vector3.zero;
 
@@ -398,9 +408,10 @@ namespace ZombieShooter
                     ? (TargetFinder.AimPoint(offHandTargets[0]) - origin).normalized
                     : firingMuzzle.forward;
 
-                // A round is spent either way: the spin is the cost, not a free search.
-                anyHit = FireOnePellet(crit, origin, direction,
-                                       firingMuzzle.position, out impactPoint);
+                // A round is spent either way: the spin is the cost, not a free search. No
+                // spread, because an auto-aimed shot that misses reads as a bug.
+                anyHit = delivery.Deliver(
+                    Shot(origin, direction, firingMuzzle.position, 0f, crit), out impactPoint);
             }
             else if (offHand && stats.OffHandTargets > 0 && GatherOffHandTargets(origin))
             {
@@ -411,8 +422,8 @@ namespace ZombieShooter
                 {
                     var direction = (TargetFinder.AimPoint(offHandTargets[i]) - origin).normalized;
 
-                    if (FireOnePellet(crit, origin, direction,
-                                      firingMuzzle.position, out var point) && !anyHit)
+                    if (delivery.Deliver(Shot(origin, direction, firingMuzzle.position, 0f, crit),
+                                         out var point) && !anyHit)
                     {
                         anyHit = true;
                         impactPoint = point;
@@ -421,20 +432,9 @@ namespace ZombieShooter
             }
             else
             {
-                int pellets = stats.PelletCount > 0 ? stats.PelletCount : definition.PelletsPerShot;
-                float spreadAngle = CurrentSpread();
-
-                for (int i = 0; i < pellets; i++)
-                {
-                    var direction = ApplySpread(firingMuzzle.forward, spreadAngle);
-
-                    if (FireOnePellet(crit, origin, direction,
-                                      firingMuzzle.position, out var point) && !anyHit)
-                    {
-                        anyHit = true;
-                        impactPoint = point;
-                    }
-                }
+                anyHit = delivery.Deliver(
+                    Shot(origin, firingMuzzle.forward, firingMuzzle.position, CurrentSpread(), crit),
+                    out impactPoint);
             }
 
             if (anyHit)
@@ -443,6 +443,10 @@ namespace ZombieShooter
             if (Ammo == 0 && !UltimateActive) BeginReload();
             return true;
         }
+
+        ShotContext Shot(Vector3 origin, Vector3 direction, Vector3 muzzlePosition,
+                         float spread, bool crit) =>
+            new(this, definition, stats, origin, direction, muzzlePosition, spread, crit, hitMask);
 
         /// <summary>Picks the off-hand's own targets, skipping whatever you are aiming at.</summary>
         bool GatherOffHandTargets(Vector3 origin)
@@ -486,79 +490,13 @@ namespace ZombieShooter
             return closest;
         }
 
-        bool FireOnePellet(bool crit, Vector3 origin, Vector3 direction, Vector3 tracerFrom,
-                           out Vector3 firstImpact)
-        {
-            firstImpact = Vector3.zero;
-
-            float range = definition.Range;
-            var endPoint = origin + direction * range;
-
-            int count = Physics.RaycastNonAlloc(origin, direction, HitBuffer, range, hitMask,
-                                                QueryTriggerInteraction.Ignore);
-            bool connected = false;
-
-            if (count > 0)
-            {
-                Array.Sort(HitBuffer, 0, count, HitDistanceComparer.Instance);
-
-                float damage = stats.Damage;
-                if (crit) damage *= stats.CritMultiplier;
-
-                float knockback = stats.KnockbackMultiplier;
-
-                int pierceLimit = stats.PierceCount;
-                float falloff = stats.PenetrationFalloff >= 0f
-                    ? stats.PenetrationFalloff
-                    : definition.PenetrationFalloff;
-
-                int bodiesHit = 0;
-
-                for (int i = 0; i < count; i++)
-                {
-                    var hit = HitBuffer[i];
-                    var target = hit.collider.GetComponentInParent<IDamageable>();
-
-                    if (target == null)
-                    {
-                        endPoint = hit.point;
-                        Register(hit, ref connected, ref firstImpact);
-                        break;
-                    }
-
-                    if (!target.IsAlive) continue;
-
-                    Register(hit, ref connected, ref firstImpact);
-
-                    var health = hit.collider.GetComponentInParent<Health>();
-                    ApplyShot(target, health, hit.point, hit.normal, damage, knockback);
-
-                    bodiesHit++;
-                    if (bodiesHit > pierceLimit)
-                    {
-                        endPoint = hit.point;
-                        break;
-                    }
-
-                    damage *= falloff;
-                }
-            }
-
-            // A crit that looks identical to a normal shot may as well not exist, and there
-            // is no crit sound in the project yet - so the tracer carries it for now.
-            TracerPool.Instance?.Draw(tracerFrom, endPoint,
-                                      crit ? definition.TracerWidth * 2.4f : definition.TracerWidth,
-                                      crit ? definition.TracerDuration * 1.6f : definition.TracerDuration);
-
-            return connected;
-        }
-
         /// <summary>
-        /// Applies one hit and the kill credit that hangs off it. Returns whether this hit
-        /// killed the target.
+        /// Applies one hit and everything the weapon owns about it - focus stacking,
+        /// executions and kill credit. Public because deliveries land the hits; keeping this
+        /// here is what stops every new delivery having to reimplement them.
         /// </summary>
-        bool ApplyShot(IDamageable target, Health health, Vector3 point, Vector3 normal,
-                       float damage, float knockback)
+        public bool ApplyShot(IDamageable target, Health health, Vector3 point, Vector3 normal,
+                              float damage, float knockback)
         {
             if (target == null || !target.IsAlive) return false;
 
@@ -602,27 +540,6 @@ namespace ZombieShooter
             Killed?.Invoke();
         }
 
-        static void Register(in RaycastHit hit, ref bool connected, ref Vector3 firstImpact)
-        {
-            ImpactEffects.Instance?.PlayImpact(hit.point, hit.normal);
-
-            if (connected) return;
-            connected = true;
-            firstImpact = hit.point;
-        }
-
-        const float VerticalSpreadScale = 0.15f;
-
-        Vector3 ApplySpread(Vector3 forward, float spread)
-        {
-            if (spread <= 0f) return forward;
-
-            float yaw = UnityEngine.Random.Range(-spread, spread);
-            float pitch = UnityEngine.Random.Range(-spread, spread) * VerticalSpreadScale;
-
-            return Quaternion.Euler(pitch, yaw, 0f) * forward;
-        }
-
         public void SetAmmo(int amount)
         {
             if (definition == null) return;
@@ -646,12 +563,6 @@ namespace ZombieShooter
 
             StopCoroutine(reloadRoutine);
             reloadRoutine = null;
-        }
-
-        sealed class HitDistanceComparer : IComparer<RaycastHit>
-        {
-            public static readonly HitDistanceComparer Instance = new();
-            public int Compare(RaycastHit a, RaycastHit b) => a.distance.CompareTo(b.distance);
         }
 
         IEnumerator ReloadRoutine()

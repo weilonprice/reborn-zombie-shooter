@@ -3,9 +3,16 @@ Snapshot of what is actually IN the build. Not a design document - if it is
 written here, it exists in code and has been compiled. Ideas that have been
 discussed but not built are listed at the bottom, clearly separated.
 
-Last updated: 2026-09-09, after the move to one path per weapon and the
-ten-slot loadout.
-NOTHING IN THIS FILE HAS BEEN PLAY-TESTED.
+Last updated: 2026-09-09, after the firing-mode rework.
+
+EVERYTHING HERE IS SUBJECT TO CHANGE, AND NONE OF IT HAS BEEN PLAY-TESTED.
+Numbers in particular are first drafts. The tiers were designed against the
+arithmetic (shots to kill, DPS, run income) rather than against how any of it
+feels, and the arithmetic is the weaker of the two. Expect the play-test to
+move things.
+
+Where a number is a known risk it says so in the tier that owns it, rather
+than in a list here - the warning belongs next to the thing it is about.
 
 
 ===============================================================================
@@ -66,6 +73,50 @@ MOD CORES: REMOVED 2026-09-09
   Closed Tech Debt #15 by deletion rather than by migration. WeaponTags
   survives but is unread; it is kept as a hook for tiers that might one day
   target a weapon family.
+
+
+===============================================================================
+FIRING MODES
+===============================================================================
+
+How a shot reaches the world is a WeaponDelivery asset on the definition, not
+a branch in Weapon.cs. A weapon that leaves the field empty is an ordinary
+hitscan line, which is what all four current weapons are.
+
+The split matters when adding anything:
+
+  WEAPON owns what is true of every firearm - ammo, rate of fire, which hand
+  fired, whether the shot crit, which direction the ultimate picked, plus
+  focus stacking, executions and kill credit.
+
+  DELIVERY owns only how the shot travels. Everything it needs arrives in a
+  ShotContext rather than being reached for through the weapon.
+
+The consequence is that akimbo, the ultimate, crits, focus and executions all
+work with every mode without a mode knowing they exist.
+
+  HITSCAN     An instant line, split into pellets, punching through bodies
+              until pierce runs out. Pistol, shotgun, rifle, sniper.
+  CONE        A short arc damaging everything inside it. Continuous fire is
+              modelled as a very high rate of very small shots, so a fuel tank
+              is a magazine and a tick of flame is a round - rather than a
+              second firing lifecycle running beside the first. Stopped by
+              level geometry but NOT by barricades, matching bullets.
+  CHAIN       Hits one body then hops to nearby ones. The first link is a real
+              raycast so walls block it and aiming matters; every hop after is
+              a search, because an arc refusing to bend around a corpse would
+              read as broken rather than physical.
+  PROJECTILE  Travel time, spherecast swept so a fast round cannot tunnel,
+              statically pooled. Carries its damage rather than asking the
+              weapon at impact - by the time it lands the player may have
+              swapped weapons, bought a tier or died, and the shot has to be
+              worth what it was worth when it was fired.
+              Consequence: its kills charge no ultimate and refund no reserve.
+              See debt 20.
+
+CONE, CHAIN AND PROJECTILE HAVE NEVER EXECUTED. No weapon references them yet.
+The first weapon built on each mode is really a test of that mode, so build
+one per mode before building two on any of them.
 
 
 ===============================================================================
@@ -205,8 +256,14 @@ T5  EXECUTIONER                                                    2000 gold
 -------------------------------------------------------------------------------
 NOT YET BUILT - 6 OF 10
 -------------------------------------------------------------------------------
-Roster drafted 2026-09-09. All six need firing modes Weapon.cs does not have
-(debt 19), so the projectile/cone/chain work comes before any of them.
+Roster drafted 2026-09-09. All four firing modes now exist (hitscan, cone,
+chain, projectile), so each of these is a definition asset, a catalogue entry
+and a path helper. The Nail Gun's pinning is the one exception - that is an
+upgrade behaviour for its path, not delivery infrastructure.
+
+NONE of the cone, chain or projectile modes has ever executed - no weapon
+references them yet. The first weapon built on each mode is really a test of
+that mode, so build one per mode before building two.
 
   SMG            120   Mobility.      "Adrenaline" - kills stack speed and
                                       fire rate, standing still bleeds it away.
@@ -251,8 +308,13 @@ A new TIER or a whole new PATH is pure data: add an UpgradeTier to the path
 helper in ArenaBuilder (GunslingerPath, StreetsweeperPath, MarksmanPath,
 ExecutionerPath) and re-run the builder. No code.
 
-A new WEAPON is an asset plus a catalogue entry plus a path helper - as long
-as it fires the way the four existing ones do. See debt 19 if it does not.
+A new WEAPON is a definition asset, a catalogue entry in ArenaBuilder, and a
+path helper. If it does not fire like a rifle, it also needs a delivery asset
+on the definition - the four modes above cover everything on the roster.
+
+A new FIRING MODE is a WeaponDelivery subclass plus an asset. Nothing else
+changes: Weapon does not learn about it, and every upgrade behaviour keeps
+working.
 
 A new KIND of effect is not. It costs a field on UpgradeTier, a member on
 WeaponStats, a line in UpgradeManager.Apply, and a branch in the firing path.

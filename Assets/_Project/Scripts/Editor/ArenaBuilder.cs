@@ -22,7 +22,9 @@ namespace ZombieShooter.EditorTools
         const string BossPrefabPath = Root + "/Prefabs/Boss.prefab";
         const string BarrelPrefabPath = Root + "/Prefabs/ExplosiveBarrel.prefab";
         const string ClaymorePrefabPath = Root + "/Prefabs/Claymore.prefab";
+        const string WeaponProjectilePrefabPath = Root + "/Prefabs/WeaponProjectile.prefab";
         const string DeployableDir = Root + "/Deployables";
+        const string DeliveryDir = Root + "/Delivery";
         const string UpgradeDir = Root + "/Upgrades";
         const string MaterialDir = Root + "/Materials";
         const string AudioDir = Root + "/Audio";
@@ -83,6 +85,7 @@ namespace ZombieShooter.EditorTools
             BuildZombiePrefab();
             BuildBrutePrefab();
             BuildProjectilePrefab();
+            BuildWeaponProjectilePrefab();
             BuildBossPrefab();
             BuildBarricadePrefab();
             BuildBarrelPrefab();
@@ -92,6 +95,7 @@ namespace ZombieShooter.EditorTools
 
             BuildRunnerPrefab();
             BuildRangedPrefab();
+            LoadOrCreateDeliveries();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
@@ -822,6 +826,42 @@ namespace ZombieShooter.EditorTools
             Object.DestroyImmediate(go);
         }
 
+        /// <summary>
+        /// The player's projectile - grenades and nails. Built now so the delivery has
+        /// something to spawn; nothing references it until a weapon that lobs exists.
+        /// </summary>
+        static void BuildWeaponProjectilePrefab()
+        {
+            var mat = LoadMaterial("M_Brass");
+
+            var go = new GameObject("WeaponProjectile");
+            var body = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            body.name = "Model";
+            body.transform.SetParent(go.transform, false);
+            body.transform.localScale = Vector3.one * 0.3f;
+            body.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(body.GetComponent<SphereCollider>());
+
+            var lightGo = new GameObject("Glow");
+            lightGo.transform.SetParent(go.transform, false);
+            var light = lightGo.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1f, 0.72f, 0.3f);
+            light.range = 3f;
+            light.intensity = 3f;
+            light.shadows = LightShadows.None;
+
+            var projectile = go.AddComponent<WeaponProjectile>();
+            using (var f = new Fields(projectile))
+            {
+                f.F("speed", 26f).F("gravity", 9f).F("maxLifetime", 4f).F("radius", 0.22f)
+                 .Obj("impactClip", LoadClip("SFX_Impact")).F("impactVolume", 0.5f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(go, WeaponProjectilePrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
         static void BuildRunnerPrefab()
         {
             var mat = LoadMaterial("M_Runner");
@@ -1113,6 +1153,15 @@ namespace ZombieShooter.EditorTools
             using (var f = new Fields(hitStop))
             {
                 f.B("enableHitStop", true).F("killFreeze", 0.05f).F("frozenTimeScale", 0f);
+            }
+
+            // Built before the horde so the field exists the first time a zombie steers.
+            var flowField = go.AddComponent<FlowField>();
+            using (var f = new Fields(flowField))
+            {
+                f.Obj("target", player.transform)
+                 .F("arenaHalfSize", ArenaHalfSize).F("cellSize", 1f).F("probeHeight", 1f)
+                 .F("rebuildInterval", 0.2f).F("barricadeCost", 30f);
             }
 
             var waves = go.AddComponent<WaveManager>();
@@ -1993,6 +2042,29 @@ namespace ZombieShooter.EditorTools
                 damage = 300f, pierceCount = 12, penetrationFalloff = 1.2f,
                 executeThreshold = 0.3f,
             });
+
+        /// <summary>
+        /// Delivery assets. Only the ones a weapon actually references get created; hitscan
+        /// needs none at all, since a weapon that leaves the field empty falls back to it.
+        /// </summary>
+        static void LoadOrCreateDeliveries()
+        {
+            const string path = DeliveryDir + "/DLV_Grenade.asset";
+            if (AssetDatabase.LoadAssetAtPath<ProjectileDelivery>(path) != null) return;
+
+            EnsureFolder(DeliveryDir);
+
+            var delivery = ScriptableObject.CreateInstance<ProjectileDelivery>();
+            AssetDatabase.CreateAsset(delivery, path);
+
+            using (var f = new Fields(delivery))
+            {
+                f.Obj("projectilePrefab",
+                      AssetDatabase.LoadAssetAtPath<GameObject>(WeaponProjectilePrefabPath)
+                          ?.GetComponent<WeaponProjectile>())
+                 .F("blastRadius", 4.5f).F("spawnOffset", 0.6f);
+            }
+        }
 
         static WeaponDefinition LoadOrCreateWeapon(string fileName, System.Action<Fields> configure)
         {

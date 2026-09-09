@@ -5,8 +5,9 @@ Status:  Gates 0 and 1 PASSED. Phase 2 content production underway - bigger
          arena, deployables, and data-driven weapon upgrade trees in, with the
          economy repriced so the trees are a choice. Direction settled: ten
          weapons, ONE upgrade path each, and the run's decision is which
-         weapon to max. 4 of 10 paths authored. No art until the content
-         exists.
+         weapon to max. 4 of 10 paths authored, all four firing modes built
+         so the remaining six are unblocked, and the horde now paths around
+         geometry. No art until the content exists.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -226,6 +227,73 @@ PROGRESS LOG
             ricochet and mark code was deleted rather than left dormant. Third
             and current: a single Gunslinger path, authored, with two columns
             left as placeholders for paths still to be designed.
+2026-09-09  Horde pathing fixed. Zombies steered in a straight line at the
+            player with no awareness of geometry, so anything behind a cover
+            block pressed into it forever, held there by its own
+            CharacterController. Replaced with a shared FlowField: one
+            Dijkstra sweep over a 90x90 grid at 1m cells - the grid barricades
+            already snap to - rebuilt only when the player crosses into
+            another cell or the barricades change. Each zombie reads the cell
+            it stands in, which is one array lookup and cheaper than the
+            normalize it replaced.
+            NOT NavMesh, deliberately: the scene is builder-generated so
+            baking is awkward, runtime barricades would each need a carving
+            obstacle, NavMeshAgent wants to own transform movement and would
+            fight the CharacterController and the knockback impulse, and sixty
+            agents of NavMesh avoidance is heavier than a field lookup.
+            Barricades are stamped EXPENSIVE rather than impassable, at cost
+            30. Impassable would have made the horde walk around a wall
+            instead of clawing through it, which quietly deletes the
+            fortification hook. At this cost a short wall is a detour and a
+            long one is a door. That number is the first thing to tune:
+            zombies pressing on a wall they could route around means it is too
+            low, absurd detours around two panels means too high.
+            Within 3 metres zombies revert to a straight line - the grid is
+            coarse next to the player, the attack range wants precision, and
+            any failure of the field degrades to the old behaviour rather than
+            to standing still.
+            Three defects caught in review, two of them the quiet kind. The
+            bake used CheckBox, which does not care what it hits: the player
+            is standing on the grid when it bakes, so their spawn cell would
+            have been permanently impassable for the whole run. The heap was
+            sized at 4x the cell count when lazy deletion makes the true bound
+            8x, so a full heap would have silently dropped pushes and produced
+            a quietly WRONG field rather than a crash. And queries ran before
+            Physics.SyncTransforms, on the frame the scene loads.
+2026-09-09  Firing modes built, closing debt 19 and unblocking the six
+            remaining weapons. WeaponDelivery is a ScriptableObject with one
+            method rather than an enum with a branch per mode - the same
+            reasoning that turned deployables into definitions and got mod
+            cores deleted. An enum would have meant every new weapon kind
+            editing the same file, which is the debt this project keeps
+            paying off.
+            The split is the part worth remembering: Weapon keeps everything
+            true of every firearm (ammo, rate, which hand fired, whether the
+            shot crit, which direction the ultimate picked, plus focus,
+            executions and kill credit), and a delivery owns only how the shot
+            travels. Everything a delivery needs arrives in a ShotContext
+            rather than being reached for through the weapon, so a delivery
+            can be read without reading Weapon.cs - and akimbo, the ultimate,
+            crits and focus work with every mode for free.
+            Four modes: Hitscan (a straight port, no behaviour change),
+            Cone (flamethrower - continuous fire modelled as a very high rate
+            of very small shots, so a fuel tank is a magazine and a tick of
+            flame is a round, rather than a second firing lifecycle running
+            beside the first), Chain (Tesla - first link is a real raycast so
+            walls block it and aiming matters, every hop after is a search
+            because an arc refusing to bend around a corpse would read as
+            broken), and Projectile (grenade and nail, spherecast swept so a
+            fast round cannot tunnel, statically pooled like EnemyProjectile).
+            Blast is back from the marks path, better: enemies from the horde
+            list, plus a small physics query purely to chain explosive
+            barrels, and it touches neither the player nor their barricades.
+            NONE OF THE THREE NEW MODES HAS EVER RUN. No weapon references
+            them yet, so the first weapon built on each mode is really a test
+            of that mode.
+            One deliberate behaviour change: auto-aimed shots (the ultimate,
+            Split Focus) used to fire exactly one pellet and now fire the
+            weapon's full count. No live weapon hits this - only the pistol
+            has either - but the old behaviour was wrong.
 2026-09-09  Design direction changed, and this is the third time the upgrade
             structure has moved, so the reasoning matters more than the result.
             Three paths per weapon on four weapons meant 60 tiers, and the
@@ -394,8 +462,10 @@ main reason content comes first.
     1-9 and 0. 4 of 10 exist (pistol, shotgun, rifle, sniper). The roster for
     the other six is drafted in UPGRADES.txt: SMG, Nail Gun, Flamethrower,
     Grenade Launcher, Tesla Coil, Siphon Rifle.
-    BLOCKED on debt item 19: six of the ten need firing modes Weapon.cs does
-    not have. Build the projectile/cone/chain work once, before the weapons.
+    UNBLOCKED as of the delivery rework - all four firing modes exist, so each
+    remaining weapon is a definition asset, a catalogue entry and a path
+    helper. The Nail Gun's pinning is an upgrade behaviour for its path, not
+    delivery infrastructure, so that one still needs code.
 [~] Weapon upgrades. Trees are in and are data, not branches: ONE path of five
     tiers per weapon, bought with gold. Costs come from one shared curve
     (ArenaBuilder.TierCosts), so authoring a path is choosing five effects,
@@ -425,6 +495,21 @@ piece of content that has to look consistent exists.
 [ ] Lighting design - committed palette and mood, strong silhouettes,
     high contrast.
 [ ] VFX language - consistent rules for muzzles, impacts, deaths, pickups.
+[ ] Occlusion fade - the player must stay visible behind cover, ARPG style.
+    Deferred here from Phase 2 on 2026-09-09, deliberately: it is a rendering
+    and art decision, it belongs beside the post-processing and lighting work
+    above, and the shader wants writing against the final materials rather
+    than against greybox primitives that are about to be replaced.
+    Three levels, and the middle one is the target: fade the whole occluder
+    (cheap, no shader, but a wall vanishing pops badly); a soft screen-space
+    circular cutout that dithers away only near the player (what ARPGs
+    actually do); and a ZTest Greater silhouette pass so the character is
+    never lost even when the cutout misses.
+    WARNING that will otherwise cost a day: this project runs the GPU
+    Resident Drawer, which ignores MaterialPropertyBlock - the reason HitFlash
+    uses per-instance materials. The cutout and the silhouette are fine
+    because they are shader-level; the cheap fade would need per-instance
+    material swapping, which is a second reason not to bother with it.
 [ ] Arena as level design - replace the generated box with hand-authored
     spaces: cover, chokepoints, sightlines, a reason to move.
 [ ] RETIRE ArenaBuilder here (debt item 1). One-way door: after this, every
@@ -545,6 +630,10 @@ KNOWN DEBT IN THE CURRENT BUILD
    for the spatial hash, so keep it at number 6.
    Fix: spatial hash or grid buckets for separation, and cache the barricade
    cast to every few frames rather than every frame.
+   UNCHANGED by the flow field (2026-09-09). The field replaced the chase
+   direction only; separation still walks every pair and the barricade cast
+   still runs per zombie per frame. It did not get worse either - a field
+   lookup is cheaper than the normalize it replaced.
    DEFERRED, deliberately. Reviewed 2026-09-08: maxAliveAtOnce is 60, so this
    is ~3,600 distance checks and 60 casts per frame - trivial for a modern
    CPU. A spatial hash now is premature optimisation. Revisit in Phase 2 when
@@ -667,14 +756,39 @@ KNOWN DEBT IN THE CURRENT BUILD
    weapon. Not urgent while the game is keyboard-first in development, but it
    is a real parity gap and it grows as weapons are added.
 
-19. WEAPON.CS IS HITSCAN ONLY. -- BLOCKS SIX OF THE TEN WEAPONS.
-   The firing path casts a ray, splits it into pellets, and applies pierce and
-   falloff. That covers pistol, shotgun, rifle and sniper and nothing else.
-   Flamethrower needs a continuous cone, Grenade Launcher an arcing projectile
-   with area damage, Tesla Coil a chain between targets, Nail Gun a projectile
-   that pins. EnemyProjectile exists as a precedent for the projectile half.
-   This is shared infrastructure, so building it badly once means six weapons
-   inherit the problem. Do it before the weapons, not per weapon.
+19. WEAPON.CS IS HITSCAN ONLY. -- RESOLVED 2026-09-09.
+   Delivery is now a WeaponDelivery ScriptableObject on the definition, with
+   Hitscan, Cone, Chain and Projectile implementations. A weapon that leaves
+   the field empty falls back to hitscan, so the first four needed no assets.
+   Worth recording that this was called correctly in advance: it was filed as
+   shared infrastructure to build once rather than six times, and building it
+   first meant the abstraction was designed against four real weapon shapes
+   instead of one. Compare debt 17, which is still unfixed for the opposite
+   reason - there were never enough examples to generalise from.
+
+20. PROJECTILE KILLS DO NOT ROUTE THROUGH WEAPON.ONKILL.
+   A projectile carries its damage rather than asking the weapon at impact,
+   because by the time it lands the player may have swapped weapons, bought a
+   tier or died - the shot has to be worth what it was worth when it was
+   fired. The consequence is that kills it scores charge no ultimate and
+   refund no reserve.
+   Harmless for the Grenade Launcher and Nail Gun as designed, and NOT worth
+   fixing speculatively. It becomes real the moment a projectile weapon wants
+   an ultimate or a kills-refund tier, and the fix then is for the projectile
+   to carry a callback to the weapon that fired it, guarded against that
+   weapon having been swapped or destroyed.
+
+21. A CONDITIONAL COMMENT IS NOT A REMINDER.
+   ZombieAI's own class comment said "the arena is open... swap in a
+   NavMeshAgent if the map ever gains real obstacles". The arena gained
+   fourteen cover blocks when it was enlarged on 2026-09-08, and nothing
+   revisited the steering. The bug shipped into every play-test for a day
+   before it was reported, and the code had described the exact precondition
+   for its own failure the whole time.
+   The lesson is not "write better comments" - that comment was excellent. It
+   is that an assumption with an expiry condition has no owner unless it is in
+   this file. When a comment says "revisit X if Y", Y belongs in the register
+   or in the task that would cause it.
 
 14. NEVER HAND-EDIT ASSET YAML FOR FIELDS THAT ARE NOT COMPILED YET.
    Learned the hard way 2026-09-08. Weapon tags were written straight into the
@@ -718,23 +832,24 @@ START HERE - THIS WEEK
    compounding to ~9x on the twelfth body, and the sniper execute taking the
    boss's last 600 HP for free.
 
-2. Firing modes, before any new weapon. Debt item 19.
-   Projectile, cone and chain. Six of the ten weapons need one of them, and
-   building it per weapon means building it six times.
-
-3. Then the six new weapons and their paths.
+2. The six new weapons and their paths.
    SMG, Nail Gun, Flamethrower, Grenade Launcher, Tesla Coil, Siphon Rifle -
    roster and capstones drafted in UPGRADES.txt. Worth noting the Siphon
    Rifle is the only healing in the entire game, and the Nail Gun the only
    weapon that touches the barricade pillar.
+   Build order suggestion: one weapon per firing mode FIRST - say Flamethrower
+   (cone), Tesla (chain), Grenade Launcher (projectile) - because none of
+   those three modes has ever executed. The first weapon on each is really a
+   test of the mode, and finding a mode broken after building two weapons on
+   it is the expensive version.
 
-4. Decide the last Phase 2 blocker.
-   Both of the old ones are closed: the loadout question (debt 16) is answered
-   and mod cores (debt 15) are deleted. What is left is the firing-mode work
-   above, which is now the only thing standing between the roster and ten
-   playable weapons.
+3. Decide the last Phase 2 blocker.
+   All of them are closed: the loadout question (debt 16) is answered, mod
+   cores (debt 15) are deleted, and the firing modes (debt 19) are built.
+   Nothing structural now stands between the roster and ten playable weapons -
+   what is left is content.
 
-5. Then the rest of Phase 2 - enemy archetypes and arenas.
+4. Then the rest of Phase 2 - enemy archetypes and arenas.
 
 STILL OPEN, kept for the specifics:
    The arena and deployables have not been played either. Two things to watch:

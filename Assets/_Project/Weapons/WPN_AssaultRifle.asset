@@ -19,6 +19,8 @@ MonoBehaviour:
   spread: 2.2
   pelletsPerShot: 1
   fireMode: 0
+  delivery: {fileID: 0}
+  cost: 250
   tags: 4
   pierceCount: 2
   penetrationFalloff: 0.6
