@@ -1,8 +1,8 @@
 REBORN - DEVELOPMENT ROADMAP
 Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
 Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 56 weeks.
-Status:  Gates 0 and 1 PASSED. Phase 1 fully built - the boss is in, so a run
-         now has a climax. Boss numbers not yet play-tested.
+Status:  Gates 0 and 1 PASSED. Phase 1 complete and played through, boss
+         included. Design direction changes pending.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -128,7 +128,10 @@ PROGRESS LOG
             of the design. Boss health bar is polled rather than event-driven,
             because the boss is pooled and a bar lingering after death is
             worse than one frame of latency appearing.
-            Compiles clean; numbers not yet play-tested.
+2026-09-08  Boss played through. The fight runs as expected end to end - all
+            three low-confidence numbers (2000 HP, whether phase 1 registers
+            during a horde fight, and the un-telegraphed artillery) held up
+            well enough not to need tuning before moving on.
 2026-09-08  GATE 1 PASSED. Core mechanics validated across repeated runs and
             the hook is stateable. Noted honestly: gameplay and game design
             still want refinement. That is the correct outcome for this gate -
@@ -221,7 +224,7 @@ PHASE 1 - FIND THE HOOK                           Weeks 3-8
     DONE: the boss. Arrives 40% into wave 15 alongside the horde. Two phases -
     artillery at range, then an enraged charger at 50% health that smashes
     barricades in a single blow. Killing it is the win; clearing the wave is
-    no longer the trigger. NOT yet play-tested.
+    no longer the trigger. Played through 2026-09-08 and ran as expected.
     NOTE: endless is unlocked only within the session that won it. Making the
     unlock persist needs the save system, which is debt item 4, due Phase 3.
 [x] Write the hook in one sentence - DONE 2026-09-08: "A top-down wave survival
