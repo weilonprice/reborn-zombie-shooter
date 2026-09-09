@@ -24,11 +24,7 @@ namespace ZombieShooter
         // come from an asset. The literals are only a fallback for an unwired manager.
         static ArmoryPrices P => Instance != null ? Instance.prices : null;
 
-        public static int CostShotgun => P != null ? P.Shotgun : 150;
-        public static int CostAssaultRifle => P != null ? P.AssaultRifle : 250;
-        public static int CostSniper => P != null ? P.Sniper : 350;
         public static int CostAmmoCrate => P != null ? P.AmmoCrate : 50;
-        public static int CostBarricade => P != null ? P.Barricade : 40;
 
         public event Action Changed;
 
@@ -67,13 +63,17 @@ namespace ZombieShooter
         public bool CanAfford(int cost) =>
             GameManager.Instance != null && GameManager.Instance.Gold >= cost;
 
-        public bool TryBuyWeapon(int slot, int cost, WeaponLoadout loadout)
+        /// <summary>
+        /// Buys a weapon into a free carried slot. Price comes from the definition, so a new
+        /// weapon needs no new method, constant or branch here.
+        /// </summary>
+        public bool TryBuyWeapon(WeaponDefinition definition, WeaponLoadout loadout)
         {
-            if (loadout == null || loadout.IsSlotUnlocked(slot)) return false;
-            if (GameManager.Instance == null || !GameManager.Instance.TrySpendGold(cost)) return false;
+            if (definition == null || loadout == null) return false;
+            if (loadout.Owns(definition) || !loadout.HasFreeSlot) return false;
+            if (GameManager.Instance == null || !GameManager.Instance.TrySpendGold(definition.Cost)) return false;
 
-            loadout.UnlockSlot(slot);
-            loadout.Select(slot, force: true);
+            loadout.TryCarry(definition);
             Changed?.Invoke();
             return true;
         }

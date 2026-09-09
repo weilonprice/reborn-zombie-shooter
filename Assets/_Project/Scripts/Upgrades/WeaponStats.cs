@@ -12,6 +12,9 @@ namespace ZombieShooter
         public float KnockbackMultiplier;
         public int MagazineSize;
         public int PierceCount;
+        public int PelletCount;
+        public float Spread;
+        public float PenetrationFalloff;
 
         public bool FullAuto;
         public bool HolsteredReload;
@@ -38,6 +41,14 @@ namespace ZombieShooter
         public float UltimateCritChance;
         public float UltimateFireRate;
 
+        public float FocusBonusPerHit;
+        public float FocusMaxBonus;
+        /// <summary>Negative means the weapon does not tighten while held.</summary>
+        public float SustainedSpreadMin;
+
+        /// <summary>0 disables executions; otherwise a fraction of the target's max health.</summary>
+        public float ExecuteThreshold;
+
         public static WeaponStats FromDefinition(WeaponDefinition d) => new()
         {
             Damage = d.Damage,
@@ -46,12 +57,16 @@ namespace ZombieShooter
             KnockbackMultiplier = d.KnockbackMultiplier,
             MagazineSize = d.MagazineSize,
             PierceCount = d.PierceCount,
+            PelletCount = d.PelletsPerShot,
+            Spread = d.Spread,
+            PenetrationFalloff = d.PenetrationFalloff,
             FullAuto = d.Mode == FireMode.Automatic,
 
             // Defaults behind the behaviour flags, so a tier can switch an effect on without
             // restating every number it runs on.
             CritMultiplier = 2f,
             FanSpreadRamp = 1f,
+            SustainedSpreadMin = -1f,
         };
     }
 }

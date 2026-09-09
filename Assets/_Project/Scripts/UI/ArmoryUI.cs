@@ -18,13 +18,12 @@ namespace ZombieShooter
         [SerializeField] Text goldLabel;
         [SerializeField] WeaponLoadout loadout;
 
-        [Header("Weapon Buttons & Labels")]
-        [SerializeField] Button shotgunButton;
-        [SerializeField] Text shotgunBtnText;
-        [SerializeField] Button arButton;
-        [SerializeField] Text arBtnText;
-        [SerializeField] Button sniperButton;
-        [SerializeField] Text sniperBtnText;
+        [Header("Weapon Buttons")]
+        [Tooltip("One button per catalogue entry, in the same order. Built by ArenaBuilder " +
+                 "in a loop, so a tenth weapon is a catalogue entry and nothing else.")]
+        [SerializeField] Button[] weaponButtons;
+        [SerializeField] Text[] weaponBtnTexts;
+        [SerializeField] Text loadoutLabel;
 
         [Header("Ammo Button")]
         [SerializeField] Button ammoButton;
@@ -52,13 +51,18 @@ namespace ZombieShooter
             if (deployButton != null) deployButton.onClick.AddListener(OnDeployOrResumeClicked);
             if (closeButton != null) closeButton.onClick.AddListener(Close);
 
-            // Wire weapon buttons
-            if (shotgunButton != null)
-                shotgunButton.onClick.AddListener(() => ArmoryManager.Instance?.TryBuyWeapon(1, ArmoryManager.CostShotgun, loadout));
-            if (arButton != null)
-                arButton.onClick.AddListener(() => ArmoryManager.Instance?.TryBuyWeapon(2, ArmoryManager.CostAssaultRifle, loadout));
-            if (sniperButton != null)
-                sniperButton.onClick.AddListener(() => ArmoryManager.Instance?.TryBuyWeapon(3, ArmoryManager.CostSniper, loadout));
+            // Wire weapon buttons. The index is captured per button rather than read from a
+            // loop variable, which would have every button buying the last weapon.
+            if (weaponButtons != null)
+            {
+                for (int i = 0; i < weaponButtons.Length; i++)
+                {
+                    if (weaponButtons[i] == null) continue;
+
+                    int index = i;
+                    weaponButtons[i].onClick.AddListener(() => BuyWeapon(index));
+                }
+            }
 
             // Wire ammo button
             if (ammoButton != null)
@@ -188,20 +192,7 @@ namespace ZombieShooter
                 goldLabel.text = $"GOLD: ${gold}";
 
             // Weapons
-            UpdateButton(shotgunButton, shotgunBtnText,
-                loadout != null && loadout.IsSlotUnlocked(1),
-                gold >= ArmoryManager.CostShotgun,
-                $"${ArmoryManager.CostShotgun} BUY");
-
-            UpdateButton(arButton, arBtnText,
-                loadout != null && loadout.IsSlotUnlocked(2),
-                gold >= ArmoryManager.CostAssaultRifle,
-                $"${ArmoryManager.CostAssaultRifle} BUY");
-
-            UpdateButton(sniperButton, sniperBtnText,
-                loadout != null && loadout.IsSlotUnlocked(3),
-                gold >= ArmoryManager.CostSniper,
-                $"${ArmoryManager.CostSniper} BUY");
+            RefreshWeaponButtons(gold);
 
             // Ammo
             if (ammoButton != null)
@@ -217,6 +208,84 @@ namespace ZombieShooter
             RefreshDeployableButton(barricadeButton, barricadeBtnText, 0, gold);
             RefreshDeployableButton(barrelButton, barrelBtnText, 1, gold);
             RefreshDeployableButton(claymoreButton, claymoreBtnText, 2, gold);
+        }
+
+        void BuyWeapon(int catalogueIndex)
+        {
+            var definition = WeaponAt(catalogueIndex);
+            if (definition != null) ArmoryManager.Instance?.TryBuyWeapon(definition, loadout);
+        }
+
+        WeaponDefinition WeaponAt(int index)
+        {
+            var catalogue = loadout != null ? loadout.Catalogue : null;
+            return catalogue != null && index >= 0 && index < catalogue.Count
+                ? catalogue[index]
+                : null;
+        }
+
+        /// <summary>
+        /// Draws every weapon in the catalogue. Buttons past the end of it hide themselves,
+        /// so the shop can be built with room to grow without showing empty rows.
+        /// </summary>
+        void RefreshWeaponButtons(int gold)
+        {
+            if (weaponButtons == null) return;
+
+            bool full = loadout != null && !loadout.HasFreeSlot;
+
+            if (loadoutLabel != null && loadout != null)
+            {
+                int held = 0;
+                for (int i = 0; i < loadout.CarryCapacity; i++)
+                    if (loadout.CarriedAt(i) != null) held++;
+
+                loadoutLabel.text = full
+                    ? $"LOADOUT FULL  {held} / {loadout.CarryCapacity}  -  this run is committed"
+                    : $"LOADOUT  {held} / {loadout.CarryCapacity}";
+                loadoutLabel.color = full
+                    ? new Color(0.85f, 0.45f, 0.35f)
+                    : new Color(0.62f, 0.64f, 0.68f);
+            }
+
+            for (int i = 0; i < weaponButtons.Length; i++)
+            {
+                var button = weaponButtons[i];
+                if (button == null) continue;
+
+                var definition = WeaponAt(i);
+                if (definition == null)
+                {
+                    button.gameObject.SetActive(false);
+                    continue;
+                }
+
+                if (!button.gameObject.activeSelf) button.gameObject.SetActive(true);
+
+                var label = weaponBtnTexts != null && i < weaponBtnTexts.Length
+                    ? weaponBtnTexts[i]
+                    : null;
+
+                bool owned = loadout != null && loadout.Owns(definition);
+
+                // "No room left" and "cannot afford it" are different answers and the player
+                // should be able to tell which one they are looking at.
+                if (owned)
+                {
+                    button.interactable = false;
+                    if (label != null) label.text = "CARRIED";
+                }
+                else if (full)
+                {
+                    button.interactable = false;
+                    if (label != null) label.text = "NO SLOT";
+                }
+                else
+                {
+                    button.interactable = gold >= definition.Cost;
+                    if (label != null) label.text = $"${definition.Cost} BUY";
+                }
+            }
         }
 
         /// <summary>
@@ -240,22 +309,6 @@ namespace ZombieShooter
             button.interactable = gold >= definition.Cost;
             if (label != null)
                 label.text = $"${definition.Cost} BUY  [x{placer.StockOf(index)}]";
-        }
-
-        static void UpdateButton(Button btn, Text label, bool isOwned, bool canAfford, string buyText)
-        {
-            if (btn == null) return;
-
-            if (isOwned)
-            {
-                btn.interactable = false;
-                if (label != null) label.text = "INSTALLED";
-            }
-            else
-            {
-                btn.interactable = canAfford;
-                if (label != null) label.text = buyText;
-            }
         }
     }
 }

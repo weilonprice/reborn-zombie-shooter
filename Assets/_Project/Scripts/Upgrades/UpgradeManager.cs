@@ -167,6 +167,9 @@ namespace ZombieShooter
             if (tier.reloadTime >= 0f) stats.ReloadTime = tier.reloadTime;
             if (tier.pierceCount >= 0) stats.PierceCount = tier.pierceCount;
             if (tier.knockbackMultiplier >= 0f) stats.KnockbackMultiplier = tier.knockbackMultiplier;
+            if (tier.pelletCount >= 0) stats.PelletCount = tier.pelletCount;
+            if (tier.spread >= 0f) stats.Spread = tier.spread;
+            if (tier.penetrationFalloff >= 0f) stats.PenetrationFalloff = tier.penetrationFalloff;
 
             if (tier.convertToFullAuto) stats.FullAuto = true;
             if (tier.holsteredReload) stats.HolsteredReload = true;
@@ -192,6 +195,11 @@ namespace ZombieShooter
             if (tier.ultimateKills > 0) stats.UltimateKills = tier.ultimateKills;
             if (tier.ultimateCritChance >= 0f) stats.UltimateCritChance = tier.ultimateCritChance;
             if (tier.ultimateFireRate >= 0f) stats.UltimateFireRate = tier.ultimateFireRate;
+
+            if (tier.focusBonusPerHit >= 0f) stats.FocusBonusPerHit = tier.focusBonusPerHit;
+            if (tier.focusMaxBonus >= 0f) stats.FocusMaxBonus = tier.focusMaxBonus;
+            if (tier.sustainedSpreadMin >= 0f) stats.SustainedSpreadMin = tier.sustainedSpreadMin;
+            if (tier.executeThreshold >= 0f) stats.ExecuteThreshold = tier.executeThreshold;
         }
 
         /// <summary>Convenience for callers that may run before the manager exists.</summary>

@@ -3,8 +3,10 @@ Top-down twin-stick wave survival / Unity 6000.6.0f1 / URP
 Target: commercial Steam release. Cadence: full-time (~32 hrs/wk). 64 weeks.
 Status:  Gates 0 and 1 PASSED. Phase 2 content production underway - bigger
          arena, deployables, and data-driven weapon upgrade trees in, with the
-         economy repriced so the trees are a choice. 1 of 12 paths authored.
-         No art until the content exists.
+         economy repriced so the trees are a choice. Direction settled: ten
+         weapons, ONE upgrade path each, and the run's decision is which
+         weapon to max. 4 of 10 paths authored. No art until the content
+         exists.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -224,6 +226,40 @@ PROGRESS LOG
             ricochet and mark code was deleted rather than left dormant. Third
             and current: a single Gunslinger path, authored, with two columns
             left as placeholders for paths still to be designed.
+2026-09-09  Design direction changed, and this is the third time the upgrade
+            structure has moved, so the reasoning matters more than the result.
+            Three paths per weapon on four weapons meant 60 tiers, and the
+            5-3-0 rule needed all three to exist before any of them was a
+            choice. Settled instead on TEN weapons with ONE path each: the run
+            decides which weapon to pour gold into, and with a maxed path at
+            3360 against 6580 income it can only ever afford one. The player
+            handles all ten guns every run; exactly one of them feels
+            powerful. Cost is the same 50 tiers, but the variety now comes
+            from the arsenal rather than from branching inside one gun.
+            5-3-0 survives untouched in UpgradeManager and simply goes inert -
+            a single open path can never breach it - so a weapon can be given
+            three paths later as data plus a wider panel.
+2026-09-09  Loadout reworked, closing debt 16. WeaponLoadout now holds a
+            catalogue (everything the Armory sells) and a carried array (what
+            the run holds), replacing a fixed slots[4] with a parallel
+            unlocked[4] that could not express ten. Carry capacity is 10,
+            mapped to the number row 1-9 then 0. Weapon prices moved onto
+            WeaponDefinition, so ArmoryPrices is down to a single field and a
+            tenth weapon is an asset plus a catalogue entry - no constant, no
+            branch, no button. The shop builds its weapon list in a loop and
+            sizes its own card to fit it.
+2026-09-09  Three more upgrade paths, all hitscan so none needed new firing
+            code. Shotgun "Streetsweeper" ends as a 12-pellet 200 RPM wall
+            that feeds itself a shell per kill. Assault rifle "Marksman"
+            stacks damage for consecutive hits on the SAME target and tightens
+            its spread the longer you hold - the deliberate mirror of the
+            pistol's fan, both driven off one triggerHeat value in opposite
+            directions. Sniper "Executioner" makes each pierced body make the
+            round stronger rather than weaker, and executes anything under 30%
+            health whatever its maximum, which is the answer to the boss.
+            Numbers to watch: overpenetration compounds to roughly 9x on the
+            twelfth body, and the sniper execute deletes the last 600 HP of
+            the boss for free.
 2026-09-09  Economy measured and repriced. A 15-wave run earns 6580 gold; the
             most all four weapons could absorb under the old flat tier curve
             was 6870, so a run could buy 96% of everything the game sells and
@@ -354,20 +390,21 @@ main reason content comes first.
     another script. Barrels chain and hurt the player; claymores are
     directional and one-use.
 [ ] More enemy archetypes, toward a roster of ~12.
-[ ] More weapons, toward ~10. BLOCKED on a design decision: WeaponLoadout has
-    exactly 4 slots on keys 1-4. Ten weapons needs either more keys or a
-    carry-two-and-swap-at-the-Armory model. Decide before building them.
-[~] Weapon upgrades. Trees are in and are data, not branches: three paths of
-    five tiers on every weapon under a 5-3-0 rule, bought with gold. Costs come
-    from one shared curve (ArenaBuilder.TierCosts), so authoring a path is
-    choosing five effects, not five effects and five prices.
-    PROGRESS: 1 of 12 paths authored. Pistol "Gunslinger" done; the pistol's
-    other two and all three each for shotgun, rifle and sniper remain. 55 of
-    60 tiers still to design.
+[~] More weapons, toward 10. UNBLOCKED - the loadout now carries ten on keys
+    1-9 and 0. 4 of 10 exist (pistol, shotgun, rifle, sniper). The roster for
+    the other six is drafted in UPGRADES.txt: SMG, Nail Gun, Flamethrower,
+    Grenade Launcher, Tesla Coil, Siphon Rifle.
+    BLOCKED on debt item 19: six of the ten need firing modes Weapon.cs does
+    not have. Build the projectile/cone/chain work once, before the weapons.
+[~] Weapon upgrades. Trees are in and are data, not branches: ONE path of five
+    tiers per weapon, bought with gold. Costs come from one shared curve
+    (ArenaBuilder.TierCosts), so authoring a path is choosing five effects,
+    not five effects and five prices.
+    PROGRESS: 4 of 10 paths authored - Gunslinger, Streetsweeper, Marksman,
+    Executioner. The remaining six wait on their weapons existing.
     Mod cores are gone entirely, which closed debt item 15 by deletion.
-    Remaining constraint: UpgradeTier's behaviour flags are a flat vocabulary.
-    Adding tiers and paths is free; adding a new KIND of effect is still code.
-    See debt item 17, and expect to hit it repeatedly across the next 11 paths.
+    Remaining constraint is debt item 17, and the three new paths cost seven
+    more fields exactly as predicted.
 [ ] Arenas - 3-4 spaces with different tactical character.
 [ ] Meta progression - needs the save system, debt item 4.
 [ ] Performance - profile the horde. Debt item 6, deferred to exactly here.
@@ -597,23 +634,47 @@ KNOWN DEBT IN THE CURRENT BUILD
    the obvious answer once the replacement existed. The register had assumed
    a rework for weeks.
 
-16. WEAPON LOADOUT IS FIXED AT FOUR SLOTS.
-   WeaponLoadout is hardcoded to 4 entries on keys 1-4. The Phase 2 target of
-   ~10 weapons needs a decision first: more keys, or carry two or three and
-   swap loadout at the Armory. A design choice rather than a defect, but it
-   blocks the weapons task the same way.
+16. WEAPON LOADOUT IS FIXED AT FOUR SLOTS. -- RESOLVED 2026-09-09.
+   Split into a catalogue (everything sellable) and a carried array (what the
+   run holds), so a slot is live simply by holding something rather than by a
+   parallel unlocked[] flag. Carry capacity is 10 on the number row.
+   It was filed as "a design choice rather than a defect", and that was right:
+   it did not become answerable until the direction settled on one path per
+   weapon, at which point the answer was obvious. Some register items are
+   waiting on a decision, not on effort.
 
 17. UPGRADE BEHAVIOUR FLAGS ARE A FLAT, GROWING VOCABULARY.
-   UpgradeTier now carries 18 behaviour fields - dualWield, doubleTap,
-   fanFireRate, critChance, ultimateKills and so on - each read by an if in
-   Weapon.cs. This is a real improvement on ModCoreType: new tiers and whole
-   new paths are pure data. But a new KIND of effect still costs a field, a
-   WeaponStats member, a line in UpgradeManager.Apply and a branch in the
-   firing path, so the file grows once per idea rather than once per upgrade.
-   Deliberately NOT fixed yet: designing the abstraction against a single
-   authored path would be guessing. Fix it when the second and third pistol
-   paths exist and there are real examples to generalise from - and fold
-   ModCoreType (debt 15) into the same rework rather than doing two.
+   UpgradeTier carries around 30 fields now - dualWield, fanFireRate,
+   critChance, focusBonusPerHit, executeThreshold and so on - each read by an
+   if in Weapon.cs. New tiers and whole new paths are still pure data, which
+   was the point. But a new KIND of effect costs a field, a WeaponStats
+   member, a line in UpgradeManager.Apply and a branch in the firing path.
+   Four authored paths in, there is a useful distinction the raw count hides:
+   of the seven fields the shotgun/rifle/sniper paths needed, THREE were plain
+   stat overrides that should have existed from the start (pelletCount,
+   spread, penetrationFalloff) and only Focus was a genuinely new mechanic.
+   The abstraction to design is narrower than 30 fields suggests - most of the
+   growth is stats the resolver simply did not cover yet.
+   Still deliberately unfixed. Revisit after the firing-mode rework (debt 19),
+   which will add the next real batch of mechanics and show whether the
+   vocabulary or the firing path is the thing that actually needs restructuring.
+
+18. GAMEPAD CANNOT REACH WEAPON SLOTS 5-10.
+   The number row maps all ten; the d-pad has four directions and a pad has no
+   tenth face button. Gamepad players can select the first four weapons only.
+   Fix: bind cycling (shoulder buttons) rather than direct selection, which
+   also wants the HUD to show the carried list rather than just the current
+   weapon. Not urgent while the game is keyboard-first in development, but it
+   is a real parity gap and it grows as weapons are added.
+
+19. WEAPON.CS IS HITSCAN ONLY. -- BLOCKS SIX OF THE TEN WEAPONS.
+   The firing path casts a ray, splits it into pellets, and applies pierce and
+   falloff. That covers pistol, shotgun, rifle and sniper and nothing else.
+   Flamethrower needs a continuous cone, Grenade Launcher an arcing projectile
+   with area damage, Tesla Coil a chain between targets, Nail Gun a projectile
+   that pins. EnemyProjectile exists as a precedent for the projectile half.
+   This is shared infrastructure, so building it badly once means six weapons
+   inherit the problem. Do it before the weapons, not per weapon.
 
 14. NEVER HAND-EDIT ASSET YAML FOR FIELDS THAT ARE NOT COMPILED YET.
    Learned the hard way 2026-09-08. Weapon tags were written straight into the
@@ -645,28 +706,35 @@ ZOMBIE STEERING VS DEPLOYABLE BARRICADES - resolved 2026-09-08.
 START HERE - THIS WEEK
 ===============================================================================
 
-1. Play the arena, the deployables and the whole Gunslinger path.
-   None of it has been played. The upgrade panel, every tier, the ultimate and
-   the second pistol are all unverified. The full path costs 1140 gold, so
-   reaching T5 in one run is itself the first thing the economy gets tested
-   against. Watch the 0.2s tap-versus-hold threshold on T3 and the ultimate's
-   2.0-second duration on T5.
+1. Play all four upgrade paths, and answer one question with them.
+   Nothing here has been played: the panel, the tiers, the ultimate, the
+   second pistol, the ten-slot loadout, the repriced shop. A full path is 3360
+   gold, so reaching T5 once is itself the first real test of the economy.
+   The question worth answering before six more weapons exist: DOES ONE PATH
+   PER WEAPON FEEL LIKE ENOUGH? Cheaper to learn now with four built than
+   with ten.
+   Specific numbers to watch: the 0.2s tap-versus-hold threshold on pistol T3,
+   the ultimate's 2.0-second duration on pistol T5, sniper overpenetration
+   compounding to ~9x on the twelfth body, and the sniper execute taking the
+   boss's last 600 HP for free.
 
-2. Design the remaining 11 upgrade paths.
-   Three per weapon on all four, decided 2026-09-09 with the content cost
-   understood. The pistol's two empty columns come first: until they exist the
-   5-3-0 rule has nothing to bite on, and one path is a ladder, not a build.
-   Candidates already brainstormed and recorded in UPGRADES.txt: Lawman,
-   Reaper, Marksman, Powder Keg, Drifter, Undertaker, Wildfire, Hexslinger.
-   Every one needs new code - none are data-only.
+2. Firing modes, before any new weapon. Debt item 19.
+   Projectile, cone and chain. Six of the ten weapons need one of them, and
+   building it per weapon means building it six times.
 
-3. Decide the two Phase 2 blockers.
-   Weapons need the loadout question answered (debt 16). Upgrades needed the
-   mod system moved to data (debt 15) - the trees now do that for weapon
-   upgrades, but ModCoreType still exists beside them, so the item is narrowed
-   rather than closed. Fold it into the debt 17 rework.
+3. Then the six new weapons and their paths.
+   SMG, Nail Gun, Flamethrower, Grenade Launcher, Tesla Coil, Siphon Rifle -
+   roster and capstones drafted in UPGRADES.txt. Worth noting the Siphon
+   Rifle is the only healing in the entire game, and the Nail Gun the only
+   weapon that touches the barricade pillar.
 
-4. Then the rest of Phase 2 - enemy archetypes and arenas.
+4. Decide the last Phase 2 blocker.
+   Both of the old ones are closed: the loadout question (debt 16) is answered
+   and mod cores (debt 15) are deleted. What is left is the firing-mode work
+   above, which is now the only thing standing between the roster and ten
+   playable weapons.
+
+5. Then the rest of Phase 2 - enemy archetypes and arenas.
 
 STILL OPEN, kept for the specifics:
    The arena and deployables have not been played either. Two things to watch:

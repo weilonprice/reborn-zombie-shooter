@@ -23,13 +23,18 @@ namespace ZombieShooter
         [Header("Header")]
         [SerializeField] Text weaponLabel;
         [SerializeField] Text ruleLabel;
-        [SerializeField] Text[] pathTitles = new Text[3];
+        [SerializeField] Text[] pathTitles = new Text[1];
 
         [Header("Tiers, path-major: path0 t1-5, path1 t1-5, path2 t1-5")]
-        [SerializeField] Button[] tierButtons = new Button[15];
-        [SerializeField] Text[] tierLabels = new Text[15];
+        [SerializeField] Button[] tierButtons = new Button[5];
+        [SerializeField] Text[] tierLabels = new Text[5];
 
-        const int Paths = 3;
+        /// <summary>
+        /// How many columns this panel was built with. Read from the wiring rather than
+        /// fixed, so going back to multiple paths per weapon is a builder change and nothing
+        /// here.
+        /// </summary>
+        int Paths => pathTitles != null ? pathTitles.Length : 0;
         const int TiersPerPath = 5;
 
         static readonly Color Purchased = new(0.16f, 0.42f, 0.38f, 0.95f);
@@ -101,9 +106,12 @@ namespace ZombieShooter
 
             if (ruleLabel != null)
             {
+                // Describes what is actually enforced. With one path per weapon the 5-3-0
+                // rule can never trigger, and printing it would be telling the player about
+                // a restriction they will never meet.
                 ruleLabel.text = tree == null
-                    ? "This weapon has no upgrade paths yet."
-                    : "One path to 5  ·  a second to 3  ·  the third stays locked";
+                    ? "This weapon has no upgrade path yet."
+                    : "Five tiers  ·  a run has gold to max exactly one weapon";
             }
 
             for (int path = 0; path < Paths; path++)
