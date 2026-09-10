@@ -5,9 +5,9 @@ Status:  Gates 0 and 1 PASSED. Phase 2 content production underway - bigger
          arena, deployables, and data-driven weapon upgrade trees in, with the
          economy repriced so the trees are a choice. Direction settled: ten
          weapons, ONE upgrade path each, and the run's decision is which
-         weapon to max. 4 of 10 paths authored, all four firing modes built
-         so the remaining six are unblocked, and the horde now paths around
-         geometry. No art until the content exists.
+         weapon to max. 7 of 10 weapons and paths built, all four firing
+         modes live, and the horde now paths around geometry. No art until
+         the content exists.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -227,6 +227,32 @@ PROGRESS LOG
             ricochet and mark code was deleted rather than left dormant. Third
             and current: a single Gunslinger path, authored, with two columns
             left as placeholders for paths still to be designed.
+2026-09-10  One weapon per firing mode, so cone, chain and projectile finally
+            execute. Flamethrower (250) is 7 damage ten times a second in a
+            26-degree cone at 11m off a 100-unit fuel tank; Tesla Coil (300)
+            is 34 damage hopping to three more bodies at 8m; Grenade Launcher
+            (280) lobs 110 over a 4.5m blast, four shells at a time.
+            Their paths forced a real improvement. Delivery parameters lived
+            in the delivery ASSET, so a Wildfire path could not widen its cone
+            and a Storm path could not grow its chain - the two things those
+            fantasies are entirely about. WeaponStats now carries
+            ConeHalfAngle, ChainBounces, ChainHopRange, ChainDamagePerHop,
+            BlastRadius and Range, all -1 meaning "use the delivery's own
+            value". The asset says where a weapon starts, the path says where
+            it goes.
+            Six more fields, and again every one is a plain override of a
+            parameter that already existed rather than a new mechanic - the
+            same pattern as the shotgun/rifle/sniper batch. See debt 17: the
+            vocabulary keeps growing in the least interesting direction, which
+            is a strong hint about what the eventual rework should target.
+            It paid off immediately: Bombardier's Cluster tier is just
+            pelletCount = 3, because ProjectileDelivery already loops the
+            pellet count. Three shells a trigger pull cost no code at all.
+            NOT PLAY-TESTED, and these are the first things ever to run the
+            three new modes - expect mode bugs before balance problems.
+            Storm's T5 gains 10% per hop over eight hops, which is the same
+            compounding shape as sniper overpenetration and the same first
+            candidate for tuning.
 2026-09-09  Horde pathing fixed. Zombies steered in a straight line at the
             player with no awareness of geometry, so anything behind a cover
             block pressed into it forever, held there by its own
@@ -458,10 +484,10 @@ main reason content comes first.
     another script. Barrels chain and hurt the player; claymores are
     directional and one-use.
 [ ] More enemy archetypes, toward a roster of ~12.
-[~] More weapons, toward 10. UNBLOCKED - the loadout now carries ten on keys
-    1-9 and 0. 4 of 10 exist (pistol, shotgun, rifle, sniper). The roster for
-    the other six is drafted in UPGRADES.txt: SMG, Nail Gun, Flamethrower,
-    Grenade Launcher, Tesla Coil, Siphon Rifle.
+[~] More weapons, toward 10. 7 of 10 exist - pistol, shotgun, rifle, sniper,
+    flamethrower, Tesla coil, grenade launcher. Remaining: SMG, Nail Gun,
+    Siphon Rifle, all drafted in UPGRADES.txt. Two of the three are plain
+    hitscan; the Nail Gun's pinning is the only one still needing new code.
     UNBLOCKED as of the delivery rework - all four firing modes exist, so each
     remaining weapon is a definition asset, a catalogue entry and a path
     helper. The Nail Gun's pinning is an upgrade behaviour for its path, not
@@ -470,8 +496,8 @@ main reason content comes first.
     tiers per weapon, bought with gold. Costs come from one shared curve
     (ArenaBuilder.TierCosts), so authoring a path is choosing five effects,
     not five effects and five prices.
-    PROGRESS: 4 of 10 paths authored - Gunslinger, Streetsweeper, Marksman,
-    Executioner. The remaining six wait on their weapons existing.
+    PROGRESS: 7 of 10 paths authored - Gunslinger, Streetsweeper, Marksman,
+    Executioner, Wildfire, Storm, Bombardier.
     Mod cores are gone entirely, which closed debt item 15 by deletion.
     Remaining constraint is debt item 17, and the three new paths cost seven
     more fields exactly as predicted.
@@ -778,6 +804,16 @@ KNOWN DEBT IN THE CURRENT BUILD
    to carry a callback to the weapon that fired it, guarded against that
    weapon having been swapped or destroyed.
 
+22. THE FLAMETHROWER HAS NO SOUND.
+   It fires ten times a second, so the shared gunshot clip machine-guns
+   through the voice pool and reads as a stutter rather than a flame. Its
+   fireClip and impactClip are deliberately null, which makes it silent.
+   Fix: a looping sample with a proper loop point, started on first fire and
+   faded out on release - which means SfxPlayer needs a concept of a held
+   loop, not just one-shots. Any continuous weapon will want the same, so do
+   it once. It WILL feel wrong to play before then; that is this entry, not a
+   bug.
+
 21. A CONDITIONAL COMMENT IS NOT A REMINDER.
    ZombieAI's own class comment said "the arena is open... swap in a
    NavMeshAgent if the map ever gains real obstacles". The arena gained
@@ -832,24 +868,32 @@ START HERE - THIS WEEK
    compounding to ~9x on the twelfth body, and the sniper execute taking the
    boss's last 600 HP for free.
 
-2. The six new weapons and their paths.
-   SMG, Nail Gun, Flamethrower, Grenade Launcher, Tesla Coil, Siphon Rifle -
-   roster and capstones drafted in UPGRADES.txt. Worth noting the Siphon
-   Rifle is the only healing in the entire game, and the Nail Gun the only
-   weapon that touches the barricade pillar.
-   Build order suggestion: one weapon per firing mode FIRST - say Flamethrower
-   (cone), Tesla (chain), Grenade Launcher (projectile) - because none of
-   those three modes has ever executed. The first weapon on each is really a
-   test of the mode, and finding a mode broken after building two weapons on
-   it is the expensive version.
+2. Play the flamethrower, the Tesla coil and the grenade launcher.
+   They are the first things ever to run cone, chain and projectile. Expect
+   MODE bugs rather than balance problems: flame ignoring walls, an arc that
+   picks nothing, a grenade arming at your feet.
 
-3. Decide the last Phase 2 blocker.
+3. The last three weapons.
+   SMG and Siphon Rifle are plain hitscan. The Nail Gun needs pinning, which
+   is upgrade-path code rather than delivery infrastructure. The Siphon Rifle
+   is the only healing in the entire game and the Nail Gun the only weapon
+   that touches the barricade pillar, so neither is just another gun.
+
+4. Enemy archetypes, 4 toward 12.
+   Argued 2026-09-10 and worth restating: weapon variety gives ten different
+   runs, enemy variety changes EVERY run. Gate 2 is about repetition, and
+   what makes wave 12 differ from wave 4 is what is walking at you rather
+   than what you are holding. New enemies are also what stress-test the flow
+   field, the barricades and the deployables.
+
+5. Decide the last Phase 2 blocker.
    All of them are closed: the loadout question (debt 16) is answered, mod
    cores (debt 15) are deleted, and the firing modes (debt 19) are built.
    Nothing structural now stands between the roster and ten playable weapons -
    what is left is content.
 
-4. Then the rest of Phase 2 - enemy archetypes and arenas.
+6. Then the rest of Phase 2 - arenas 2 to 4, while ArenaBuilder still
+   generates them.
 
 STILL OPEN, kept for the specifics:
    The arena and deployables have not been played either. Two things to watch:

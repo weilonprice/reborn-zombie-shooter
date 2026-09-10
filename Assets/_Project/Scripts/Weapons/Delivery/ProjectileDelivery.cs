@@ -42,7 +42,7 @@ namespace ZombieShooter
                     direction,
                     shot.Damage,
                     shot.Stats.KnockbackMultiplier,
-                    blastRadius,
+                    shot.Stats.BlastRadius >= 0f ? shot.Stats.BlastRadius : blastRadius,
                     shot.Weapon.gameObject,
                     shot.Definition);
             }

@@ -38,7 +38,7 @@ namespace ZombieShooter
             firstImpact = Vector3.zero;
 
             var definition = shot.Definition;
-            float range = definition.Range;
+            float range = shot.Range;
             var endPoint = shot.Origin + direction * range;
 
             int count = Physics.RaycastNonAlloc(shot.Origin, direction, HitBuffer, range,

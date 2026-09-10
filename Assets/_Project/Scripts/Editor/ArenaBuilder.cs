@@ -1811,7 +1811,54 @@ namespace ZombieShooter.EditorTools
                 .F("fireVolume", 0.7f).F("impactVolume", 0.5f)
                 .F("tracerWidth", 0.13f).F("tracerDuration", 0.1f).I("shellsPerShot", 1));
 
-            return new[] { pistol, shotgun, assault, sniper };
+            // Short ranged and continuous: a fuel tank is a magazine and a tick of flame is
+            // a round, so the rate of fire IS the burn rate.
+            var flamethrower = LoadOrCreateWeapon("WPN_Flamethrower", f => f
+                .Str("displayName", "Flamethrower").I("cost", 250)
+                .F("damage", 7f).F("fireRate", 600f).F("range", 11f).F("spread", 0f)
+                .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.Automatic)
+                .I("tags", (int)WeaponTags.None)
+                .I("pierceCount", 0).F("penetrationFalloff", 1f)
+                .I("magazineSize", 100).I("maxReserveAmmo", 400).F("reloadTime", 2.2f)
+                .F("fireTrauma", 0.012f).F("recoilKick", 0.004f).F("knockbackMultiplier", 0.15f)
+                // DELIBERATELY SILENT. It fires ten times a second, so the shared gunshot
+                // clip would machine-gun through the voice pool and sound like a stutter
+                // rather than a flame. It needs a looping loop-point sample, which the
+                // project does not have yet; silence is the better placeholder.
+                .Obj("fireClip", null).Obj("impactClip", null)
+                .F("fireVolume", 0f).F("impactVolume", 0f)
+                .F("tracerWidth", 0f).F("tracerDuration", 0f).I("shellsPerShot", 0)
+                .Obj("delivery", LoadDelivery("DLV_Flame")));
+
+            var tesla = LoadOrCreateWeapon("WPN_TeslaCoil", f => f
+                .Str("displayName", "Tesla Coil").I("cost", 300)
+                .F("damage", 34f).F("fireRate", 150f).F("range", 30f).F("spread", 0.5f)
+                .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.Automatic)
+                .I("tags", (int)WeaponTags.None)
+                .I("pierceCount", 0).F("penetrationFalloff", 1f)
+                .I("magazineSize", 16).I("maxReserveAmmo", 96).F("reloadTime", 2.0f)
+                .F("fireTrauma", 0.09f).F("recoilKick", 0.03f).F("knockbackMultiplier", 0.8f)
+                .Obj("fireClip", gunshot).Obj("impactClip", impact)
+                .F("fireVolume", 0.4f).F("impactVolume", 0.35f)
+                .F("tracerWidth", 0.06f).F("tracerDuration", 0.08f).I("shellsPerShot", 0)
+                .Obj("delivery", LoadDelivery("DLV_Tesla")));
+
+            // Range is meaningless here - the shell is a physical object with its own speed
+            // and gravity, and the number is only kept sane for the delivery's spawn maths.
+            var grenade = LoadOrCreateWeapon("WPN_GrenadeLauncher", f => f
+                .Str("displayName", "Grenade Launcher").I("cost", 280)
+                .F("damage", 110f).F("fireRate", 60f).F("range", 45f).F("spread", 1f)
+                .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.SemiAuto)
+                .I("tags", (int)WeaponTags.None)
+                .I("pierceCount", 0).F("penetrationFalloff", 1f)
+                .I("magazineSize", 4).I("maxReserveAmmo", 24).F("reloadTime", 2.6f)
+                .F("fireTrauma", 0.34f).F("recoilKick", 0.2f).F("knockbackMultiplier", 2.5f)
+                .Obj("fireClip", gunshot).Obj("impactClip", impact)
+                .F("fireVolume", 0.6f).F("impactVolume", 0.5f)
+                .F("tracerWidth", 0f).F("tracerDuration", 0f).I("shellsPerShot", 1)
+                .Obj("delivery", LoadDelivery("DLV_Grenade")));
+
+            return new[] { pistol, shotgun, assault, sniper, flamethrower, tesla, grenade };
         }
 
         /// <summary>
@@ -1877,6 +1924,9 @@ namespace ZombieShooter.EditorTools
                 LoadOrCreateTree("UPG_Shotgun", arsenal[1] as WeaponDefinition, StreetsweeperPath()),
                 LoadOrCreateTree("UPG_AssaultRifle", arsenal[2] as WeaponDefinition, MarksmanPath()),
                 LoadOrCreateTree("UPG_Sniper", arsenal[3] as WeaponDefinition, ExecutionerPath()),
+                LoadOrCreateTree("UPG_Flamethrower", arsenal[4] as WeaponDefinition, WildfirePath()),
+                LoadOrCreateTree("UPG_TeslaCoil", arsenal[5] as WeaponDefinition, StormPath()),
+                LoadOrCreateTree("UPG_GrenadeLauncher", arsenal[6] as WeaponDefinition, BombardierPath()),
             };
         }
 
@@ -2008,6 +2058,109 @@ namespace ZombieShooter.EditorTools
                 fireRate = 700f, pierceCount = 4, focusMaxBonus = 2.0f,
             });
 
+        static WeaponUpgradePath WildfirePath() => UpgradePath(
+            "Wildfire",
+            "Stops being a weapon you aim and becomes a shape you pour over the horde.",
+            new UpgradeTier
+            {
+                title = "Pressurised",
+                description = "Reach 11m to 15m, damage per tick 7 to 9. The reach was the problem - it burned well and could not get near anything.",
+                damage = 9f, range = 15f,
+            },
+            new UpgradeTier
+            {
+                title = "Wide Burner",
+                description = "The cone opens from 26 to 38 degrees. It stops being a jet and starts being a wall.",
+                coneHalfAngle = 38f,
+            },
+            new UpgradeTier
+            {
+                title = "Backpack Tank",
+                description = "Fuel 100 to 200, reload 2.2s to 1.4s. Ten seconds of fire was never enough for a wave.",
+                magazineSize = 200, reloadTime = 1.4f,
+            },
+            new UpgradeTier
+            {
+                title = "White Heat",
+                description = "Damage per tick 9 to 16, and it burns faster - 600 to 750 ticks a minute. Fuel goes the same way.",
+                damage = 16f, fireRate = 750f,
+            },
+            new UpgradeTier
+            {
+                title = "Firestorm",
+                description = "50 degree cone, 18m reach, 22 damage a tick, and the fuel never runs out. Everything in front of you is on fire, and there is no front rank left to speak of.",
+                damage = 22f, range = 18f, coneHalfAngle = 50f, infiniteReserve = true,
+            });
+
+        static WeaponUpgradePath StormPath() => UpgradePath(
+            "Storm",
+            "One shot, and everything standing near it.",
+            new UpgradeTier
+            {
+                title = "Capacitor",
+                description = "Damage 34 to 44 on the body you actually hit.",
+                damage = 44f,
+            },
+            new UpgradeTier
+            {
+                title = "Arc Extender",
+                description = "The arc hops to 5 bodies instead of 3, and reaches 10m between them rather than 8.",
+                chainBounces = 5, chainHopRange = 10f,
+            },
+            new UpgradeTier
+            {
+                title = "Superconductor",
+                description = "The arc barely weakens down the chain - 95% carried per hop instead of 80%. Magazine 16 to 24.",
+                chainDamagePerHop = 0.95f, magazineSize = 24,
+            },
+            new UpgradeTier
+            {
+                title = "Overcharge",
+                description = "Damage 52, fire rate 150 to 240, reload 2.0s to 1.3s.",
+                damage = 52f, fireRate = 240f, reloadTime = 1.3f,
+            },
+            new UpgradeTier
+            {
+                title = "Storm",
+                description = "8 hops, 13m reach, and the arc GAINS 10% per hop instead of losing anything. The back of a tight pack is the worst place in the arena.",
+                damage = 55f, chainBounces = 8, chainHopRange = 13f, chainDamagePerHop = 1.1f,
+            });
+
+        static WeaponUpgradePath BombardierPath() => UpgradePath(
+            "Bombardier",
+            "Four shells was never the problem. Four shells was the problem.",
+            new UpgradeTier
+            {
+                title = "Heavy Charge",
+                description = "Damage 110 to 145, blast radius 4.5m to 5.5m.",
+                damage = 145f, blastRadius = 5.5f,
+            },
+            new UpgradeTier
+            {
+                title = "Quick Cycle",
+                description = "Fire rate 60 to 100, reload 2.6s to 1.7s.",
+                fireRate = 100f, reloadTime = 1.7f,
+            },
+            new UpgradeTier
+            {
+                title = "Drum",
+                description = "Magazine 4 to 8, and every kill puts a shell back in the reserve. 24 spare shells does not survive a wave otherwise.",
+                magazineSize = 8, reserveRefundPerKill = 1,
+            },
+            new UpgradeTier
+            {
+                title = "Cluster",
+                description = "Three shells a trigger pull instead of one, fanned slightly. Still one round of ammunition.",
+                pelletCount = 3, spread = 4f,
+            },
+            new UpgradeTier
+            {
+                title = "Bombardier",
+                description = "Five shells a pull at 150 damage over a 7m blast, 12 in the tube, 1.1s reload. Fired into a crowd it is not really a weapon any more.",
+                damage = 150f, pelletCount = 5, blastRadius = 7f,
+                magazineSize = 12, reloadTime = 1.1f,
+            });
+
         static WeaponUpgradePath ExecutionerPath() => UpgradePath(
             "Executioner",
             "One round, one line, and everything standing in it.",
@@ -2047,23 +2200,45 @@ namespace ZombieShooter.EditorTools
         /// Delivery assets. Only the ones a weapon actually references get created; hitscan
         /// needs none at all, since a weapon that leaves the field empty falls back to it.
         /// </summary>
-        static void LoadOrCreateDeliveries()
+        static WeaponDelivery LoadDelivery(string fileName) =>
+            AssetDatabase.LoadAssetAtPath<WeaponDelivery>($"{DeliveryDir}/{fileName}.asset");
+
+        static WeaponDelivery LoadOrCreateDelivery<T>(string fileName, System.Action<Fields> configure)
+            where T : WeaponDelivery
         {
-            const string path = DeliveryDir + "/DLV_Grenade.asset";
-            if (AssetDatabase.LoadAssetAtPath<ProjectileDelivery>(path) != null) return;
+            string path = $"{DeliveryDir}/{fileName}.asset";
+
+            var existing = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (existing != null) return existing;
 
             EnsureFolder(DeliveryDir);
 
-            var delivery = ScriptableObject.CreateInstance<ProjectileDelivery>();
+            var delivery = ScriptableObject.CreateInstance<T>();
             AssetDatabase.CreateAsset(delivery, path);
 
-            using (var f = new Fields(delivery))
-            {
-                f.Obj("projectilePrefab",
-                      AssetDatabase.LoadAssetAtPath<GameObject>(WeaponProjectilePrefabPath)
-                          ?.GetComponent<WeaponProjectile>())
-                 .F("blastRadius", 4.5f).F("spawnOffset", 0.6f);
-            }
+            using (var f = new Fields(delivery)) configure(f);
+            EditorUtility.SetDirty(delivery);
+            return delivery;
+        }
+
+        /// <summary>
+        /// Delivery assets. Hitscan needs none - a weapon that leaves the field empty falls
+        /// back to it, which is why the first four weapons have no delivery of their own.
+        /// </summary>
+        static void LoadOrCreateDeliveries()
+        {
+            LoadOrCreateDelivery<ProjectileDelivery>("DLV_Grenade", f => f
+                .Obj("projectilePrefab",
+                     AssetDatabase.LoadAssetAtPath<GameObject>(WeaponProjectilePrefabPath)
+                         ?.GetComponent<WeaponProjectile>())
+                .F("blastRadius", 4.5f).F("spawnOffset", 0.6f));
+
+            LoadOrCreateDelivery<ConeDelivery>("DLV_Flame", f => f
+                .F("halfAngle", 26f).B("falloffWithDistance", true)
+                .F("minimumFalloff", 0.45f).B("blockedByGeometry", true));
+
+            LoadOrCreateDelivery<ChainDelivery>("DLV_Tesla", f => f
+                .I("bounces", 3).F("hopRange", 8f).F("damagePerHop", 0.8f));
         }
 
         static WeaponDefinition LoadOrCreateWeapon(string fileName, System.Action<Fields> configure)

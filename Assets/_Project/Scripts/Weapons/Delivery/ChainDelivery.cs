@@ -31,7 +31,14 @@ namespace ZombieShooter
 
             var definition = shot.Definition;
             var direction = shot.SpreadDirection();
-            float range = definition.Range;
+            float range = shot.Range;
+
+            // Upgrades grow the chain; the asset only supplies where it starts.
+            int hops = shot.Stats.ChainBounces >= 0 ? shot.Stats.ChainBounces : bounces;
+            float reach = shot.Stats.ChainHopRange >= 0f ? shot.Stats.ChainHopRange : hopRange;
+            float perHop = shot.Stats.ChainDamagePerHop >= 0f
+                ? shot.Stats.ChainDamagePerHop
+                : damagePerHop;
             var endPoint = shot.Origin + direction * range;
 
             int count = Physics.RaycastNonAlloc(shot.Origin, direction, HitBuffer, range,
@@ -82,12 +89,12 @@ namespace ZombieShooter
 
             var from = endPoint;
 
-            for (int hop = 0; hop < bounces; hop++)
+            for (int hop = 0; hop < hops; hop++)
             {
-                var next = TargetFinder.Nearest(from, hopRange, Visited, Scratch);
+                var next = TargetFinder.Nearest(from, reach, Visited, Scratch);
                 if (next == null) break;
 
-                damage *= damagePerHop;
+                damage *= perHop;
 
                 var to = TargetFinder.AimPoint(next);
                 var normal = (from - to).sqrMagnitude < 0.0001f

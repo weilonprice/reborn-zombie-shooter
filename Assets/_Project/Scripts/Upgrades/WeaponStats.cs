@@ -15,6 +15,15 @@ namespace ZombieShooter
         public int PelletCount;
         public float Spread;
         public float PenetrationFalloff;
+        public float Range;
+
+        // Delivery parameters. Negative means "use whatever the delivery asset says", so a
+        // weapon only states the ones its own path actually upgrades.
+        public float ConeHalfAngle;
+        public int ChainBounces;
+        public float ChainHopRange;
+        public float ChainDamagePerHop;
+        public float BlastRadius;
 
         public bool FullAuto;
         public bool HolsteredReload;
@@ -60,6 +69,7 @@ namespace ZombieShooter
             PelletCount = d.PelletsPerShot,
             Spread = d.Spread,
             PenetrationFalloff = d.PenetrationFalloff,
+            Range = d.Range,
             FullAuto = d.Mode == FireMode.Automatic,
 
             // Defaults behind the behaviour flags, so a tier can switch an effect on without
@@ -67,6 +77,11 @@ namespace ZombieShooter
             CritMultiplier = 2f,
             FanSpreadRamp = 1f,
             SustainedSpreadMin = -1f,
+            ConeHalfAngle = -1f,
+            ChainBounces = -1,
+            ChainHopRange = -1f,
+            ChainDamagePerHop = -1f,
+            BlastRadius = -1f,
         };
     }
 }
