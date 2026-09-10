@@ -787,12 +787,20 @@ KNOWN DEBT IN THE CURRENT BUILD
    how readable they are. Revisit if the camera framing moves in Phase 2.
    The light art pass is exactly when that would happen.
 
-11. THE BUILDER WILL NOT UPDATE EXISTING WEAPON ASSETS.
-   LoadOrCreateWeapon only creates what is missing, deliberately, so hand
-   tuning survives a rebuild. The flip side is that changing a default in
-   ArenaBuilder does nothing to assets that already exist - they have to be
-   edited in the inspector or deleted and regenerated. Expect this every time
-   a weapon default changes.
+11. WEAPON ASSETS ARE OVERWRITTEN EVERY BUILD. EVERY OTHER ASSET IS NOT.
+   REWRITTEN 2026-09-10: this entry previously said the opposite, and was
+   simply wrong. LoadOrCreateWeapon applies its configure block OUTSIDE the
+   null check, so every builder run overwrites every weapon definition with
+   the values in code. Hand-tuning a weapon in the inspector does NOT survive
+   a rebuild, and the register said it did.
+   Everything else is genuinely create-if-missing and returns early when the
+   asset exists: upgrade trees, deliveries, deployables and ArmoryPrices. So
+   the project has two opposite contracts with no naming to tell them apart,
+   and the one that loses work is the one that was documented as safe.
+   Not fixed yet because both behaviours are defensible - weapons live in code
+   and want to stay in step with it, tuned economy values want to survive. The
+   fix is to make the difference visible: name them apart (LoadOrCreate vs
+   WriteWeapon), and say in the tooltip which is which.
 
 12. WEAPON MODS ARE HARDCODED BY SLOT INDEX. - RESOLVED 2026-09-08.
    WeaponDefinition now carries WeaponTags (Sidearm / Shotgun / Rifle /
@@ -889,18 +897,18 @@ KNOWN DEBT IN THE CURRENT BUILD
    to carry a callback to the weapon that fired it, guarded against that
    weapon having been swapped or destroyed.
 
-24. FIELDS SILENTLY IGNORES UNKNOWN PROPERTY NAMES.
-   ArenaBuilder's Fields helper does FindProperty and returns early if it is
-   null, so a typo or a field that never existed compiles, builds, runs, and
-   quietly leaves the default in place. Hit on 2026-09-10 setting a
-   projectileDamage that ZombieAI does not have - the spitter would have used
-   the wrong damage with no error anywhere.
-   This is the same family as debt 14 (hand-edited YAML for uncompiled
-   fields): the builder writing by string name has no compiler behind it.
-   Fix: log a warning when FindProperty returns null. Three lines, and it
-   turns an invisible failure into a console message. Worth doing the next
-   time anyone is in that file - the builder now writes several hundred
-   fields, so the odds of a silent typo are no longer small.
+24. FIELDS SILENTLY IGNORES UNKNOWN PROPERTY NAMES. -- FILED IN ERROR.
+   WITHDRAWN 2026-09-10, the day it was filed. Fields.Find already logs
+   "ArenaBuilder: '<Type>.<field>' not found - renamed?" and has done since
+   the first commit. The projectileDamage typo that prompted this would have
+   appeared in the console on the next builder run; it was never silent.
+   Kept rather than deleted because the mistake is the useful part: the entry
+   was written from memory of what the helper probably did, without opening
+   it. A register is trusted precisely because nobody re-derives it, so an
+   entry added without checking is worse than no entry - and this one was
+   found only because someone asked which debt to pay next.
+   Standing rule from it: verify against the code before adding to this file,
+   the same as before changing it.
 
 23. THE SAME MISTAKE HAS NOW HAPPENED THREE TIMES.
    ModCoreType was an enum with a branch per mod. WeaponLoadout was four fixed
@@ -1047,6 +1055,15 @@ OLD ITEM, now done - kept for the reasoning about ordering:
    hit, so walls buy time rather than safety.
 
    Then Phase 2 - the light art pass. SUPERSEDED: all art moved to Phase 3.
+
+4. Debt: register audited against the code 2026-09-10.
+   Two entries were wrong. Item 11 claimed weapon hand-tuning survives a
+   rebuild when the builder overwrites weapon assets every run - the failure
+   mode that entry protected against was real, and pointed the wrong way.
+   Item 24 described a silent failure in Fields that does not exist.
+   Both were caught by reading the code rather than the register. Everything
+   else in the file above the resolved entries has now been checked against
+   what it describes.
 
 3. Debt: reviewed 2026-09-08.
    Fixed: 7 (silent singletons), 12 (mods hardcoded by slot), 13 (prices as
