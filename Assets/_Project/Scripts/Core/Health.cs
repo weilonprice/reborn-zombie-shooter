@@ -29,8 +29,13 @@ namespace ZombieShooter
         /// <summary>The most recent damage taken, so a death can be attributed to a weapon.</summary>
         public DamageInfo LastDamage { get; private set; }
 
+        IDamageModifier modifier;
+
         void Awake()
         {
+            // Optional, and looked up once. Armour and resistances change the number BEFORE
+            // it lands, which the Damaged event cannot do because it fires after the fact.
+            modifier = GetComponent<IDamageModifier>();
             Current = maxHealth;
         }
 
@@ -45,8 +50,11 @@ namespace ZombieShooter
         {
             if (!IsAlive || info.Amount <= 0f) return;
 
+            float amount = modifier != null ? modifier.Modify(info, info.Amount) : info.Amount;
+            if (amount <= 0f) return;
+
             LastDamage = info;
-            Current = Mathf.Max(0f, Current - info.Amount);
+            Current = Mathf.Max(0f, Current - amount);
             Damaged?.Invoke(info);
             Changed?.Invoke(Current, maxHealth);
 

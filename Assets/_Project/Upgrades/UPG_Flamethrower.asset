@@ -1,0 +1,214 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1456e13800fb3426c8f567a15c0d0c43, type: 3}
+  m_Name: UPG_Flamethrower
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.WeaponUpgradeTree
+  weapon: {fileID: 11400000, guid: 37acf1d7bc5d64f96aae7c9698ab83d8, type: 2}
+  paths:
+  - title: Wildfire
+    summary: Stops being a weapon you aim and becomes a shape you pour over the horde.
+    tiers:
+    - title: Pressurised
+      description: Reach 11m to 15m, damage per tick 7 to 9. The reach was the problem - it burned well and could not get near anything.
+      cost: 60
+      damage: 9
+      fireRate: -1
+      magazineSize: -1
+      reloadTime: -1
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      range: 15
+      coneHalfAngle: -1
+      chainBounces: -1
+      chainHopRange: -1
+      chainDamagePerHop: -1
+      blastRadius: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: Wide Burner
+      description: The cone opens from 26 to 38 degrees. It stops being a jet and starts being a wall.
+      cost: 150
+      damage: -1
+      fireRate: -1
+      magazineSize: -1
+      reloadTime: -1
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      range: -1
+      coneHalfAngle: 38
+      chainBounces: -1
+      chainHopRange: -1
+      chainDamagePerHop: -1
+      blastRadius: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: Backpack Tank
+      description: Fuel 100 to 200, reload 2.2s to 1.4s. Ten seconds of fire was never enough for a wave.
+      cost: 350
+      damage: -1
+      fireRate: -1
+      magazineSize: 200
+      reloadTime: 1.4
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      range: -1
+      coneHalfAngle: -1
+      chainBounces: -1
+      chainHopRange: -1
+      chainDamagePerHop: -1
+      blastRadius: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: White Heat
+      description: Damage per tick 9 to 16, and it burns faster - 600 to 750 ticks a minute. Fuel goes the same way.
+      cost: 800
+      damage: 16
+      fireRate: 750
+      magazineSize: -1
+      reloadTime: -1
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      range: -1
+      coneHalfAngle: -1
+      chainBounces: -1
+      chainHopRange: -1
+      chainDamagePerHop: -1
+      blastRadius: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: Firestorm
+      description: 50 degree cone, 18m reach, 22 damage a tick, and the fuel never runs out. Everything in front of you is on fire, and there is no front rank left to speak of.
+      cost: 2000
+      damage: 22
+      fireRate: -1
+      magazineSize: -1
+      reloadTime: -1
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      range: 18
+      coneHalfAngle: 50
+      chainBounces: -1
+      chainHopRange: -1
+      chainDamagePerHop: -1
+      blastRadius: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 1
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1

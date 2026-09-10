@@ -23,6 +23,9 @@ namespace ZombieShooter.EditorTools
         const string BarrelPrefabPath = Root + "/Prefabs/ExplosiveBarrel.prefab";
         const string ClaymorePrefabPath = Root + "/Prefabs/Claymore.prefab";
         const string WeaponProjectilePrefabPath = Root + "/Prefabs/WeaponProjectile.prefab";
+        const string BloaterPrefabPath = Root + "/Prefabs/Bloater.prefab";
+        const string ArmoredPrefabPath = Root + "/Prefabs/Armored.prefab";
+        const string SapperPrefabPath = Root + "/Prefabs/Sapper.prefab";
         const string DeployableDir = Root + "/Deployables";
         const string DeliveryDir = Root + "/Delivery";
         const string UpgradeDir = Root + "/Upgrades";
@@ -95,6 +98,9 @@ namespace ZombieShooter.EditorTools
 
             BuildRunnerPrefab();
             BuildRangedPrefab();
+            BuildBloaterPrefab();
+            BuildArmoredPrefab();
+            BuildSapperPrefab();
             LoadOrCreateDeliveries();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -109,15 +115,10 @@ namespace ZombieShooter.EditorTools
             var tracerMat = LoadMaterial("M_Tracer");
             var sparkMat = LoadMaterial("M_Spark");
             var brassMat = LoadMaterial("M_Brass");
-            var zombiePrefab = LoadZombiePrefab();
-            var brutePrefab = LoadBrutePrefab();
-            var runnerPrefab = LoadRunnerPrefab();
-            var rangedPrefab = LoadRangedPrefab();
-
             BuildEnvironment(groundMat, wallMat);
             var player = BuildPlayer(playerMat, gunMat, tracerMat, sparkMat, brassMat);
             BuildCamera(player.transform);
-            var waves = BuildManagers(player, zombiePrefab, brutePrefab, runnerPrefab, rangedPrefab, sparkMat);
+            var waves = BuildManagers(player, sparkMat);
             BuildHud(player, waves);
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -862,6 +863,139 @@ namespace ZombieShooter.EditorTools
             Object.DestroyImmediate(go);
         }
 
+        /// <summary>
+        /// The parts every melee archetype shares. A new one is this call plus whatever
+        /// component makes it different, rather than sixty lines copied and edited.
+        /// </summary>
+        static (GameObject go, Health health, ZombieAI ai) BuildMeleeArchetype(
+            string name, Material mat, Vector3 bodyScale, float controllerHeight,
+            float controllerRadius, float maxHealth, System.Action<Fields> configureAi)
+        {
+            var go = new GameObject(name);
+            go.transform.position = Vector3.zero;
+
+            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            body.name = "Body";
+            body.transform.SetParent(go.transform, false);
+            body.transform.localScale = bodyScale;
+            body.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(body.GetComponent<CapsuleCollider>());
+
+            var controller = go.AddComponent<CharacterController>();
+            controller.height = controllerHeight;
+            controller.radius = controllerRadius;
+            controller.center = Vector3.zero;
+            controller.stepOffset = 0.35f;
+
+            var health = go.AddComponent<Health>();
+            using (var f = new Fields(health)) f.F("maxHealth", maxHealth);
+
+            var ai = go.AddComponent<ZombieAI>();
+            using (var f = new Fields(ai))
+            {
+                f.Obj("deathClip", LoadClip("SFX_Death")).F("deathVolume", 0.45f);
+                configureAi(f);
+            }
+
+            var pop = go.AddComponent<DeathPop>();
+            using (var f = new Fields(pop))
+                f.Obj("health", health).F("duration", 0.18f).F("squash", 1.5f).F("spinDegrees", 120f);
+
+            var flash = go.AddComponent<HitFlash>();
+            using (var f = new Fields(flash))
+                f.Obj("health", health).Col("flashColor", Color.white).F("duration", 0.06f);
+
+            return (go, health, ai);
+        }
+
+        /// <summary>
+        /// Slow, fat, and lethal to stand next to when it dies. Exists to punish the
+        /// close-range weapons - shotgun, flamethrower - that answer everything else.
+        /// </summary>
+        static void BuildBloaterPrefab()
+        {
+            var (go, health, _) = BuildMeleeArchetype(
+                "Bloater", LoadMaterial("M_Brute"),
+                new Vector3(1.25f, 1.05f, 1.25f), 2.1f, 0.62f, 180f,
+                f => f.F("moveSpeed", 1.5f).F("turnSpeed", 220f)
+                      .F("separationRadius", 1.4f).F("separationStrength", 2.0f)
+                      .F("attackRange", 1.8f).F("attackDamage", 10f).F("attackCooldown", 1.3f)
+                      .I("scoreValue", 25).I("goldReward", 25)
+                      .F("knockbackForce", 2.2f).F("knockbackDecay", 14f)
+                      .F("deathLinger", 0.1f).F("killTrauma", 0.2f));
+
+            var burst = go.AddComponent<ExplodeOnDeath>();
+            using (var f = new Fields(burst))
+            {
+                f.F("radius", 4.5f).F("damage", 34f).F("edgeFalloff", 0.35f).F("trauma", 0.5f)
+                 .Obj("blastClip", LoadClip("SFX_Impact")).F("blastVolume", 0.7f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(go, BloaterPrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
+        /// <summary>
+        /// Plated at the front. Breaks the hold-the-trigger-and-back-away pattern that works
+        /// on everything else: it has to be flanked, pierced, or hit with a blast.
+        /// </summary>
+        static void BuildArmoredPrefab()
+        {
+            var (go, _, _) = BuildMeleeArchetype(
+                "Armored", LoadMaterial("M_Wall"),
+                new Vector3(1.0f, 1.0f, 1.0f), 1.9f, 0.46f, 140f,
+                f => f.F("moveSpeed", 2.1f).F("turnSpeed", 200f)
+                      .F("separationRadius", 1.1f).F("separationStrength", 2.2f)
+                      .F("attackRange", 1.6f).F("attackDamage", 14f).F("attackCooldown", 1.2f)
+                      .I("scoreValue", 30).I("goldReward", 30)
+                      .F("knockbackForce", 1.6f).F("knockbackDecay", 16f)
+                      .F("deathLinger", 0.2f).F("killTrauma", 0.16f));
+
+            // A plate you can see, so "shoot it from the side" is readable rather than a
+            // number the player has to infer from damage they cannot feel.
+            var plate = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            plate.name = "Plate";
+            plate.transform.SetParent(go.transform, false);
+            plate.transform.localPosition = new Vector3(0f, 0.1f, 0.42f);
+            plate.transform.localScale = new Vector3(0.95f, 1.1f, 0.18f);
+            plate.GetComponent<MeshRenderer>().sharedMaterial = LoadMaterial("M_Gun");
+            Object.DestroyImmediate(plate.GetComponent<BoxCollider>());
+
+            var armor = go.AddComponent<FrontalArmor>();
+            using (var f = new Fields(armor))
+                f.F("frontalMultiplier", 0.25f).F("arcHalfAngle", 70f);
+
+            PrefabUtility.SaveAsPrefabAsset(go, ArmoredPrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
+        /// <summary>
+        /// Goes for the walls, not for you. Makes a barricade something to defend rather than
+        /// something to hide behind.
+        /// </summary>
+        static void BuildSapperPrefab()
+        {
+            var (go, _, _) = BuildMeleeArchetype(
+                "Sapper", LoadMaterial("M_Ranged"),
+                new Vector3(0.85f, 0.9f, 0.85f), 1.7f, 0.38f, 70f,
+                f => f.F("moveSpeed", 3.4f).F("turnSpeed", 420f)
+                      .F("separationRadius", 0.95f).F("separationStrength", 2.0f)
+                      .F("attackRange", 1.4f).F("attackDamage", 7f).F("attackCooldown", 0.9f)
+                      // Four times as dangerous to a wall as to the player: 150 HP of
+                      // barricade falls in about five swings rather than twenty.
+                      .F("barricadeDamageMultiplier", 4f)
+                      .I("scoreValue", 20).I("goldReward", 20)
+                      .F("knockbackForce", 5f).F("knockbackDecay", 14f)
+                      .F("deathLinger", 0.18f).F("killTrauma", 0.12f));
+
+            var sapper = go.AddComponent<BarricadeSapper>();
+            using (var f = new Fields(sapper))
+                f.F("searchRadius", 26f).F("searchInterval", 0.6f);
+
+            PrefabUtility.SaveAsPrefabAsset(go, SapperPrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
         static void BuildRunnerPrefab()
         {
             var mat = LoadMaterial("M_Runner");
@@ -1099,8 +1233,7 @@ namespace ZombieShooter.EditorTools
 
         // ---------------------------------------------------------------- managers
 
-        static WaveManager BuildManagers(GameObject player, ZombieAI zombiePrefab, ZombieAI brutePrefab,
-            ZombieAI runnerPrefab, ZombieAI rangedPrefab, Material sparkMat)
+        static WaveManager BuildManagers(GameObject player, Material sparkMat)
         {
             var go = new GameObject("--- Systems ---");
 
@@ -1167,17 +1300,27 @@ namespace ZombieShooter.EditorTools
             var waves = go.AddComponent<WaveManager>();
             using (var f = new Fields(waves))
             {
-                f.Obj("zombiePrefab", zombiePrefab)
-                 .Obj("brutePrefab", brutePrefab)
-                 .Obj("runnerPrefab", runnerPrefab)
-                 .Obj("rangedPrefab", rangedPrefab)
-                 .Obj("player", player.transform)
+                f.Obj("player", player.transform)
                  .F("spawnRadius", 38f).F("minDistanceFromPlayer", 14f).F("spawnHeight", 1f)
                  .I("firstWaveCount", 5).F("countGrowth", 2.5f).I("maxAliveAtOnce", 60).I("finalWave", 15)
                  .Obj("bossPrefab", LoadBossPrefab()).F("bossArrivesAt", 0.4f)
-                 .F("timeBetweenSpawns", 0.45f)
-                 .I("bruteStartWave", 2).I("runnerStartWave", 3).I("rangedStartWave", 4);
+                 .F("timeBetweenSpawns", 0.45f);
             }
+
+            // The roster. Entry 0 is the baseline and the fallback; adding a twelfth
+            // archetype is a line here and a prefab, with no field and no branch anywhere.
+            // The first four reproduce the old hardcoded formula exactly, so pacing that was
+            // already play-tested is unchanged.
+            WriteSpawnTable(waves, new[]
+            {
+                (LoadEnemy(ZombiePrefabPath),   1, 10f, 0f,   10f),
+                (LoadEnemy(BrutePrefabPath),    2, 1.2f, 0.7f, 4.5f),
+                (LoadEnemy(RunnerPrefabPath),   3, 1.8f, 0.8f, 5.0f),
+                (LoadEnemy(RangedPrefabPath),   4, 1.4f, 0.6f, 4.0f),
+                (LoadEnemy(SapperPrefabPath),   4, 1.0f, 0.6f, 3.5f),
+                (LoadEnemy(BloaterPrefabPath),  5, 1.0f, 0.5f, 3.5f),
+                (LoadEnemy(ArmoredPrefabPath),  6, 0.9f, 0.5f, 3.2f),
+            });
 
             return waves;
         }
@@ -2274,59 +2417,42 @@ namespace ZombieShooter.EditorTools
             return clip;
         }
 
-        static ZombieAI LoadZombiePrefab()
+        /// <summary>
+        /// Writes the wave roster. Not a Fields call because SpawnEntry is a serialized class
+        /// rather than an object reference, so each field is reached through its relative
+        /// property.
+        /// </summary>
+        static void WriteSpawnTable(WaveManager waves,
+            (ZombieAI prefab, int startWave, float weight, float growth, float cap)[] entries)
         {
-            var go = AssetDatabase.LoadAssetAtPath<GameObject>(ZombiePrefabPath);
-            if (go == null)
+            var so = new SerializedObject(waves);
+            var table = so.FindProperty("spawnTable");
+            table.arraySize = entries.Length;
+
+            for (int i = 0; i < entries.Length; i++)
             {
-                Debug.LogError($"ArenaBuilder: no prefab at {ZombiePrefabPath}.");
-                return null;
+                var element = table.GetArrayElementAtIndex(i);
+                element.FindPropertyRelative("prefab").objectReferenceValue = entries[i].prefab;
+                element.FindPropertyRelative("startWave").intValue = entries[i].startWave;
+                element.FindPropertyRelative("weightAtStart").floatValue = entries[i].weight;
+                element.FindPropertyRelative("weightGrowthPerWave").floatValue = entries[i].growth;
+                element.FindPropertyRelative("weightCap").floatValue = entries[i].cap;
             }
 
-            var ai = go.GetComponent<ZombieAI>();
-            if (ai == null) Debug.LogError($"ArenaBuilder: {ZombiePrefabPath} has no ZombieAI component.");
-            return ai;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static ZombieAI LoadBrutePrefab()
+        static ZombieAI LoadEnemy(string path)
         {
-            var go = AssetDatabase.LoadAssetAtPath<GameObject>(BrutePrefabPath);
+            var go = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (go == null)
             {
-                Debug.LogError($"ArenaBuilder: no prefab at {BrutePrefabPath}.");
+                Debug.LogError($"ArenaBuilder: no prefab at {path}.");
                 return null;
             }
 
             var ai = go.GetComponent<ZombieAI>();
-            if (ai == null) Debug.LogError($"ArenaBuilder: {BrutePrefabPath} has no ZombieAI component.");
-            return ai;
-        }
-
-        static ZombieAI LoadRunnerPrefab()
-        {
-            var go = AssetDatabase.LoadAssetAtPath<GameObject>(RunnerPrefabPath);
-            if (go == null)
-            {
-                Debug.LogError($"ArenaBuilder: no prefab at {RunnerPrefabPath}.");
-                return null;
-            }
-
-            var ai = go.GetComponent<ZombieAI>();
-            if (ai == null) Debug.LogError($"ArenaBuilder: {RunnerPrefabPath} has no ZombieAI component.");
-            return ai;
-        }
-
-        static ZombieAI LoadRangedPrefab()
-        {
-            var go = AssetDatabase.LoadAssetAtPath<GameObject>(RangedPrefabPath);
-            if (go == null)
-            {
-                Debug.LogError($"ArenaBuilder: no prefab at {RangedPrefabPath}.");
-                return null;
-            }
-
-            var ai = go.GetComponent<ZombieAI>();
-            if (ai == null) Debug.LogError($"ArenaBuilder: {RangedPrefabPath} has no ZombieAI component.");
+            if (ai == null) Debug.LogError($"ArenaBuilder: {path} has no ZombieAI component.");
             return ai;
         }
 
@@ -2351,24 +2477,34 @@ namespace ZombieShooter.EditorTools
         static void Validate(WaveManager waves)
         {
             var so = new SerializedObject(waves);
-            var zombie = so.FindProperty("zombiePrefab");
-            var brute = so.FindProperty("brutePrefab");
-            var runner = so.FindProperty("runnerPrefab");
-            var ranged = so.FindProperty("rangedPrefab");
+            var table = so.FindProperty("spawnTable");
 
-            if (zombie == null || zombie.objectReferenceValue == null ||
-                brute == null || brute.objectReferenceValue == null ||
-                runner == null || runner.objectReferenceValue == null ||
-                ranged == null || ranged.objectReferenceValue == null)
+            if (table == null || table.arraySize == 0)
             {
-                Debug.LogError("<b>Zombie Shooter</b>: one or more enemy prefabs did NOT serialize onto " +
-                               "WaveManager - enemies will fail to spawn. This is a builder bug, not a " +
+                Debug.LogError("<b>Zombie Shooter</b>: the spawn table did NOT serialize onto " +
+                               "WaveManager - nothing will spawn. This is a builder bug, not a " +
                                "setup mistake; re-run the builder.", waves);
                 return;
             }
 
-            Debug.Log($"<b>Zombie Shooter</b>: arena built at {ScenePath}, all 4 enemy archetypes wired. " +
-                      "Press Play. WASD to move, mouse to aim, left click to fire, 1-4 to switch weapons, R to reload.");
+            // Every entry, not just the first: references not surviving serialization is the
+            // exact failure this check exists for, and one silently null archetype would
+            // otherwise just look like bad luck with the spawn weights.
+            for (int i = 0; i < table.arraySize; i++)
+            {
+                var prefab = table.GetArrayElementAtIndex(i).FindPropertyRelative("prefab");
+
+                if (prefab == null || prefab.objectReferenceValue == null)
+                {
+                    Debug.LogError($"<b>Zombie Shooter</b>: spawn table entry {i} has no prefab - " +
+                                   "that archetype will never appear. Re-run the builder.", waves);
+                    return;
+                }
+            }
+
+            Debug.Log($"<b>Zombie Shooter</b>: arena built at {ScenePath}, {table.arraySize} enemy " +
+                      "archetypes wired. Press Play. WASD to move, mouse to aim, left click to fire, " +
+                      "1-9 and 0 to switch weapons, R to reload, V for the pistol ultimate.");
         }
 
         static void RegisterInBuildSettings()

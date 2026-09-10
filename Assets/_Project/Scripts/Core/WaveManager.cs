@@ -12,10 +12,9 @@ namespace ZombieShooter
     public class WaveManager : MonoBehaviour
     {
         [Header("Spawning")]
-        [SerializeField] ZombieAI zombiePrefab;
-        [SerializeField] ZombieAI brutePrefab;
-        [SerializeField] ZombieAI runnerPrefab;
-        [SerializeField] ZombieAI rangedPrefab;
+        [Tooltip("Everything that can spawn, and when. Entry 0 is the horde baseline and is " +
+                 "used as the fallback wherever a prefab is missing.")]
+        [SerializeField] SpawnEntry[] spawnTable = new SpawnEntry[0];
         [SerializeField] Transform player;
         [Tooltip("Zombies appear on a ring this far from the arena centre.")]
         [SerializeField] float spawnRadius = 22f;
@@ -43,14 +42,6 @@ namespace ZombieShooter
                  "Part-way rather than immediately, so the wave establishes itself first.")]
         [SerializeField, Range(0f, 1f)] float bossArrivesAt = 0.4f;
 
-        [Header("Archetypes")]
-        [Tooltip("Wave index at which brutes begin spawning (1-indexed).")]
-        [SerializeField] int bruteStartWave = 2;
-        [Tooltip("Wave index at which runners begin spawning (1-indexed).")]
-        [SerializeField] int runnerStartWave = 3;
-        [Tooltip("Wave index at which ranged zombies begin spawning (1-indexed).")]
-        [SerializeField] int rangedStartWave = 4;
-
         readonly Dictionary<ZombieAI, Queue<ZombieAI>> pools = new();
         readonly List<ZombieAI> alive = new();
 
@@ -77,15 +68,17 @@ namespace ZombieShooter
             poolRoot = new GameObject("ZombiePool").transform;
             poolRoot.SetParent(transform, false);
 
-            if (zombiePrefab != null) pools[zombiePrefab] = new Queue<ZombieAI>();
-            if (brutePrefab != null) pools[brutePrefab] = new Queue<ZombieAI>();
-            if (runnerPrefab != null) pools[runnerPrefab] = new Queue<ZombieAI>();
-            if (rangedPrefab != null) pools[rangedPrefab] = new Queue<ZombieAI>();
+            for (int i = 0; i < spawnTable.Length; i++)
+            {
+                var prefab = spawnTable[i]?.prefab;
+                if (prefab != null && !pools.ContainsKey(prefab))
+                    pools[prefab] = new Queue<ZombieAI>();
+            }
         }
 
         void Start()
         {
-            if (zombiePrefab == null)
+            if (BaselinePrefab == null)
             {
                 Debug.LogError($"{nameof(WaveManager)}: no zombie prefab assigned.", this);
                 enabled = false;
@@ -238,36 +231,47 @@ namespace ZombieShooter
             alive.Add(zombie);
         }
 
+        /// <summary>
+        /// Rolls one enemy for this wave. Weights come from the table rather than a branch
+        /// per archetype: the old version needed a serialized field, a start-wave int and
+        /// three lines of formula for every type, which does not survive a roster of twelve.
+        /// </summary>
         ZombieAI PickPrefabForWave()
         {
-            // Standard zombie serves as the horde baseline
-            float standardWeight = 10f;
+            float total = 0f;
 
-            float bruteWeight = (brutePrefab != null && WaveNumber >= bruteStartWave)
-                ? Mathf.Min(1.2f + (WaveNumber - bruteStartWave) * 0.7f, 4.5f)
-                : 0f;
+            for (int i = 0; i < spawnTable.Length; i++)
+                total += WeightOf(spawnTable[i]);
 
-            float runnerWeight = (runnerPrefab != null && WaveNumber >= runnerStartWave)
-                ? Mathf.Min(1.8f + (WaveNumber - runnerStartWave) * 0.8f, 5.0f)
-                : 0f;
+            if (total <= 0f) return BaselinePrefab;
 
-            float rangedWeight = (rangedPrefab != null && WaveNumber >= rangedStartWave)
-                ? Mathf.Min(1.4f + (WaveNumber - rangedStartWave) * 0.6f, 4.0f)
-                : 0f;
-
-            float total = standardWeight + bruteWeight + runnerWeight + rangedWeight;
             float roll = UnityEngine.Random.value * total;
 
-            if (roll < bruteWeight) return brutePrefab;
-            roll -= bruteWeight;
+            for (int i = 0; i < spawnTable.Length; i++)
+            {
+                float weight = WeightOf(spawnTable[i]);
+                if (weight <= 0f) continue;
 
-            if (roll < runnerWeight) return runnerPrefab;
-            roll -= runnerWeight;
+                if (roll < weight) return spawnTable[i].prefab;
+                roll -= weight;
+            }
 
-            if (roll < rangedWeight) return rangedPrefab;
-
-            return zombiePrefab;
+            return BaselinePrefab;
         }
+
+        float WeightOf(SpawnEntry entry)
+        {
+            if (entry == null || entry.prefab == null) return 0f;
+            if (WaveNumber < entry.startWave) return 0f;
+
+            return Mathf.Min(
+                entry.weightAtStart + (WaveNumber - entry.startWave) * entry.weightGrowthPerWave,
+                entry.weightCap);
+        }
+
+        /// <summary>The horde baseline, and the fallback when anything else is missing.</summary>
+        ZombieAI BaselinePrefab =>
+            spawnTable != null && spawnTable.Length > 0 ? spawnTable[0]?.prefab : null;
 
         Vector3 PickSpawnPoint()
         {
@@ -292,7 +296,7 @@ namespace ZombieShooter
 
         ZombieAI Rent(ZombieAI prefab)
         {
-            if (prefab == null) prefab = zombiePrefab;
+            if (prefab == null) prefab = BaselinePrefab;
 
             if (pools.TryGetValue(prefab, out var queue) && queue.Count > 0)
                 return queue.Dequeue();
@@ -314,7 +318,7 @@ namespace ZombieShooter
             zombie.gameObject.SetActive(false);
             zombie.transform.SetParent(poolRoot, false);
 
-            var source = zombie.PrefabSource ?? zombiePrefab;
+            var source = zombie.PrefabSource ?? BaselinePrefab;
             if (source != null)
             {
                 if (!pools.TryGetValue(source, out var queue))
