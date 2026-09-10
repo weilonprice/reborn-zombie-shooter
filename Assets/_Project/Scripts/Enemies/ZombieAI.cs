@@ -101,12 +101,22 @@ namespace ZombieShooter
         public void SetBarricadeDamageMultiplier(float value) => barricadeDamageMultiplier = value;
 
         IEnemySteerOverride steerOverride;
+        IEnemyMotionOverride motionOverride;
+        IDeathInterceptor deathInterceptor;
+
+        /// <summary>
+        /// Scales move speed without overwriting it, so a buff can be applied and lifted
+        /// without needing to remember what the enemy's own speed was.
+        /// </summary>
+        public float SpeedMultiplier { get; set; } = 1f;
 
         void Awake()
         {
             controller = GetComponent<CharacterController>();
             health = GetComponent<Health>();
             steerOverride = GetComponent<IEnemySteerOverride>();
+            motionOverride = GetComponent<IEnemyMotionOverride>();
+            deathInterceptor = GetComponent<IDeathInterceptor>();
         }
 
         void OnEnable()
@@ -115,6 +125,7 @@ namespace ZombieShooter
             health.Died += OnDied;
             health.Damaged += OnDamaged;
             verticalVelocity = 0f;
+            SpeedMultiplier = 1f;
             nextAttackTime = 0f;
             knockback = Vector3.zero;
             dying = false;
@@ -160,7 +171,10 @@ namespace ZombieShooter
 
             blockingBarricade = !isRanged ? CheckForBlockingBarricade() : null;
 
-            Steer(toTarget, distance, useField);
+            // An archetype driving itself - mid-leap, say - has already moved this frame, and
+            // running the ordinary path on top would pin it back to the ground.
+            if (motionOverride == null || !motionOverride.MoveSelf(Time.deltaTime))
+                Steer(toTarget, distance, useField);
 
             if (distance <= attackRange)
             {
@@ -236,7 +250,7 @@ namespace ZombieShooter
 
             if (move.sqrMagnitude > 1f) move.Normalize();
 
-            var horizontal = move * moveSpeed + knockback;
+            var horizontal = move * (moveSpeed * SpeedMultiplier) + knockback;
             knockback = Vector3.MoveTowards(knockback, Vector3.zero, knockbackDecay * Time.deltaTime);
 
             if (controller.isGrounded && verticalVelocity < 0f) verticalVelocity = -2f;
@@ -321,6 +335,11 @@ namespace ZombieShooter
         void OnDied(Health _)
         {
             if (dying) return;
+
+            // Asked before anything else happens. A revive after the payout, the collider
+            // disable and the queued despawn would mean unpicking all three.
+            if (deathInterceptor != null && deathInterceptor.TryPreventDeath()) return;
+
             dying = true;
 
             GameManager.Instance?.AddScore(scoreValue);

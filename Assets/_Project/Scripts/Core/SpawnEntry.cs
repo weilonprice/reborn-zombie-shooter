@@ -25,5 +25,10 @@ namespace ZombieShooter
         public float weightGrowthPerWave = 0.7f;
         [Tooltip("Ceiling, so a late wave cannot become entirely one archetype.")]
         public float weightCap = 4.5f;
+
+        [Tooltip("How many arrive together when this entry is rolled. Above 1 the archetype " +
+                 "reads as a pack rather than as a stream, and it counts as that many toward " +
+                 "the wave's total.")]
+        public int groupSize = 1;
     }
 }

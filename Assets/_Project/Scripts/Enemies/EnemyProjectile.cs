@@ -15,6 +15,8 @@ namespace ZombieShooter
         [SerializeField] float maxLifetime = 4f;
         [SerializeField] float radius = 0.25f;
         [SerializeField] LayerMask hitMask = ~0;
+        [Tooltip("Optional. Left behind where the projectile lands - the spitter's acid.")]
+        [SerializeField] GameObject impactSpawn;
         [SerializeField] AudioClip impactClip;
         [SerializeField, Range(0f, 1f)] float impactVolume = 0.45f;
 
@@ -94,6 +96,14 @@ namespace ZombieShooter
                     }
 
                     ImpactEffects.Instance?.PlayImpact(hit.point, hit.normal);
+                    if (impactSpawn != null)
+                    {
+                        // Dropped on the floor plane rather than at the hit point, or a shot
+                        // that clipped a shoulder would leave a puddle in mid air.
+                        var ground = new Vector3(hit.point.x, 0.03f, hit.point.z);
+                        Instantiate(impactSpawn, ground, Quaternion.identity);
+                    }
+
                     if (impactClip != null)
                         SfxPlayer.Instance?.PlayAt(impactClip, hit.point, impactVolume);
 

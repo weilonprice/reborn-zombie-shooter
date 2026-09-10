@@ -26,6 +26,13 @@ namespace ZombieShooter.EditorTools
         const string BloaterPrefabPath = Root + "/Prefabs/Bloater.prefab";
         const string ArmoredPrefabPath = Root + "/Prefabs/Armored.prefab";
         const string SapperPrefabPath = Root + "/Prefabs/Sapper.prefab";
+        const string LeaperPrefabPath = Root + "/Prefabs/Leaper.prefab";
+        const string ScreamerPrefabPath = Root + "/Prefabs/Screamer.prefab";
+        const string RevenantPrefabPath = Root + "/Prefabs/Revenant.prefab";
+        const string CrawlerPrefabPath = Root + "/Prefabs/Crawler.prefab";
+        const string SpitterPrefabPath = Root + "/Prefabs/Spitter.prefab";
+        const string AcidPoolPrefabPath = Root + "/Prefabs/AcidPool.prefab";
+        const string AcidProjectilePrefabPath = Root + "/Prefabs/AcidProjectile.prefab";
         const string DeployableDir = Root + "/Deployables";
         const string DeliveryDir = Root + "/Delivery";
         const string UpgradeDir = Root + "/Upgrades";
@@ -101,6 +108,12 @@ namespace ZombieShooter.EditorTools
             BuildBloaterPrefab();
             BuildArmoredPrefab();
             BuildSapperPrefab();
+            BuildLeaperPrefab();
+            BuildScreamerPrefab();
+            BuildRevenantPrefab();
+            BuildCrawlerPrefab();
+            BuildAcidPrefabs();
+            BuildSpitterPrefab();
             LoadOrCreateDeliveries();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -996,6 +1009,184 @@ namespace ZombieShooter.EditorTools
             Object.DestroyImmediate(go);
         }
 
+        /// <summary>Vaults walls. A barricade buys time against this one, never safety.</summary>
+        static void BuildLeaperPrefab()
+        {
+            var (go, _, _) = BuildMeleeArchetype(
+                "Leaper", LoadMaterial("M_Runner"),
+                new Vector3(0.78f, 0.86f, 0.78f), 1.7f, 0.36f, 60f,
+                f => f.F("moveSpeed", 3.8f).F("turnSpeed", 460f)
+                      .F("separationRadius", 0.95f).F("separationStrength", 2.0f)
+                      .F("attackRange", 1.4f).F("attackDamage", 9f).F("attackCooldown", 0.85f)
+                      .I("scoreValue", 22).I("goldReward", 20)
+                      .F("knockbackForce", 5.2f).F("knockbackDecay", 14f)
+                      .F("deathLinger", 0.18f).F("killTrauma", 0.12f));
+
+            var legs = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            legs.name = "Haunches";
+            legs.transform.SetParent(go.transform, false);
+            legs.transform.localPosition = new Vector3(0f, -0.35f, -0.18f);
+            legs.transform.localScale = new Vector3(0.6f, 0.3f, 0.5f);
+            legs.GetComponent<MeshRenderer>().sharedMaterial = LoadMaterial("M_Runner");
+            Object.DestroyImmediate(legs.GetComponent<BoxCollider>());
+
+            var leap = go.AddComponent<BarricadeLeaper>();
+            using (var f = new Fields(leap))
+            {
+                f.F("triggerRange", 3f).F("overshoot", 2.2f)
+                 .F("leapSeconds", 0.65f).F("leapHeight", 2.6f).F("cooldown", 2.5f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(go, LeaperPrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
+        /// <summary>Drives the pack faster while it lives. A target you have to pick out.</summary>
+        static void BuildScreamerPrefab()
+        {
+            var (go, _, _) = BuildMeleeArchetype(
+                "Screamer", LoadMaterial("M_Ranged"),
+                new Vector3(0.9f, 1.15f, 0.9f), 2.0f, 0.4f, 55f,
+                f => f.F("moveSpeed", 2.0f).F("turnSpeed", 300f)
+                      .F("separationRadius", 1.1f).F("separationStrength", 2.4f)
+                      .F("attackRange", 1.5f).F("attackDamage", 5f).F("attackCooldown", 1.4f)
+                      .I("scoreValue", 35).I("goldReward", 35)
+                      .F("knockbackForce", 5.5f).F("knockbackDecay", 14f)
+                      .F("deathLinger", 0.16f).F("killTrauma", 0.14f));
+
+            // Deliberately tall and thin. It has to be pickable out of a crowd at a glance,
+            // or "kill that one first" is not a decision the player can actually act on.
+            var horn = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            horn.name = "Maw";
+            horn.transform.SetParent(go.transform, false);
+            horn.transform.localPosition = new Vector3(0f, 0.62f, 0.12f);
+            horn.transform.localScale = new Vector3(0.42f, 0.42f, 0.42f);
+            horn.GetComponent<MeshRenderer>().sharedMaterial = LoadMaterial("M_Placement_Invalid");
+            Object.DestroyImmediate(horn.GetComponent<BoxCollider>());
+
+            var aura = go.AddComponent<HordeAura>();
+            using (var f = new Fields(aura))
+                f.F("radius", 12f).F("speedMultiplier", 1.5f).F("tickInterval", 0.25f);
+
+            PrefabUtility.SaveAsPrefabAsset(go, ScreamerPrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
+        /// <summary>Gets up once. Punishes the habit every other archetype teaches.</summary>
+        static void BuildRevenantPrefab()
+        {
+            var (go, _, _) = BuildMeleeArchetype(
+                "Revenant", LoadMaterial("M_Zombie"),
+                new Vector3(0.95f, 1.0f, 0.95f), 1.9f, 0.44f, 90f,
+                f => f.F("moveSpeed", 2.4f).F("turnSpeed", 340f)
+                      .F("separationRadius", 1.1f).F("separationStrength", 2.2f)
+                      .F("attackRange", 1.6f).F("attackDamage", 11f).F("attackCooldown", 1.1f)
+                      .I("scoreValue", 28).I("goldReward", 28)
+                      .F("knockbackForce", 4f).F("knockbackDecay", 14f)
+                      .F("deathLinger", 0.2f).F("killTrauma", 0.14f));
+
+            var revenant = go.AddComponent<Revenant>();
+            using (var f = new Fields(revenant))
+            {
+                f.F("reviveFraction", 0.45f).I("revivesPerLife", 1)
+                 .Col("revivedTint", new Color(0.85f, 0.25f, 0.75f));
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(go, RevenantPrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
+        /// <summary>Arrives as a pack. Stresses crowd clear and the flow field at once.</summary>
+        static void BuildCrawlerPrefab()
+        {
+            var (go, _, _) = BuildMeleeArchetype(
+                "Crawler", LoadMaterial("M_Runner"),
+                new Vector3(0.5f, 0.4f, 0.5f), 0.9f, 0.26f, 22f,
+                f => f.F("moveSpeed", 5.4f).F("turnSpeed", 560f)
+                      .F("separationRadius", 0.55f).F("separationStrength", 1.4f)
+                      .F("attackRange", 1.1f).F("attackDamage", 4f).F("attackCooldown", 0.6f)
+                      .I("scoreValue", 8).I("goldReward", 6)
+                      .F("knockbackForce", 7.5f).F("knockbackDecay", 15f)
+                      .F("deathLinger", 0.1f).F("killTrauma", 0.06f));
+
+            PrefabUtility.SaveAsPrefabAsset(go, CrawlerPrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
+        /// <summary>
+        /// The acid pool and the projectile that leaves it. Built together because the
+        /// projectile is useless without the thing it drops.
+        /// </summary>
+        static void BuildAcidPrefabs()
+        {
+            var mat = LoadMaterial("M_Placement_Invalid");
+
+            var pool = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            pool.name = "AcidPool";
+            pool.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(pool.GetComponent<CapsuleCollider>());
+
+            var acid = pool.AddComponent<AcidPool>();
+            using (var f = new Fields(acid))
+            {
+                f.F("radius", 2.6f).F("damagePerSecond", 14f)
+                 .F("lifetime", 6f).F("tickInterval", 0.5f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(pool, AcidPoolPrefabPath);
+            Object.DestroyImmediate(pool);
+
+            var go = new GameObject("AcidProjectile");
+            var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            sphere.name = "Model";
+            sphere.transform.SetParent(go.transform, false);
+            sphere.transform.localScale = Vector3.one * 0.4f;
+            sphere.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            Object.DestroyImmediate(sphere.GetComponent<SphereCollider>());
+
+            var projectile = go.AddComponent<EnemyProjectile>();
+            using (var f = new Fields(projectile))
+            {
+                f.F("speed", 11f).F("maxLifetime", 4.5f).F("radius", 0.28f)
+                 .Obj("impactSpawn", AssetDatabase.LoadAssetAtPath<GameObject>(AcidPoolPrefabPath))
+                 .Obj("impactClip", LoadClip("SFX_Impact")).F("impactVolume", 0.4f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(go, AcidProjectilePrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
+        /// <summary>Denies ground. The answer to holding one spot behind a wall.</summary>
+        static void BuildSpitterPrefab()
+        {
+            var (go, _, ai) = BuildMeleeArchetype(
+                "Spitter", LoadMaterial("M_Ranged"),
+                new Vector3(0.92f, 0.95f, 0.92f), 1.8f, 0.42f, 65f,
+                // attackRange gates the ranged attack too, so it has to exceed preferredRange
+                // or the spitter would walk to 15m, stop, and never fire. attackDamage IS the
+                // projectile's damage - there is no separate field.
+                f => f.F("moveSpeed", 1.9f).F("turnSpeed", 320f)
+                      .F("separationRadius", 1.1f).F("separationStrength", 2.2f)
+                      .F("attackRange", 17f).F("attackDamage", 9f).F("attackCooldown", 2.6f)
+                      .I("scoreValue", 30).I("goldReward", 30)
+                      .F("knockbackForce", 5f).F("knockbackDecay", 14f)
+                      .F("deathLinger", 0.18f).F("killTrauma", 0.14f));
+
+            // Reuses the ranged behaviour wholesale - it keeps its distance and lobs. The
+            // only difference from a Ranged zombie is what its projectile leaves behind.
+            using (var f = new Fields(ai))
+            {
+                f.B("isRanged", true).F("preferredRange", 15f)
+                 .Obj("projectilePrefab",
+                      AssetDatabase.LoadAssetAtPath<GameObject>(AcidProjectilePrefabPath)
+                          ?.GetComponent<EnemyProjectile>())
+                 .Obj("shootClip", LoadClip("SFX_Impact")).F("shootVolume", 0.4f);
+            }
+
+            PrefabUtility.SaveAsPrefabAsset(go, SpitterPrefabPath);
+            Object.DestroyImmediate(go);
+        }
+
         static void BuildRunnerPrefab()
         {
             var mat = LoadMaterial("M_Runner");
@@ -1320,6 +1511,11 @@ namespace ZombieShooter.EditorTools
                 (LoadEnemy(SapperPrefabPath),   4, 1.0f, 0.6f, 3.5f),
                 (LoadEnemy(BloaterPrefabPath),  5, 1.0f, 0.5f, 3.5f),
                 (LoadEnemy(ArmoredPrefabPath),  6, 0.9f, 0.5f, 3.2f),
+                (LoadEnemy(LeaperPrefabPath),   5, 1.0f, 0.5f, 3.4f),
+                (LoadEnemy(ScreamerPrefabPath), 6, 0.7f, 0.3f, 2.0f),
+                (LoadEnemy(RevenantPrefabPath), 7, 0.9f, 0.5f, 3.2f),
+                (LoadEnemy(SpitterPrefabPath),  7, 0.9f, 0.5f, 3.0f),
+                (LoadEnemy(CrawlerPrefabPath),  3, 1.4f, 0.7f, 4.2f),
             });
 
             return waves;
