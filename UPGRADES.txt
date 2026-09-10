@@ -3,7 +3,7 @@ Snapshot of what is actually IN the build. Not a design document - if it is
 written here, it exists in code and has been compiled. Ideas that have been
 discussed but not built are listed at the bottom, clearly separated.
 
-Last updated: 2026-09-10, after one weapon per firing mode landed.
+Last updated: 2026-09-10. Weapon roster complete at ten, one path each.
 
 EVERYTHING HERE IS SUBJECT TO CHANGE, AND NONE OF IT HAS BEEN PLAY-TESTED.
 Numbers in particular are first drafts. The tiers were designed against the
@@ -126,7 +126,7 @@ bugs before balance problems.
 
 
 ===============================================================================
-AUTHORED PATHS - 7 OF 10
+AUTHORED PATHS - 10 OF 10
 ===============================================================================
 
 -------------------------------------------------------------------------------
@@ -319,75 +319,71 @@ T5  BOMBARDIER          2000    Five shells at 150 over a 7m blast, 12 in the
 
 
 -------------------------------------------------------------------------------
-NOT YET BUILT - 3 OF 10
+SMG - "ADRENALINE"                                                120 gold
 -------------------------------------------------------------------------------
-Roster drafted 2026-09-09. All four firing modes now exist (hitscan, cone,
-chain, projectile), so each of these is a definition asset, a catalogue entry
-and a path helper. The Nail Gun's pinning is the one exception - that is an
-upgrade behaviour for its path, not delivery infrastructure.
+Summary: momentum you have to keep earning. Stop killing and it drains away.
+Base: 14 dmg, 900 RPM, 40 mag, 320 reserve, 1.5s reload, 3.4 spread.
 
-NONE of the cone, chain or projectile modes has ever executed - no weapon
-references them yet. The first weapon built on each mode is really a test of
-that mode, so build one per mode before building two.
+T1  HAIR TRIGGER          60    1050 RPM, spread 3.4 to 2.6.
+T2  ADRENALINE           150    Kills stack 4% move speed AND 4% fire rate, to
+                                eight. A stack lasts 4s without another kill.
+T3  DEEP MAG             350    Damage 19, magazine 60, reload 1.1s.
+T4  OVERDRIVE            800    Stacks to fifteen, holding six seconds.
+T5  REDLINE             2000    Damage 28, 5% per stack to twenty - double
+                                speed and double rate while the chain lives.
+                                Reserve never runs dry.
 
-  SMG            120   Mobility.      "Adrenaline" - kills stack speed and
-                                      fire rate, standing still bleeds it away.
-  NAIL GUN       180   Fortification. "Lawman" - repairs barricades by
-                                      shooting them, pins enemies to walls,
-                                      and at T5 every barricade mounts a
-                                      turret. The ONLY weapon that touches the
-                                      fortification pillar.
-  SIPHON RIFLE   380   Sustain.       "Reaper" - kills heal, damage scales
-                                      with missing health, and once a wave
-                                      lethal damage leaves you at 1 HP.
-                                      The ONLY healing in the entire game.
+    Stacks lapse on a TIMER, not on standing still. A velocity check would
+    punish backing off round a corner, which is what the weapon wants you
+    doing. It is also the only weapon that touches player move speed.
 
 
-===============================================================================
-OTHER ARMORY PURCHASES (not upgrades, but they spend the same gold)
-===============================================================================
+-------------------------------------------------------------------------------
+NAIL GUN - "LAWMAN"                                               180 gold
+-------------------------------------------------------------------------------
+Summary: the only weapon that would rather you were shooting your own wall.
+Base: 26 dmg, 260 RPM, 24 mag, 200 reserve, 1.6s reload. HITSCAN - see below.
 
-  Ammo crate        50   (refills every reserve)
-  Barricade         40
-  Explosive barrel  60
-  Claymore          75
+T1  FIELD REPAIR          60    Nails in your own barricade mend it 22 a hit
+                                instead of passing through.
+T2  PINNING SHOT         150    Hits hold an enemy still 0.4s. Damage 32.
+T3  FRAMING NAILER       350    400 RPM, magazine 40, repair 35.
+T4  REBAR                800    Damage 45, pins 0.8s, repair 50.
+T5  LAWMAN              2000    Every barricade you place mounts a turret
+                                firing this weapon at a third its rate.
+                                Damage 60, repair 70, endless reserve.
 
-Weapon prices live on WeaponDefinition and deployable prices on
-DeployableDefinition. ArmoryPrices.asset is down to the ammo crate alone - the
-only purchasable that is not an object someone owns.
+    HITSCAN ON PURPOSE, and it is mechanical rather than flavour.
+    WeaponProjectile carries its own damage and never calls Weapon.ApplyShot,
+    where repair and pinning live - a projectile nail gun would have had a
+    completely inert path. See debt 20 before giving any weapon a projectile
+    delivery if its upgrades do anything on hit beyond damage.
+
+    The turret sits dormant on every barricade prefab and switches itself on
+    while a carried weapon grants it, so DeployablePlacer never learns that
+    upgrades exist.
 
 
-===============================================================================
-HOW TO ADD TO THIS
-===============================================================================
+-------------------------------------------------------------------------------
+SIPHON RIFLE - "REAPER"                                           380 gold
+-------------------------------------------------------------------------------
+Summary: the only healing in the game, and it only pays while you are winning.
+Base: 40 dmg, 260 RPM, 20 mag, 140 reserve, 1.9s reload, pierce 1.
 
-A new TIER or a whole new PATH is pure data: add an UpgradeTier to the path
-helper in ArenaBuilder (GunslingerPath, StreetsweeperPath, MarksmanPath,
-ExecutionerPath) and re-run the builder. No code.
+T1  BLOOD MONEY           60    Kills restore 2 health.
+T2  DEATHWISH            150    Up to +50% damage as health falls.
+T3  HARVEST              350    Kills restore 5. Damage 52, magazine 30.
+T4  PALE HORSE           800    Up to +120% at the edge of death, kills
+                                restore 8.
+T5  SECOND LIFE         2000    Once a wave a killing blow leaves you at 1
+                                health - where you also hit hardest. Damage
+                                70, kills restore 12.
 
-A new WEAPON is a definition asset, a catalogue entry in ArenaBuilder, and a
-path helper. If it does not fire like a rifle, it also needs a delivery asset
-on the definition - the four modes above cover everything on the roster.
-
-A new FIRING MODE is a WeaponDelivery subclass plus an asset. Nothing else
-changes: Weapon does not learn about it, and every upgrade behaviour keeps
-working.
-
-A new KIND of effect is not. It costs a field on UpgradeTier, a member on
-WeaponStats, a line in UpgradeManager.Apply, and a branch in the firing path.
-UpgradeTier carries around 30 fields for this reason. That is Tech Debt #17,
-deliberately unfixed. Four paths in, there is a distinction the count hides:
-of the seven fields the shotgun, rifle and sniper paths needed, three were
-plain stat overrides that should have existed from the start (pelletCount,
-spread, penetrationFalloff) and only Focus was a genuinely new mechanic. The
-abstraction to design is narrower than 30 fields suggests.
-
-The tier data assets (Assets/_Project/Upgrades/UPG_*.asset) are generated
-by the builder under a create-if-missing contract: it is written once and
-never overwritten, so hand-tuning survives a rebuild. The consequence is that
-CHANGING AUTHORED TIERS IN CODE REQUIRES DELETING THE ASSET FIRST, or the
-builder will keep the stale version with no error. This has already caused
-one near-miss where a regenerated asset held a design we had replaced.
+    Damage scales with health LOST rather than remaining, so it pays out
+    exactly when the lifesteal is most needed.
+    T5 is a death INTERCEPTOR, not a revive: no death ever happens, so the
+    run-over screen, the score tally and the wave loop never see it. The hook
+    lives on Health, so enemies and the player share it.
 
 
 ===============================================================================

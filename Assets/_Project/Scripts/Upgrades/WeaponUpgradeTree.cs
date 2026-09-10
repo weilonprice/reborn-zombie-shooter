@@ -99,6 +99,32 @@ namespace ZombieShooter
                  "fanMaxSpread. -1 leaves it alone.")]
         public float sustainedSpreadMin = -1f;
 
+        [Header("Adrenaline")]
+        [Tooltip("Move speed added per kill, as a fraction. Lapses if you stop killing.")]
+        public float killSpeedBonus = -1f;
+        [Tooltip("Fire rate added per kill, as a fraction.")]
+        public float killFireRateBonus = -1f;
+        [Tooltip("Ceiling on stacked kills.")]
+        public int killStackMax = -1;
+        [Tooltip("Seconds a stack survives without another kill.")]
+        public float killStackSeconds = -1f;
+
+        [Header("Lawman")]
+        [Tooltip("Health restored to your own barricade when you shoot it. 0 for none.")]
+        public float barricadeRepair = -1f;
+        [Tooltip("Seconds a hit enemy is pinned in place. 0 for none.")]
+        public float pinSeconds = -1f;
+        [Tooltip("Barricades you place mount a turret firing this weapon.")]
+        public bool grantsBarricadeTurret;
+
+        [Header("Reaper")]
+        [Tooltip("Health restored per kill. 0 for none.")]
+        public float lifestealPerKill = -1f;
+        [Tooltip("Extra damage at 1 HP, as a fraction, scaling with health lost.")]
+        public float missingHealthDamageBonus = -1f;
+        [Tooltip("Times a wave that a lethal hit leaves you at 1 HP instead.")]
+        public int revivesPerWave = -1;
+
         [Header("Executioner")]
         [Tooltip("Fraction of max health at or below which a hit is simply lethal. -1 for none.")]
         public float executeThreshold = -1f;

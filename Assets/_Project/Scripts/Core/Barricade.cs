@@ -65,6 +65,29 @@ namespace ZombieShooter
 
         public bool IsAlive => currentHealth > 0f && !isDestroyed;
         public float CurrentHealth => currentHealth;
+
+        /// <summary>
+        /// Mends the wall. Returns how much was actually restored, so a weapon can tell the
+        /// difference between a useful shot and one spent on an undamaged plank.
+        /// </summary>
+        public float Repair(float amount)
+        {
+            if (isDestroyed || amount <= 0f) return 0f;
+
+            float before = currentHealth;
+            currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
+
+            float restored = currentHealth - before;
+            if (restored <= 0f) return 0f;
+
+            if (healthBarFill != null)
+                healthBarFill.localScale = new Vector3(Mathf.Clamp01(currentHealth / maxHealth), 1f, 1f);
+
+            if (healthBarRoot != null && currentHealth >= maxHealth)
+                healthBarRoot.gameObject.SetActive(false);
+
+            return restored;
+        }
         public float MaxHealth => maxHealth;
 
         public event Action<Barricade> Destroyed;

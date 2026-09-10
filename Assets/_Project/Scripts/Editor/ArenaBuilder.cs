@@ -381,6 +381,13 @@ namespace ZombieShooter.EditorTools
                  .F("openingTrauma", 0.5f);
             }
 
+            var lastStand = player.AddComponent<LastStand>();
+            using (var f = new Fields(lastStand))
+            {
+                f.F("survivingHealth", 1f).F("slowMotionSeconds", 0.9f)
+                 .F("slowMotionScale", 0.3f);
+            }
+
             var placer = player.AddComponent<DeployablePlacer>();
             using (var f = new Fields(placer))
             {
@@ -1411,6 +1418,15 @@ namespace ZombieShooter.EditorTools
                  .F("hitVolume", 0.55f).F("breakVolume", 0.75f);
             }
 
+            // Dormant on every wall. It switches itself on only while a carried weapon's
+            // upgrades grant it, so the placer never has to know about upgrades at all.
+            var turret = go.AddComponent<BarricadeTurret>();
+            using (var f = new Fields(turret))
+            {
+                f.F("range", 18f).F("rateFraction", 0.34f).F("damageFraction", 1f)
+                 .F("tracerWidth", 0.05f).F("tracerDuration", 0.05f);
+            }
+
             PrefabUtility.SaveAsPrefabAsset(go, BarricadePrefabPath);
             Object.DestroyImmediate(go);
         }
@@ -2197,7 +2213,51 @@ namespace ZombieShooter.EditorTools
                 .F("tracerWidth", 0f).F("tracerDuration", 0f).I("shellsPerShot", 1)
                 .Obj("delivery", LoadDelivery("DLV_Grenade")));
 
-            return new[] { pistol, shotgun, assault, sniper, flamethrower, tesla, grenade };
+            var smg = LoadOrCreateWeapon("WPN_SMG", f => f
+                .Str("displayName", "SMG").I("cost", 120)
+                .F("damage", 14f).F("fireRate", 900f).F("range", 32f).F("spread", 3.4f)
+                .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.Automatic)
+                .I("tags", (int)WeaponTags.None)
+                .I("pierceCount", 0).F("penetrationFalloff", 0.6f)
+                .I("magazineSize", 40).I("maxReserveAmmo", 320).F("reloadTime", 1.5f)
+                .F("fireTrauma", 0.045f).F("recoilKick", 0.03f).F("knockbackMultiplier", 0.5f)
+                .Obj("fireClip", gunshot).Obj("impactClip", impact)
+                .F("fireVolume", 0.32f).F("impactVolume", 0.3f)
+                .F("tracerWidth", 0.055f).F("tracerDuration", 0.035f).I("shellsPerShot", 1));
+
+            // Hitscan, not a projectile, and that is a mechanical requirement rather than a
+            // flavour choice: WeaponProjectile carries its own damage and never calls back
+            // into Weapon.ApplyShot (debt 20), which is where repairing and pinning live. A
+            // projectile nail gun would have had an entirely inert upgrade path.
+            var nailGun = LoadOrCreateWeapon("WPN_NailGun", f => f
+                .Str("displayName", "Nail Gun").I("cost", 180)
+                .F("damage", 26f).F("fireRate", 260f).F("range", 30f).F("spread", 1.6f)
+                .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.Automatic)
+                .I("tags", (int)WeaponTags.None)
+                .I("pierceCount", 0).F("penetrationFalloff", 1f)
+                .I("magazineSize", 24).I("maxReserveAmmo", 200).F("reloadTime", 1.6f)
+                .F("fireTrauma", 0.05f).F("recoilKick", 0.03f).F("knockbackMultiplier", 0.6f)
+                .Obj("fireClip", gunshot).Obj("impactClip", impact)
+                .F("fireVolume", 0.34f).F("impactVolume", 0.3f)
+                .F("tracerWidth", 0.05f).F("tracerDuration", 0.04f).I("shellsPerShot", 0));
+
+            var siphon = LoadOrCreateWeapon("WPN_SiphonRifle", f => f
+                .Str("displayName", "Siphon Rifle").I("cost", 380)
+                .F("damage", 40f).F("fireRate", 260f).F("range", 45f).F("spread", 1.4f)
+                .I("pelletsPerShot", 1).E("fireMode", (int)FireMode.Automatic)
+                .I("tags", (int)WeaponTags.None)
+                .I("pierceCount", 1).F("penetrationFalloff", 0.7f)
+                .I("magazineSize", 20).I("maxReserveAmmo", 140).F("reloadTime", 1.9f)
+                .F("fireTrauma", 0.1f).F("recoilKick", 0.05f).F("knockbackMultiplier", 0.9f)
+                .Obj("fireClip", gunshot).Obj("impactClip", impact)
+                .F("fireVolume", 0.42f).F("impactVolume", 0.38f)
+                .F("tracerWidth", 0.08f).F("tracerDuration", 0.06f).I("shellsPerShot", 1));
+
+            return new[]
+            {
+                pistol, shotgun, assault, sniper, flamethrower, tesla, grenade,
+                smg, nailGun, siphon,
+            };
         }
 
         /// <summary>
@@ -2266,6 +2326,9 @@ namespace ZombieShooter.EditorTools
                 LoadOrCreateTree("UPG_Flamethrower", arsenal[4] as WeaponDefinition, WildfirePath()),
                 LoadOrCreateTree("UPG_TeslaCoil", arsenal[5] as WeaponDefinition, StormPath()),
                 LoadOrCreateTree("UPG_GrenadeLauncher", arsenal[6] as WeaponDefinition, BombardierPath()),
+                LoadOrCreateTree("UPG_SMG", arsenal[7] as WeaponDefinition, AdrenalinePath()),
+                LoadOrCreateTree("UPG_NailGun", arsenal[8] as WeaponDefinition, LawmanPath()),
+                LoadOrCreateTree("UPG_SiphonRifle", arsenal[9] as WeaponDefinition, ReaperPath()),
             };
         }
 
@@ -2500,6 +2563,111 @@ namespace ZombieShooter.EditorTools
                 magazineSize = 12, reloadTime = 1.1f,
             });
 
+        static WeaponUpgradePath AdrenalinePath() => UpgradePath(
+            "Adrenaline",
+            "Momentum you have to keep earning. Stop killing and it drains away.",
+            new UpgradeTier
+            {
+                title = "Hair Trigger",
+                description = "Fire rate 900 to 1050, spread 3.4 to 2.6 degrees.",
+                fireRate = 1050f, spread = 2.6f,
+            },
+            new UpgradeTier
+            {
+                title = "Adrenaline",
+                description = "Every kill stacks 4% move speed and 4% fire rate, up to eight. A stack lasts four seconds without another kill.",
+                killSpeedBonus = 0.04f, killFireRateBonus = 0.04f,
+                killStackMax = 8, killStackSeconds = 4f,
+            },
+            new UpgradeTier
+            {
+                title = "Deep Mag",
+                description = "Damage 14 to 19, magazine 40 to 60, reload 1.5s to 1.1s.",
+                damage = 19f, magazineSize = 60, reloadTime = 1.1f,
+            },
+            new UpgradeTier
+            {
+                title = "Overdrive",
+                description = "Stacks climb to fifteen and hold for six seconds. At full stacks that is 60% faster on both counts.",
+                killStackMax = 15, killStackSeconds = 6f,
+            },
+            new UpgradeTier
+            {
+                title = "Redline",
+                description = "Damage 28, 6% per stack up to twenty - double speed and double rate of fire while you can keep the chain alive. The reserve never runs dry.",
+                damage = 28f, killSpeedBonus = 0.05f, killFireRateBonus = 0.05f,
+                killStackMax = 20, infiniteReserve = true,
+            });
+
+        static WeaponUpgradePath LawmanPath() => UpgradePath(
+            "Lawman",
+            "The only weapon that would rather you were shooting your own wall.",
+            new UpgradeTier
+            {
+                title = "Field Repair",
+                description = "Nails fired into your own barricade mend it, 22 health a hit, instead of passing through.",
+                barricadeRepair = 22f,
+            },
+            new UpgradeTier
+            {
+                title = "Pinning Shot",
+                description = "A nail holds whatever it hits still for 0.4s. Damage 26 to 32.",
+                damage = 32f, pinSeconds = 0.4f,
+            },
+            new UpgradeTier
+            {
+                title = "Framing Nailer",
+                description = "Fire rate 260 to 400, magazine 24 to 40, repair to 35 a hit.",
+                fireRate = 400f, magazineSize = 40, barricadeRepair = 35f,
+            },
+            new UpgradeTier
+            {
+                title = "Rebar",
+                description = "Damage 45, pins hold for 0.8s, repair to 50. A wall you are standing behind stops falling faster than you can mend it.",
+                damage = 45f, pinSeconds = 0.8f, barricadeRepair = 50f,
+            },
+            new UpgradeTier
+            {
+                title = "Lawman",
+                description = "Every barricade you place mounts a turret firing this weapon at a third its rate. Damage 60, repair 70, and the reserve never runs dry.",
+                damage = 60f, barricadeRepair = 70f, infiniteReserve = true,
+                grantsBarricadeTurret = true,
+            });
+
+        static WeaponUpgradePath ReaperPath() => UpgradePath(
+            "Reaper",
+            "The only healing in the game, and it only pays while you are winning.",
+            new UpgradeTier
+            {
+                title = "Blood Money",
+                description = "Every kill restores 2 health. Nothing else in the game gives any back.",
+                lifestealPerKill = 2f,
+            },
+            new UpgradeTier
+            {
+                title = "Deathwish",
+                description = "Up to 50% more damage as your health falls, scaling with how much is missing.",
+                missingHealthDamageBonus = 0.5f,
+            },
+            new UpgradeTier
+            {
+                title = "Harvest",
+                description = "Kills restore 5. Damage 40 to 52, magazine 20 to 30.",
+                damage = 52f, magazineSize = 30, lifestealPerKill = 5f,
+            },
+            new UpgradeTier
+            {
+                title = "Pale Horse",
+                description = "Up to 120% more damage at the edge of death, and kills restore 8. The lower you are, the harder it is to finish you.",
+                missingHealthDamageBonus = 1.2f, lifestealPerKill = 8f,
+            },
+            new UpgradeTier
+            {
+                title = "Second Life",
+                description = "Once a wave, a killing blow leaves you at 1 health instead - and at 1 health you hit more than twice as hard. Damage 70, kills restore 12.",
+                damage = 70f, lifestealPerKill = 12f, revivesPerWave = 1,
+            });
+
         static WeaponUpgradePath ExecutionerPath() => UpgradePath(
             "Executioner",
             "One round, one line, and everything standing in it.",
@@ -2578,6 +2746,7 @@ namespace ZombieShooter.EditorTools
 
             LoadOrCreateDelivery<ChainDelivery>("DLV_Tesla", f => f
                 .I("bounces", 3).F("hopRange", 8f).F("damagePerHop", 0.8f));
+
         }
 
         static WeaponDefinition LoadOrCreateWeapon(string fileName, System.Action<Fields> configure)

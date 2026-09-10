@@ -73,6 +73,11 @@ namespace ZombieShooter
         int focusStacks;
         float focusExpiresAt;
 
+        // Adrenaline: momentum that has to be maintained rather than bought once.
+        int killStacks;
+        float killStacksExpireAt;
+        PlayerController movement;
+
         // Reused every shot so target seeking allocates nothing in the firing path.
         readonly List<Health> offHandTargets = new();
         readonly List<Health> excludeScratch = new();
@@ -109,6 +114,7 @@ namespace ZombieShooter
             if (muzzle == null) muzzle = transform;
             ownerHealth = GetComponentInParent<Health>();
             loadout = GetComponent<WeaponLoadout>();
+            movement = GetComponentInParent<PlayerController>();
 
             Equip(definition, 0);
         }
@@ -138,6 +144,12 @@ namespace ZombieShooter
             }
 
             EndUltimate();
+
+            // Stacks belong to the gun that earned them, and its speed bonus must not follow
+            // the player onto the next weapon.
+            killStacks = 0;
+            if (movement != null) movement.SpeedMultiplier = 1f;
+
             RefreshStats();
 
             CancelReload();
@@ -205,6 +217,7 @@ namespace ZombieShooter
             if (ownerHealth != null && !ownerHealth.IsAlive) return;
 
             UpdateTriggerHeat();
+            UpdateKillStacks();
 
             if (UltimateActive)
             {
@@ -261,12 +274,34 @@ namespace ZombieShooter
             triggerHeat = Mathf.MoveTowards(triggerHeat, toward, Time.deltaTime / seconds);
         }
 
+        /// <summary>
+        /// Adrenaline. Stacks lapse on a timer rather than on standing still, because a timer
+        /// is legible - the player can feel it running out - where a velocity check would
+        /// punish backing off around a corner, which is the one thing the weapon wants them
+        /// doing.
+        /// </summary>
+        void UpdateKillStacks()
+        {
+            if (killStacks > 0 && Time.time > killStacksExpireAt) killStacks = 0;
+
+            if (movement == null) return;
+
+            movement.SpeedMultiplier = stats.KillSpeedBonus > 0f
+                ? 1f + killStacks * stats.KillSpeedBonus
+                : 1f;
+        }
+
         float CurrentFireRate()
         {
-            if (UltimateActive && stats.UltimateFireRate > 0f) return stats.UltimateFireRate;
-            if (fanEngaged && stats.FanFireRate > 0f) return stats.FanFireRate;
+            float rate = stats.FireRate;
 
-            return stats.FireRate;
+            if (UltimateActive && stats.UltimateFireRate > 0f) rate = stats.UltimateFireRate;
+            else if (fanEngaged && stats.FanFireRate > 0f) rate = stats.FanFireRate;
+
+            if (stats.KillFireRateBonus > 0f && killStacks > 0)
+                rate *= 1f + killStacks * stats.KillFireRateBonus;
+
+            return rate;
         }
 
         float CurrentSpread()
@@ -506,6 +541,11 @@ namespace ZombieShooter
 
             if (enemy) damage *= FocusMultiplier(health);
 
+            // Reaper. Scales with health LOST rather than health remaining, so it pays out
+            // exactly when the weapon's own lifesteal is most needed.
+            if (stats.MissingHealthDamageBonus > 0f && ownerHealth != null)
+                damage *= 1f + (1f - ownerHealth.Normalized) * stats.MissingHealthDamageBonus;
+
             // Under the threshold the shot is simply lethal, whatever it would have rolled.
             if (stats.ExecuteThreshold > 0f && enemy &&
                 health.Normalized <= stats.ExecuteThreshold)
@@ -516,6 +556,22 @@ namespace ZombieShooter
 
             target.TakeDamage(new DamageInfo(damage, point, normal, knockback,
                                              gameObject, definition));
+
+            // Lawman. A nail in your own wall mends it instead of passing through, which is
+            // the only reason to ever point this weapon away from the horde.
+            // Barricades carry no Health - they implement IDamageable themselves - so the
+            // target is the barricade rather than something hanging off it.
+            if (stats.BarricadeRepair > 0f && target is Barricade barricade)
+            {
+                if (barricade.Repair(stats.BarricadeRepair) > 0f)
+                    ImpactEffects.Instance?.PlayImpact(point, normal);
+
+                // Either way the nail is spent on the wall rather than passing through it.
+                return false;
+            }
+
+            if (stats.PinSeconds > 0f && enemy)
+                health.GetComponent<ZombieAI>()?.Slow(0f, stats.PinSeconds);
 
             bool killed = !target.IsAlive;
 
@@ -536,6 +592,15 @@ namespace ZombieShooter
 
             if (stats.ReserveRefundPerKill > 0 && loadout != null)
                 loadout.AddReserve(slotIndex, stats.ReserveRefundPerKill);
+
+            if (stats.LifestealPerKill > 0f && ownerHealth != null)
+                ownerHealth.Heal(stats.LifestealPerKill);
+
+            if (stats.KillSpeedBonus > 0f || stats.KillFireRateBonus > 0f)
+            {
+                killStacks = Mathf.Min(killStacks + 1, Mathf.Max(1, stats.KillStackMax));
+                killStacksExpireAt = Time.time + Mathf.Max(0.5f, stats.KillStackSeconds);
+            }
 
             Killed?.Invoke();
         }
