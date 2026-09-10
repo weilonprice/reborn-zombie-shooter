@@ -25,6 +25,13 @@ namespace ZombieShooter
         Color[] restColors;
         Coroutine routine;
 
+        // A persistent tint layered under the flash: the revenant uses it to mark a body that
+        // still owes a second kill. The flash plays on top and returns to the tint, not to
+        // the original colour.
+        bool tinted;
+        Color tintColor;
+        float tintAmount;
+
         void Awake()
         {
             if (health == null) health = GetComponentInParent<Health>();
@@ -44,6 +51,9 @@ namespace ZombieShooter
         void OnEnable()
         {
             if (health != null) health.Damaged += OnDamaged;
+
+            // Pooled enemies come back clean: a mark must not survive a despawn.
+            tinted = false;
             Restore();
         }
 
@@ -95,12 +105,31 @@ namespace ZombieShooter
                 if (m != null) WriteColor(m, c);
         }
 
+        /// <summary>Layers a persistent tint under the flash. <paramref name="amount"/> 0 clears it.</summary>
+        public void SetRestTint(Color color, float amount)
+        {
+            tinted = amount > 0f;
+            tintColor = color;
+            tintAmount = Mathf.Clamp01(amount);
+
+            // Mid-flash the routine owns the colour and will land on the new tint itself.
+            if (routine == null) Restore();
+        }
+
+        public void ClearRestTint() => SetRestTint(default, 0f);
+
         void Restore()
         {
             if (materials == null) return;
 
             for (int i = 0; i < materials.Length; i++)
-                if (materials[i] != null) WriteColor(materials[i], restColors[i]);
+            {
+                if (materials[i] == null) continue;
+
+                WriteColor(materials[i], tinted
+                    ? Color.Lerp(restColors[i], tintColor, tintAmount)
+                    : restColors[i]);
+            }
         }
 
         static Color ReadColor(Material m) =>

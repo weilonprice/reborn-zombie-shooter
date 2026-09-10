@@ -112,15 +112,18 @@ namespace ZombieShooter
                 int bossArrivalIndex = Mathf.RoundToInt(count * bossArrivesAt);
                 bool bossSpawned = false;
 
-                for (int i = 0; i < count; i++)
+                // Counts bodies rather than iterations, because one roll of the table can
+                // put a whole pack on the field.
+                int spawned = 0;
+                while (spawned < count)
                 {
                     // Hold back if the arena is already saturated.
                     while (alive.Count >= maxAliveAtOnce)
                         yield return null;
 
-                    Spawn();
+                    spawned += Spawn(count - spawned);
 
-                    if (isFinalWave && bossPrefab != null && !bossSpawned && i >= bossArrivalIndex)
+                    if (isFinalWave && bossPrefab != null && !bossSpawned && spawned >= bossArrivalIndex)
                     {
                         SpawnBoss();
                         bossSpawned = true;
@@ -221,14 +224,40 @@ namespace ZombieShooter
             CameraShake.Instance?.AddTrauma(0.9f);
         }
 
-        void Spawn()
+        /// <summary>
+        /// Spawns one roll of the table and returns how many bodies it put on the field.
+        /// <para>
+        /// Some archetypes arrive as a pack. The group is clamped to the wave's remaining
+        /// budget so a cluster near the end cannot overshoot the count the HUD already
+        /// announced - Remaining is set once, up front, and has to stay true.
+        /// </para>
+        /// </summary>
+        int Spawn(int budget)
         {
-            var prefab = PickPrefabForWave();
-            var zombie = Rent(prefab);
-            zombie.transform.SetPositionAndRotation(PickSpawnPoint(), Quaternion.identity);
-            zombie.gameObject.SetActive(true);
-            zombie.SetTarget(player);
-            alive.Add(zombie);
+            var entry = PickEntryForWave();
+            var prefab = entry?.prefab != null ? entry.prefab : BaselinePrefab;
+
+            int group = Mathf.Clamp(entry != null ? entry.groupSize : 1, 1, Mathf.Max(1, budget));
+            var anchor = PickSpawnPoint();
+
+            for (int i = 0; i < group; i++)
+            {
+                var zombie = Rent(prefab);
+
+                // A pack lands scattered around one point rather than stacked on it, so the
+                // separation pass is not asked to untangle three bodies at the same position.
+                var offset = group == 1
+                    ? Vector3.zero
+                    : new Vector3(UnityEngine.Random.Range(-1.4f, 1.4f), 0f,
+                                  UnityEngine.Random.Range(-1.4f, 1.4f));
+
+                zombie.transform.SetPositionAndRotation(anchor + offset, Quaternion.identity);
+                zombie.gameObject.SetActive(true);
+                zombie.SetTarget(player);
+                alive.Add(zombie);
+            }
+
+            return group;
         }
 
         /// <summary>
@@ -236,14 +265,14 @@ namespace ZombieShooter
         /// per archetype: the old version needed a serialized field, a start-wave int and
         /// three lines of formula for every type, which does not survive a roster of twelve.
         /// </summary>
-        ZombieAI PickPrefabForWave()
+        SpawnEntry PickEntryForWave()
         {
             float total = 0f;
 
             for (int i = 0; i < spawnTable.Length; i++)
                 total += WeightOf(spawnTable[i]);
 
-            if (total <= 0f) return BaselinePrefab;
+            if (total <= 0f) return null;
 
             float roll = UnityEngine.Random.value * total;
 
@@ -252,11 +281,11 @@ namespace ZombieShooter
                 float weight = WeightOf(spawnTable[i]);
                 if (weight <= 0f) continue;
 
-                if (roll < weight) return spawnTable[i].prefab;
+                if (roll < weight) return spawnTable[i];
                 roll -= weight;
             }
 
-            return BaselinePrefab;
+            return null;
         }
 
         float WeightOf(SpawnEntry entry)

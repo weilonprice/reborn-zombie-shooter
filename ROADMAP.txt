@@ -5,9 +5,9 @@ Status:  Gates 0 and 1 PASSED. Phase 2 content production underway - bigger
          arena, deployables, and data-driven weapon upgrade trees in, with the
          economy repriced so the trees are a choice. Direction settled: ten
          weapons, ONE upgrade path each, and the run's decision is which
-         weapon to max. 7 of 10 weapons and paths built, 7 of 12 enemy
-         archetypes, all four firing modes live, and the horde paths around
-         geometry. No art until the content exists.
+         weapon to max. 7 of 10 weapons and paths built, the enemy roster
+         complete at 12 plus the boss, all four firing modes live, and the
+         horde paths around geometry. No art until the content exists.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -227,6 +227,48 @@ PROGRESS LOG
             ricochet and mark code was deleted rather than left dormant. Third
             and current: a single Gunslinger path, authored, with two columns
             left as placeholders for paths still to be designed.
+2026-09-10  Enemy roster finished - 12 archetypes plus the boss. The last five
+            each attack a different assumption rather than varying a stat:
+              Leaper (5+) vaults barricades on a sine arc with a 2.5s
+              cooldown, so it clears A wall rather than a wall line. Needed a
+              new IEnemyMotionOverride hook - anything leaving the ground has
+              to drive its own movement, because the ordinary path pins the
+              controller down every frame.
+              Screamer (6+) drives every zombie within 12m at 1.5x speed while
+              it lives. Tall, thin and brightly capped on purpose: "kill that
+              one first" is not a decision the player can act on if they
+              cannot pick it out of a crowd. The buff is refreshed rather than
+              tracked, so anything leaving the radius simply stops being
+              refreshed - a dead screamer needs no cleanup pass and cannot
+              leave the horde permanently enraged.
+              Revenant (7+) stands back up once at 45% health. Needed
+              IDeathInterceptor, asked BEFORE the death sequence: reviving
+              afterwards means unpicking a score payout, a gold payout, a
+              disabled collider and a queued despawn. Keeps a magenta tint for
+              the rest of its life so the player can tell which bodies still
+              owe a second kill.
+              Spitter (7+) reuses the ranged behaviour wholesale - the only
+              difference is that its projectile leaves a 2.6m acid pool for
+              six seconds. That is the answer to camping, which nothing in the
+              horde previously had.
+              Crawler (3+) is 22 HP at 5.4 speed and arrives FOUR at a time.
+              Needed groupSize on the spawn table, and the spawn loop now
+              counts bodies rather than iterations, clamping a group to the
+              wave's remaining budget so a late cluster cannot overshoot the
+              count the HUD already announced.
+            Two bugs caught before they shipped. The Spitter would never have
+            fired: attackRange gates the RANGED attack too, and it had 1.5m
+            while being told to stand at 15m - it would have walked to range
+            and stared. And a projectileDamage field was set that does not
+            exist; Fields silently ignores unknown names, so it would have
+            compiled, built and quietly used the wrong number. See debt 24.
+            Cost of the whole roster, architecturally: three hooks (motion,
+            death interception, speed multiplier), groupSize, and an
+            impact-spawn field on EnemyProjectile. Every archetype is now a
+            prefab and a line in the spawn table, which is what doing the
+            table first bought.
+            NOT PLAY-TESTED. Screamer and Crawler together could be genuinely
+            nasty, and the Leaper is the most likely to have arc bugs.
 2026-09-10  Enemy archetypes 4 to 7, and the wave roster stopped being
             hardcoded. WaveManager held four prefab fields, three start-wave
             ints and a weight formula with a branch per type; twelve
@@ -518,15 +560,15 @@ main reason content comes first.
     placer generalised so a fourth deployable is an asset plus a button, not
     another script. Barrels chain and hurt the player; claymores are
     directional and one-use.
-[~] More enemy archetypes, toward a roster of ~12. 7 exist - zombie, brute,
-    runner, ranged, sapper, bloater, armored - plus the boss. Roster is now a
-    spawn table on WaveManager, so the remaining five are a prefab and a line
-    each.
-    Next five, each attacking a different assumption rather than varying a
-    stat: Leaper (jumps barricades, so walls are not safety), Spitter (leaves
-    acid pools, punishes camping), Screamer (buffs the horde until killed,
-    creating a priority target), Revenant (gets up once, punishes moving on),
-    Crawler (spawns in clusters, stresses crowd clear and the flow field).
+[x] Enemy archetypes - DONE 2026-09-10. Twelve plus the boss: zombie, brute,
+    runner, ranged, sapper, bloater, armored, leaper, screamer, revenant,
+    spitter, crawler. Each attacks a different assumption rather than varying
+    a stat - walls are not safety (leaper), walls are the objective (sapper),
+    close range is dangerous (bloater), facing matters (armored), one target
+    matters more than the nearest (screamer), a body is not finished (revenant),
+    standing still is not free (spitter), and a pack is not a stream (crawler).
+    Roster lives in WaveManager's spawn table; a thirteenth is a prefab and a
+    line. Numbers are entirely unverified.
 [~] More weapons, toward 10. 7 of 10 exist - pistol, shotgun, rifle, sniper,
     flamethrower, Tesla coil, grenade launcher. Remaining: SMG, Nail Gun,
     Siphon Rifle, all drafted in UPGRADES.txt. Two of the three are plain
@@ -847,6 +889,19 @@ KNOWN DEBT IN THE CURRENT BUILD
    to carry a callback to the weapon that fired it, guarded against that
    weapon having been swapped or destroyed.
 
+24. FIELDS SILENTLY IGNORES UNKNOWN PROPERTY NAMES.
+   ArenaBuilder's Fields helper does FindProperty and returns early if it is
+   null, so a typo or a field that never existed compiles, builds, runs, and
+   quietly leaves the default in place. Hit on 2026-09-10 setting a
+   projectileDamage that ZombieAI does not have - the spitter would have used
+   the wrong damage with no error anywhere.
+   This is the same family as debt 14 (hand-edited YAML for uncompiled
+   fields): the builder writing by string name has no compiler behind it.
+   Fix: log a warning when FindProperty returns null. Three lines, and it
+   turns an invisible failure into a console message. Worth doing the next
+   time anyone is in that file - the builder now writes several hundred
+   fields, so the odds of a silent typo are no longer small.
+
 23. THE SAME MISTAKE HAS NOW HAPPENED THREE TIMES.
    ModCoreType was an enum with a branch per mod. WeaponLoadout was four fixed
    slots with a parallel unlocked[]. WaveManager was four prefab fields, three
@@ -926,13 +981,16 @@ START HERE - THIS WEEK
    compounding to ~9x on the twelfth body, and the sniper execute taking the
    boss's last 600 HP for free.
 
-2. Play the three new weapons and the three new archetypes.
-   The weapons are the first things ever to run cone, chain and projectile, so
-   expect MODE bugs rather than balance problems: flame ignoring walls, an arc
-   that picks nothing, a grenade arming at your feet.
-   For the archetypes, watch the Sapper hardest - a 4x barricade multiplier
-   could make walls pointless, and its 26m search radius could have it
-   crossing the map past a defenceless player.
+2. Play three new weapons and eight new archetypes.
+   Easily the largest untested batch so far. The weapons are the first things
+   to run cone, chain and projectile, so expect MODE bugs rather than balance
+   problems: flame ignoring walls, an arc that picks nothing, a grenade
+   arming at your feet.
+   Archetypes to watch hardest: the Sapper (a 4x barricade multiplier could
+   make walls pointless, and a 26m search radius could have it crossing the
+   map past a defenceless player), the Leaper (arc bugs - landing inside
+   geometry, or vaulting nothing), and Screamer plus Crawler together, which
+   could be genuinely unfair.
 
 3. The last three weapons.
    SMG and Siphon Rifle are plain hitscan. The Nail Gun needs pinning, which
@@ -940,23 +998,18 @@ START HERE - THIS WEEK
    is the only healing in the entire game and the Nail Gun the only weapon
    that touches the barricade pillar, so neither is just another gun.
 
-4. The last five enemy archetypes.
-   Leaper, Spitter, Screamer, Revenant, Crawler. The hooks they need already
-   exist or are one small interface each, and the spawn table means adding
-   one is a prefab plus a line.
-   The reasoning for prioritising these over the last three weapons, worth
-   restating: weapon variety gives ten different runs, enemy variety changes
-   EVERY run. Gate 2 is about repetition, and what makes wave 12 differ from
-   wave 4 is what is walking at you rather than what you are holding.
+4. Arenas 2 to 4, while ArenaBuilder still generates them.
+   The last big content axis, and the one that gets dramatically more
+   expensive after Phase 3 retires the builder.
 
-5. Decide the last Phase 2 blocker.
-   All of them are closed: the loadout question (debt 16) is answered, mod
-   cores (debt 15) are deleted, and the firing modes (debt 19) are built.
-   Nothing structural now stands between the roster and ten playable weapons -
-   what is left is content.
+5. Then: meta progression and the horde performance pass.
+   Meta progression needs the save system (debt 4). Performance is debt 6,
+   deliberately deferred to exactly this point - and the horde is now twelve
+   archetypes rather than four, several of which run their own per-frame
+   searches, so this is the moment the O(n^2) separation stops being free.
 
-6. Then the rest of Phase 2 - arenas 2 to 4, while ArenaBuilder still
-   generates them.
+6. GATE 2 after that: 10+ hours without repetition becoming obvious, and no
+   run feeling like a strictly worse version of another.
 
 STILL OPEN, kept for the specifics:
    The arena and deployables have not been played either. Two things to watch:
