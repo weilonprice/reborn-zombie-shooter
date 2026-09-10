@@ -102,7 +102,6 @@ namespace ZombieShooter
 
         IEnemySteerOverride steerOverride;
         IEnemyMotionOverride motionOverride;
-        IDeathInterceptor deathInterceptor;
 
         /// <summary>
         /// Scales move speed without overwriting it, so a buff can be applied and lifted
@@ -110,13 +109,30 @@ namespace ZombieShooter
         /// </summary>
         public float SpeedMultiplier { get; set; } = 1f;
 
+        float slowUntil;
+        float slowMultiplier = 1f;
+
+        /// <summary>
+        /// Pins or slows for a time. Takes precedence over <see cref="SpeedMultiplier"/> for
+        /// its duration rather than multiplying with it - a screamer's buff must not drag a
+        /// pinned enemy back into motion.
+        /// </summary>
+        public void Slow(float multiplier, float seconds)
+        {
+            slowMultiplier = Mathf.Clamp01(multiplier);
+            slowUntil = Mathf.Max(slowUntil, Time.time + seconds);
+        }
+
+        float EffectiveSpeed => Time.time < slowUntil
+            ? moveSpeed * slowMultiplier
+            : moveSpeed * SpeedMultiplier;
+
         void Awake()
         {
             controller = GetComponent<CharacterController>();
             health = GetComponent<Health>();
             steerOverride = GetComponent<IEnemySteerOverride>();
             motionOverride = GetComponent<IEnemyMotionOverride>();
-            deathInterceptor = GetComponent<IDeathInterceptor>();
         }
 
         void OnEnable()
@@ -126,6 +142,8 @@ namespace ZombieShooter
             health.Damaged += OnDamaged;
             verticalVelocity = 0f;
             SpeedMultiplier = 1f;
+            slowUntil = 0f;
+            slowMultiplier = 1f;
             nextAttackTime = 0f;
             knockback = Vector3.zero;
             dying = false;
@@ -250,7 +268,7 @@ namespace ZombieShooter
 
             if (move.sqrMagnitude > 1f) move.Normalize();
 
-            var horizontal = move * (moveSpeed * SpeedMultiplier) + knockback;
+            var horizontal = move * EffectiveSpeed + knockback;
             knockback = Vector3.MoveTowards(knockback, Vector3.zero, knockbackDecay * Time.deltaTime);
 
             if (controller.isGrounded && verticalVelocity < 0f) verticalVelocity = -2f;
@@ -334,12 +352,9 @@ namespace ZombieShooter
 
         void OnDied(Health _)
         {
+            // Health asks the interceptor before it raises this, so anything that survives a
+            // killing blow never reaches here at all.
             if (dying) return;
-
-            // Asked before anything else happens. A revive after the payout, the collider
-            // disable and the queued despawn would mean unpicking all three.
-            if (deathInterceptor != null && deathInterceptor.TryPreventDeath()) return;
-
             dying = true;
 
             GameManager.Instance?.AddScore(scoreValue);

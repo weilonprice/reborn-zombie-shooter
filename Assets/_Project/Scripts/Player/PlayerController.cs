@@ -35,6 +35,12 @@ namespace ZombieShooter
         /// during the ultimate it is the only agency the player has, and taking it away too
         /// would make the ability something that happens to you rather than something you do.
         /// </summary>
+        /// <summary>
+        /// Scales move speed without overwriting it, so a weapon can grant momentum and have
+        /// it lapse without needing to know what the player's own speed was.
+        /// </summary>
+        public float SpeedMultiplier { get; set; } = 1f;
+
         public bool AimOverridden { get; set; }
         public float SpinDegreesPerSecond { get; set; }
 
@@ -69,7 +75,7 @@ namespace ZombieShooter
         {
             var input = InputReader.Move;
             // Camera looks down the world Z axis, so screen-up maps straight to world +Z.
-            var desired = new Vector3(input.x, 0f, input.y) * moveSpeed;
+            var desired = new Vector3(input.x, 0f, input.y) * (moveSpeed * SpeedMultiplier);
             velocity = Vector3.MoveTowards(velocity, desired, acceleration * Time.deltaTime);
         }
 

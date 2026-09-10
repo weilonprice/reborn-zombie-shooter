@@ -239,5 +239,6 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  impactSpawn: {fileID: 0}
   impactClip: {fileID: 8300000, guid: 0171b7e57a49d41e7a628ea5f11839b4, type: 3}
   impactVolume: 0.45

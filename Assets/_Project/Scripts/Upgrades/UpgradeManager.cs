@@ -207,6 +207,20 @@ namespace ZombieShooter
             if (tier.focusMaxBonus >= 0f) stats.FocusMaxBonus = tier.focusMaxBonus;
             if (tier.sustainedSpreadMin >= 0f) stats.SustainedSpreadMin = tier.sustainedSpreadMin;
             if (tier.executeThreshold >= 0f) stats.ExecuteThreshold = tier.executeThreshold;
+
+            if (tier.killSpeedBonus >= 0f) stats.KillSpeedBonus = tier.killSpeedBonus;
+            if (tier.killFireRateBonus >= 0f) stats.KillFireRateBonus = tier.killFireRateBonus;
+            if (tier.killStackMax >= 0) stats.KillStackMax = tier.killStackMax;
+            if (tier.killStackSeconds >= 0f) stats.KillStackSeconds = tier.killStackSeconds;
+
+            if (tier.barricadeRepair >= 0f) stats.BarricadeRepair = tier.barricadeRepair;
+            if (tier.pinSeconds >= 0f) stats.PinSeconds = tier.pinSeconds;
+            if (tier.grantsBarricadeTurret) stats.GrantsBarricadeTurret = true;
+
+            if (tier.lifestealPerKill >= 0f) stats.LifestealPerKill = tier.lifestealPerKill;
+            if (tier.missingHealthDamageBonus >= 0f)
+                stats.MissingHealthDamageBonus = tier.missingHealthDamageBonus;
+            if (tier.revivesPerWave >= 0) stats.RevivesPerWave = tier.revivesPerWave;
         }
 
         /// <summary>Convenience for callers that may run before the manager exists.</summary>

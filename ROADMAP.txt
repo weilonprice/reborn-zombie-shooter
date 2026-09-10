@@ -5,9 +5,10 @@ Status:  Gates 0 and 1 PASSED. Phase 2 content production underway - bigger
          arena, deployables, and data-driven weapon upgrade trees in, with the
          economy repriced so the trees are a choice. Direction settled: ten
          weapons, ONE upgrade path each, and the run's decision is which
-         weapon to max. 7 of 10 weapons and paths built, the enemy roster
-         complete at 12 plus the boss, all four firing modes live, and the
-         horde paths around geometry. No art until the content exists.
+         weapon to max. Weapon roster complete at 10 with a path each, enemy
+         roster complete at 12 plus the boss, all four firing modes live, and
+         the horde paths around geometry. What is left in Phase 2 is arenas,
+         meta progression and performance. No art until the content exists.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -227,6 +228,37 @@ PROGRESS LOG
             ricochet and mark code was deleted rather than left dormant. Third
             and current: a single Gunslinger path, authored, with two columns
             left as placeholders for paths still to be designed.
+2026-09-10  Weapon roster finished - 10 weapons, 10 paths.
+              SMG "Adrenaline" (120) stacks move speed AND fire rate per kill,
+              lapsing on a timer. Move speed was cut from the pistol path for
+              reaching into PlayerController; here it is the weapon's entire
+              identity, so PlayerController gained the same SpeedMultiplier
+              ZombieAI already had. Stacks lapse on a TIMER rather than on
+              standing still - a velocity check would punish backing off round
+              a corner, which is the one thing the weapon wants encouraged.
+              Nail Gun "Lawman" (180) is weak alone on purpose. Nails fired
+              into your own barricade mend it, 22 rising to 70 a hit; T2 pins;
+              T5 mounts a turret on every wall you place. The turret sits
+              dormant on the barricade prefab and switches ITSELF on while a
+              carried weapon grants it, so the placer never learns about
+              upgrades.
+              Siphon Rifle "Reaper" (380) is the only healing in the game.
+              Damage scales with health LOST, so it pays out exactly when the
+              lifesteal is most needed, and T5 refuses one killing blow a wave.
+              That reuses IDeathInterceptor, MOVED from ZombieAI into Health so
+              the player gets it too - the right home, since no death ever
+              happens and the run-over screen, score tally and wave loop never
+              see it.
+            Two defects caught in review. The Nail Gun was authored as a
+            projectile weapon, which made its entire path inert:
+            WeaponProjectile carries its own damage and never calls back into
+            Weapon.ApplyShot, where repairing and pinning live. That is debt
+            20, written down two sessions earlier and still nearly missed - it
+            is hitscan now, with the reason in a comment rather than left to be
+            rediscovered. And the turret resolved ten carried weapons per
+            barricade per frame just to learn it had no turret, a cost paid
+            entirely by players who never bought the tier.
+            NOT PLAY-TESTED.
 2026-09-10  Enemy roster finished - 12 archetypes plus the boss. The last five
             each attack a different assumption rather than varying a stat:
               Leaper (5+) vaults barricades on a sine arc with a 2.5s
@@ -569,10 +601,10 @@ main reason content comes first.
     standing still is not free (spitter), and a pack is not a stream (crawler).
     Roster lives in WaveManager's spawn table; a thirteenth is a prefab and a
     line. Numbers are entirely unverified.
-[~] More weapons, toward 10. 7 of 10 exist - pistol, shotgun, rifle, sniper,
-    flamethrower, Tesla coil, grenade launcher. Remaining: SMG, Nail Gun,
-    Siphon Rifle, all drafted in UPGRADES.txt. Two of the three are plain
-    hitscan; the Nail Gun's pinning is the only one still needing new code.
+[x] Weapons - DONE 2026-09-10. Ten, each with one five-tier path: pistol,
+    shotgun, rifle, sniper, flamethrower, Tesla coil, grenade launcher, SMG,
+    nail gun, siphon rifle. An eleventh is a definition asset, a catalogue
+    entry and a path helper.
     UNBLOCKED as of the delivery rework - all four firing modes exist, so each
     remaining weapon is a definition asset, a catalogue entry and a path
     helper. The Nail Gun's pinning is an upgrade behaviour for its path, not
@@ -581,8 +613,8 @@ main reason content comes first.
     tiers per weapon, bought with gold. Costs come from one shared curve
     (ArenaBuilder.TierCosts), so authoring a path is choosing five effects,
     not five effects and five prices.
-    PROGRESS: 7 of 10 paths authored - Gunslinger, Streetsweeper, Marksman,
-    Executioner, Wildfire, Storm, Bombardier.
+    PROGRESS: 10 of 10 paths authored - Gunslinger, Streetsweeper, Marksman,
+    Executioner, Wildfire, Storm, Bombardier, Adrenaline, Lawman, Reaper.
     Mod cores are gone entirely, which closed debt item 15 by deletion.
     Remaining constraint is debt item 17, and the three new paths cost seven
     more fields exactly as predicted.
@@ -863,9 +895,19 @@ KNOWN DEBT IN THE CURRENT BUILD
    spread, penetrationFalloff) and only Focus was a genuinely new mechanic.
    The abstraction to design is narrower than 30 fields suggests - most of the
    growth is stats the resolver simply did not cover yet.
-   Still deliberately unfixed. Revisit after the firing-mode rework (debt 19),
-   which will add the next real batch of mechanics and show whether the
-   vocabulary or the firing path is the thing that actually needs restructuring.
+   UPDATED 2026-09-10, and the pattern changed. The vocabulary is around 46
+   fields now. Every batch until the last one grew it with plain STAT
+   OVERRIDES - pelletCount, spread, range, cone angle, chain hops - things the
+   resolver should have covered from the start. The final three weapons grew it
+   with genuine NEW MECHANICS instead: lifesteal, pinning, barricade repair,
+   kill stacks, a revive.
+   That distinction is the design brief for the rework. The stat half wants a
+   generic override table and would collapse most of the field count. The
+   mechanic half genuinely is behaviour and probably wants to stay explicit.
+   Splitting them is the work; treating all 46 as one problem is why it has
+   looked too big to start.
+   Still deliberately unfixed - it costs real churn across ten authored paths
+   and buys the player nothing. After Gate 2.
 
 18. GAMEPAD CANNOT REACH WEAPON SLOTS 5-10.
    The number row maps all ten; the d-pad has four directions and a pad has no
@@ -891,11 +933,15 @@ KNOWN DEBT IN THE CURRENT BUILD
    tier or died - the shot has to be worth what it was worth when it was
    fired. The consequence is that kills it scores charge no ultimate and
    refund no reserve.
-   Harmless for the Grenade Launcher and Nail Gun as designed, and NOT worth
-   fixing speculatively. It becomes real the moment a projectile weapon wants
-   an ultimate or a kills-refund tier, and the fix then is for the projectile
-   to carry a callback to the weapon that fired it, guarded against that
-   weapon having been swapped or destroyed.
+   Harmless for the Grenade Launcher, and NOT worth fixing speculatively.
+   IT ALMOST BIT ON 2026-09-10: the Nail Gun was authored as a projectile
+   weapon, and its whole path - repair, pinning - lives in ApplyShot, which
+   projectiles bypass. The path would have been silently inert. Caught in
+   review, and the weapon is hitscan now.
+   So the entry is doing its job, but only because someone happened to reread
+   it. Anything reaching for ProjectileDelivery should check this first: if the
+   weapon's upgrades do ANYTHING on hit beyond damage, projectiles are the
+   wrong delivery until this is fixed.
 
 24. FIELDS SILENTLY IGNORES UNKNOWN PROPERTY NAMES. -- FILED IN ERROR.
    WITHDRAWN 2026-09-10, the day it was filed. Fields.Find already logs
@@ -989,8 +1035,8 @@ START HERE - THIS WEEK
    compounding to ~9x on the twelfth body, and the sniper execute taking the
    boss's last 600 HP for free.
 
-2. Play three new weapons and eight new archetypes.
-   Easily the largest untested batch so far. The weapons are the first things
+2. Play six new weapons and eight new archetypes.
+   Easily the largest untested batch so far, and now the whole roster. The weapons are the first things
    to run cone, chain and projectile, so expect MODE bugs rather than balance
    problems: flame ignoring walls, an arc that picks nothing, a grenade
    arming at your feet.
@@ -1006,9 +1052,7 @@ START HERE - THIS WEEK
    is the only healing in the entire game and the Nail Gun the only weapon
    that touches the barricade pillar, so neither is just another gun.
 
-4. Arenas 2 to 4, while ArenaBuilder still generates them.
-   The last big content axis, and the one that gets dramatically more
-   expensive after Phase 3 retires the builder.
+4. Meta progression and the horde performance pass.
 
 5. Then: meta progression and the horde performance pass.
    Meta progression needs the save system (debt 4). Performance is debt 6,

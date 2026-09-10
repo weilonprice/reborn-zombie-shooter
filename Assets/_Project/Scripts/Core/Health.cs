@@ -30,12 +30,14 @@ namespace ZombieShooter
         public DamageInfo LastDamage { get; private set; }
 
         IDamageModifier modifier;
+        IDeathInterceptor interceptor;
 
         void Awake()
         {
             // Optional, and looked up once. Armour and resistances change the number BEFORE
             // it lands, which the Damaged event cannot do because it fires after the fact.
             modifier = GetComponent<IDamageModifier>();
+            interceptor = GetComponent<IDeathInterceptor>();
             Current = maxHealth;
         }
 
@@ -55,6 +57,17 @@ namespace ZombieShooter
 
             LastDamage = info;
             Current = Mathf.Max(0f, Current - amount);
+
+            // Asked before anything is told about it. A revenant standing back up, or a
+            // player refusing a killing blow, should never have produced a Died at all -
+            // handling it afterwards means unpicking payouts, colliders and queued despawns.
+            if (Current <= 0f && interceptor != null && interceptor.TryPreventDeath())
+            {
+                Damaged?.Invoke(info);
+                Changed?.Invoke(Current, maxHealth);
+                return;
+            }
+
             Damaged?.Invoke(info);
             Changed?.Invoke(Current, maxHealth);
 

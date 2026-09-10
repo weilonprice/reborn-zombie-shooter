@@ -58,6 +58,19 @@ namespace ZombieShooter
         /// <summary>0 disables executions; otherwise a fraction of the target's max health.</summary>
         public float ExecuteThreshold;
 
+        public float KillSpeedBonus;
+        public float KillFireRateBonus;
+        public int KillStackMax;
+        public float KillStackSeconds;
+
+        public float BarricadeRepair;
+        public float PinSeconds;
+        public bool GrantsBarricadeTurret;
+
+        public float LifestealPerKill;
+        public float MissingHealthDamageBonus;
+        public int RevivesPerWave;
+
         public static WeaponStats FromDefinition(WeaponDefinition d) => new()
         {
             Damage = d.Damage,
@@ -77,6 +90,8 @@ namespace ZombieShooter
             CritMultiplier = 2f,
             FanSpreadRamp = 1f,
             SustainedSpreadMin = -1f,
+            KillStackSeconds = 4f,
+            KillStackMax = 10,
             ConeHalfAngle = -1f,
             ChainBounces = -1,
             ChainHopRange = -1f,
