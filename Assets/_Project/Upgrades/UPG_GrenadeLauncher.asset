@@ -1,0 +1,214 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1456e13800fb3426c8f567a15c0d0c43, type: 3}
+  m_Name: UPG_GrenadeLauncher
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.WeaponUpgradeTree
+  weapon: {fileID: 11400000, guid: bac6b99aff81d4fc5a91fb8d77c9d93f, type: 2}
+  paths:
+  - title: Bombardier
+    summary: Four shells was never the problem. Four shells was the problem.
+    tiers:
+    - title: Heavy Charge
+      description: Damage 110 to 145, blast radius 4.5m to 5.5m.
+      cost: 60
+      damage: 145
+      fireRate: -1
+      magazineSize: -1
+      reloadTime: -1
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      range: -1
+      coneHalfAngle: -1
+      chainBounces: -1
+      chainHopRange: -1
+      chainDamagePerHop: -1
+      blastRadius: 5.5
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: Quick Cycle
+      description: Fire rate 60 to 100, reload 2.6s to 1.7s.
+      cost: 150
+      damage: -1
+      fireRate: 100
+      magazineSize: -1
+      reloadTime: 1.7
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      range: -1
+      coneHalfAngle: -1
+      chainBounces: -1
+      chainHopRange: -1
+      chainDamagePerHop: -1
+      blastRadius: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: Drum
+      description: Magazine 4 to 8, and every kill puts a shell back in the reserve. 24 spare shells does not survive a wave otherwise.
+      cost: 350
+      damage: -1
+      fireRate: -1
+      magazineSize: 8
+      reloadTime: -1
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: -1
+      spread: -1
+      penetrationFalloff: -1
+      range: -1
+      coneHalfAngle: -1
+      chainBounces: -1
+      chainHopRange: -1
+      chainDamagePerHop: -1
+      blastRadius: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 1
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: Cluster
+      description: Three shells a trigger pull instead of one, fanned slightly. Still one round of ammunition.
+      cost: 800
+      damage: -1
+      fireRate: -1
+      magazineSize: -1
+      reloadTime: -1
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: 3
+      spread: 4
+      penetrationFalloff: -1
+      range: -1
+      coneHalfAngle: -1
+      chainBounces: -1
+      chainHopRange: -1
+      chainDamagePerHop: -1
+      blastRadius: -1
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1
+    - title: Bombardier
+      description: Five shells a pull at 150 damage over a 7m blast, 12 in the tube, 1.1s reload. Fired into a crowd it is not really a weapon any more.
+      cost: 2000
+      damage: 150
+      fireRate: -1
+      magazineSize: 12
+      reloadTime: 1.1
+      pierceCount: -1
+      knockbackMultiplier: -1
+      pelletCount: 5
+      spread: -1
+      penetrationFalloff: -1
+      range: -1
+      coneHalfAngle: -1
+      chainBounces: -1
+      chainHopRange: -1
+      chainDamagePerHop: -1
+      blastRadius: 7
+      convertToFullAuto: 0
+      holsteredReload: 0
+      killsReloadMagazine: 0
+      doubleGoldOnKill: 0
+      reserveRefundPerKill: 0
+      dualWield: 0
+      offHandTargets: 0
+      critChance: -1
+      critMultiplier: -1
+      guaranteedCritAfterReload: 0
+      fanFireRate: -1
+      fanMaxSpread: -1
+      fanSpreadRamp: -1
+      infiniteReserve: 0
+      ultimateKills: 0
+      ultimateCritChance: -1
+      ultimateFireRate: -1
+      focusBonusPerHit: -1
+      focusMaxBonus: -1
+      sustainedSpreadMin: -1
+      executeThreshold: -1

@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10d8f0907146c4c6798249ba66c5dbc6, type: 3}
+  m_Name: WPN_GrenadeLauncher
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.WeaponDefinition
+  displayName: Grenade Launcher
+  damage: 110
+  fireRate: 60
+  range: 45
+  spread: 1
+  pelletsPerShot: 1
+  fireMode: 1
+  delivery: {fileID: 11400000, guid: c4acea6f29b7940bb810102df6eecb9e, type: 2}
+  cost: 280
+  tags: 0
+  pierceCount: 0
+  penetrationFalloff: 1
+  magazineSize: 4
+  maxReserveAmmo: 24
+  reloadTime: 2.6
+  fireTrauma: 0.34
+  recoilKick: 0.2
+  knockbackMultiplier: 2.5
+  fireClip: {fileID: 8300000, guid: 0771a593c1c8c497e85921c459e3e8f9, type: 3}
+  impactClip: {fileID: 8300000, guid: 0171b7e57a49d41e7a628ea5f11839b4, type: 3}
+  fireVolume: 0.6
+  impactVolume: 0.5
+  tracerWidth: 0
+  tracerDuration: 0
+  shellsPerShot: 1

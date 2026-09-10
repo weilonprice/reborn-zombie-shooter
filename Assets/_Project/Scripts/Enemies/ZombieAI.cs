@@ -100,10 +100,13 @@ namespace ZombieShooter
         public void SetAttackCooldown(float value) => attackCooldown = value;
         public void SetBarricadeDamageMultiplier(float value) => barricadeDamageMultiplier = value;
 
+        IEnemySteerOverride steerOverride;
+
         void Awake()
         {
             controller = GetComponent<CharacterController>();
             health = GetComponent<Health>();
+            steerOverride = GetComponent<IEnemySteerOverride>();
         }
 
         void OnEnable()
@@ -142,13 +145,22 @@ namespace ZombieShooter
                 target = player.transform;
             }
 
-            var toTarget = target.position - transform.position;
+            // An archetype may want to walk at something else - a sapper at a barricade, say.
+            // Attacks are unaffected: whatever it ends up pressed against is what it hits.
+            var divert = steerOverride?.SteerTarget();
+            var walkTo = divert != null ? divert : target;
+
+            var toTarget = walkTo.position - transform.position;
             toTarget.y = 0f;
             float distance = toTarget.magnitude;
 
+            // The field routes to the player, so anything walking elsewhere has to steer for
+            // itself. Diverted targets are close and in the open, so a straight line is fine.
+            bool useField = divert == null;
+
             blockingBarricade = !isRanged ? CheckForBlockingBarricade() : null;
 
-            Steer(toTarget, distance);
+            Steer(toTarget, distance, useField);
 
             if (distance <= attackRange)
             {
@@ -186,7 +198,7 @@ namespace ZombieShooter
         /// <summary>How close before the field is abandoned for a straight line.</summary>
         const float DirectApproachRange = 3f;
 
-        void Steer(Vector3 toTarget, float distance)
+        void Steer(Vector3 toTarget, float distance, bool useField)
         {
             var chase = distance > 0.001f ? toTarget / distance : Vector3.zero;
 
@@ -194,7 +206,7 @@ namespace ZombieShooter
             // metres the straight line is both more accurate and what the attack range wants,
             // and any failure of the field degrades to exactly the old behaviour rather than
             // to standing still.
-            if (distance > DirectApproachRange && FlowField.Instance != null)
+            if (useField && distance > DirectApproachRange && FlowField.Instance != null)
             {
                 var routed = FlowField.Instance.DirectionAt(transform.position);
                 if (routed.sqrMagnitude > 0.0001f) chase = routed;

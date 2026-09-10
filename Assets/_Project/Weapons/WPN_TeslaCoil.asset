@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10d8f0907146c4c6798249ba66c5dbc6, type: 3}
+  m_Name: WPN_TeslaCoil
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.WeaponDefinition
+  displayName: Tesla Coil
+  damage: 34
+  fireRate: 150
+  range: 30
+  spread: 0.5
+  pelletsPerShot: 1
+  fireMode: 0
+  delivery: {fileID: 11400000, guid: 9f8a887e04907407d9c15d8a93ff63f4, type: 2}
+  cost: 300
+  tags: 0
+  pierceCount: 0
+  penetrationFalloff: 1
+  magazineSize: 16
+  maxReserveAmmo: 96
+  reloadTime: 2
+  fireTrauma: 0.09
+  recoilKick: 0.03
+  knockbackMultiplier: 0.8
+  fireClip: {fileID: 8300000, guid: 0771a593c1c8c497e85921c459e3e8f9, type: 3}
+  impactClip: {fileID: 8300000, guid: 0171b7e57a49d41e7a628ea5f11839b4, type: 3}
+  fireVolume: 0.4
+  impactVolume: 0.35
+  tracerWidth: 0.06
+  tracerDuration: 0.08
+  shellsPerShot: 0

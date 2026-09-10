@@ -5,9 +5,9 @@ Status:  Gates 0 and 1 PASSED. Phase 2 content production underway - bigger
          arena, deployables, and data-driven weapon upgrade trees in, with the
          economy repriced so the trees are a choice. Direction settled: ten
          weapons, ONE upgrade path each, and the run's decision is which
-         weapon to max. 7 of 10 weapons and paths built, all four firing
-         modes live, and the horde now paths around geometry. No art until
-         the content exists.
+         weapon to max. 7 of 10 weapons and paths built, 7 of 12 enemy
+         archetypes, all four firing modes live, and the horde paths around
+         geometry. No art until the content exists.
 
 Task list only. Each phase ends at a gate - do not start the next phase
 until the gate passes.
@@ -227,6 +227,41 @@ PROGRESS LOG
             ricochet and mark code was deleted rather than left dormant. Third
             and current: a single Gunslinger path, authored, with two columns
             left as placeholders for paths still to be designed.
+2026-09-10  Enemy archetypes 4 to 7, and the wave roster stopped being
+            hardcoded. WaveManager held four prefab fields, three start-wave
+            ints and a weight formula with a branch per type; twelve
+            archetypes do not fit that. It is now a spawn table of
+            {prefab, startWave, weightAtStart, growthPerWave, cap}, so a
+            twelfth archetype is a line in an array and a prefab - no field,
+            no branch. The first four entries reproduce the old formula
+            exactly, so pacing that was already play-tested is unchanged.
+            The three new ones were chosen so each needs a DIFFERENT kind of
+            hook, giving the remaining five a pattern to slot into instead of
+            each inventing one:
+              Bloater (wave 5+, 180 HP) bursts for 34 in 4.5m when killed.
+              Hooks Health.Died. Deliberately does not damage other zombies -
+              one that cleared the pack around it would reward killing it in a
+              crowd, the opposite of the pressure it exists to apply.
+              Armored (wave 6+) takes 25% damage inside a 70-degree frontal
+              arc. Needed a new IDamageModifier hook, queried by Health BEFORE
+              damage lands, because the Damaged event fires afterwards and
+              cannot change a number. Carries a visible plate so "shoot it
+              from the side" is readable rather than inferred. Blasts ignore
+              the arc entirely, which is the intended counterplay.
+              Sapper (wave 4+) walks at the nearest barricade instead of the
+              player and does 4x damage to it. Needed an IEnemySteerOverride
+              hook that changes STEERING ONLY - attacks still resolve against
+              whatever it is pressed against, so the existing blocking check
+              does the damage and there is no second attack path to keep in
+              step with the first.
+            Also fixed while in there: Validate still looked for the four
+            deleted prefab properties and would have reported a builder bug on
+            every single run. It now checks every spawn-table entry rather
+            than just the first, because one silently null archetype otherwise
+            looks like bad luck with the weights.
+            NOT PLAY-TESTED. The Sapper is the one most likely to be wrong:
+            if barricades evaporate the moment they are placed, drop the 4x or
+            push its start wave later.
 2026-09-10  One weapon per firing mode, so cone, chain and projectile finally
             execute. Flamethrower (250) is 7 damage ten times a second in a
             26-degree cone at 11m off a 100-unit fuel tank; Tesla Coil (300)
@@ -483,7 +518,15 @@ main reason content comes first.
     placer generalised so a fourth deployable is an asset plus a button, not
     another script. Barrels chain and hurt the player; claymores are
     directional and one-use.
-[ ] More enemy archetypes, toward a roster of ~12.
+[~] More enemy archetypes, toward a roster of ~12. 7 exist - zombie, brute,
+    runner, ranged, sapper, bloater, armored - plus the boss. Roster is now a
+    spawn table on WaveManager, so the remaining five are a prefab and a line
+    each.
+    Next five, each attacking a different assumption rather than varying a
+    stat: Leaper (jumps barricades, so walls are not safety), Spitter (leaves
+    acid pools, punishes camping), Screamer (buffs the horde until killed,
+    creating a priority target), Revenant (gets up once, punishes moving on),
+    Crawler (spawns in clusters, stresses crowd clear and the flow field).
 [~] More weapons, toward 10. 7 of 10 exist - pistol, shotgun, rifle, sniper,
     flamethrower, Tesla coil, grenade launcher. Remaining: SMG, Nail Gun,
     Siphon Rifle, all drafted in UPGRADES.txt. Two of the three are plain
@@ -804,6 +847,21 @@ KNOWN DEBT IN THE CURRENT BUILD
    to carry a callback to the weapon that fired it, guarded against that
    weapon having been swapped or destroyed.
 
+23. THE SAME MISTAKE HAS NOW HAPPENED THREE TIMES.
+   ModCoreType was an enum with a branch per mod. WeaponLoadout was four fixed
+   slots with a parallel unlocked[]. WaveManager was four prefab fields, three
+   start-wave ints and a weight formula with a branch per type. Every one of
+   them blocked a roster expansion, every one was found only when the roster
+   needed to grow, and every one was fixed the same way - move the set into
+   data and delete the branches.
+   The tell is specific and easy to check for: CONTENT STORED AS A FIXED,
+   SMALL NUMBER OF SERIALIZED FIELDS, with code that names each one. Deployable
+   definitions and the weapon catalogue are what the right version looks like.
+   Places this pattern still exists, unblocked only because nothing has needed
+   them to grow yet: the four ArmoryUI deployable buttons are wired by index,
+   and the boss is a single bossPrefab field on WaveManager. Neither is worth
+   fixing today; both are worth remembering before the second boss.
+
 22. THE FLAMETHROWER HAS NO SOUND.
    It fires ten times a second, so the shared gunshot clip machine-guns
    through the voice pool and reads as a stutter rather than a flame. Its
@@ -868,10 +926,13 @@ START HERE - THIS WEEK
    compounding to ~9x on the twelfth body, and the sniper execute taking the
    boss's last 600 HP for free.
 
-2. Play the flamethrower, the Tesla coil and the grenade launcher.
-   They are the first things ever to run cone, chain and projectile. Expect
-   MODE bugs rather than balance problems: flame ignoring walls, an arc that
-   picks nothing, a grenade arming at your feet.
+2. Play the three new weapons and the three new archetypes.
+   The weapons are the first things ever to run cone, chain and projectile, so
+   expect MODE bugs rather than balance problems: flame ignoring walls, an arc
+   that picks nothing, a grenade arming at your feet.
+   For the archetypes, watch the Sapper hardest - a 4x barricade multiplier
+   could make walls pointless, and its 26m search radius could have it
+   crossing the map past a defenceless player.
 
 3. The last three weapons.
    SMG and Siphon Rifle are plain hitscan. The Nail Gun needs pinning, which
@@ -879,12 +940,14 @@ START HERE - THIS WEEK
    is the only healing in the entire game and the Nail Gun the only weapon
    that touches the barricade pillar, so neither is just another gun.
 
-4. Enemy archetypes, 4 toward 12.
-   Argued 2026-09-10 and worth restating: weapon variety gives ten different
-   runs, enemy variety changes EVERY run. Gate 2 is about repetition, and
-   what makes wave 12 differ from wave 4 is what is walking at you rather
-   than what you are holding. New enemies are also what stress-test the flow
-   field, the barricades and the deployables.
+4. The last five enemy archetypes.
+   Leaper, Spitter, Screamer, Revenant, Crawler. The hooks they need already
+   exist or are one small interface each, and the spawn table means adding
+   one is a prefab plus a line.
+   The reasoning for prioritising these over the last three weapons, worth
+   restating: weapon variety gives ten different runs, enemy variety changes
+   EVERY run. Gate 2 is about repetition, and what makes wave 12 differ from
+   wave 4 is what is walking at you rather than what you are holding.
 
 5. Decide the last Phase 2 blocker.
    All of them are closed: the loadout question (debt 16) is answered, mod
