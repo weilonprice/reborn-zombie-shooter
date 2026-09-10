@@ -35,9 +35,12 @@ namespace ZombieShooter
             var zombies = ZombieAI.ActiveZombies;
             if (zombies == null) return false;
 
-            float range = shot.Definition.Range;
+            float range = shot.Range;
             float sqrRange = range * range;
-            float cosLimit = Mathf.Cos(halfAngle * Mathf.Deg2Rad);
+
+            // Upgrades widen the cone; the asset only supplies the starting angle.
+            float angle = shot.Stats.ConeHalfAngle >= 0f ? shot.Stats.ConeHalfAngle : halfAngle;
+            float cosLimit = Mathf.Cos(angle * Mathf.Deg2Rad);
             float damage = shot.Damage;
 
             bool anyHit = false;

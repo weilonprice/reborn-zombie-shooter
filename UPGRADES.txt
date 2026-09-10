@@ -3,7 +3,7 @@ Snapshot of what is actually IN the build. Not a design document - if it is
 written here, it exists in code and has been compiled. Ideas that have been
 discussed but not built are listed at the bottom, clearly separated.
 
-Last updated: 2026-09-09, after the firing-mode rework.
+Last updated: 2026-09-10, after one weapon per firing mode landed.
 
 EVERYTHING HERE IS SUBJECT TO CHANGE, AND NONE OF IT HAS BEEN PLAY-TESTED.
 Numbers in particular are first drafts. The tiers were designed against the
@@ -114,13 +114,19 @@ work with every mode without a mode knowing they exist.
               Consequence: its kills charge no ultimate and refund no reserve.
               See debt 20.
 
-CONE, CHAIN AND PROJECTILE HAVE NEVER EXECUTED. No weapon references them yet.
-The first weapon built on each mode is really a test of that mode, so build
-one per mode before building two on any of them.
+Delivery PARAMETERS are upgradeable. Cone angle, chain hops, hop range, hop
+damage, blast radius and range all live on WeaponStats as -1-means-default
+overrides, so the asset says where a weapon starts and its path says where it
+goes. Without that a Wildfire path could not widen its cone and a Storm path
+could not grow its chain, which is what those paths are entirely about.
+
+CONE, CHAIN AND PROJECTILE HAVE NEVER BEEN PLAYED. The flamethrower, Tesla
+coil and grenade launcher are the first things to run them, so expect MODE
+bugs before balance problems.
 
 
 ===============================================================================
-AUTHORED PATHS - 4 OF 10
+AUTHORED PATHS - 7 OF 10
 ===============================================================================
 
 -------------------------------------------------------------------------------
@@ -254,7 +260,66 @@ T5  EXECUTIONER                                                    2000 gold
 
 
 -------------------------------------------------------------------------------
-NOT YET BUILT - 6 OF 10
+FLAMETHROWER - "WILDFIRE"                                         250 gold
+-------------------------------------------------------------------------------
+Summary: stops being a weapon you aim and becomes a shape you pour over them.
+Base: 7 dmg x 10 ticks/sec, 26 degree cone, 11m, 100 fuel, 400 reserve, 2.2s.
+Delivery: DLV_Flame (cone). Stopped by level geometry, NOT by barricades.
+
+T1  PRESSURISED           60    Reach 11m to 15m, 7 to 9 damage a tick.
+T2  WIDE BURNER          150    Cone 26 to 38 degrees. A wall, not a jet.
+T3  BACKPACK TANK        350    Fuel 100 to 200, reload 2.2s to 1.4s.
+T4  WHITE HEAT           800    9 to 16 a tick, 600 to 750 ticks a minute.
+T5  FIRESTORM           2000    50 degree cone, 18m, 22 a tick, endless fuel.
+
+    IT IS SILENT ON PURPOSE. Ten shots a second machine-guns the shared
+    gunshot clip through the voice pool and reads as a stutter. Needs a
+    looping sample - see debt 22. It will feel wrong before then.
+    NO BURN OR SPREAD YET. The ignite-and-spread fantasy from the original
+    Wildfire sketch needs a status subsystem; this path is reach, width, fuel
+    and heat. Honest, playable, and not the whole idea.
+
+
+-------------------------------------------------------------------------------
+TESLA COIL - "STORM"                                              300 gold
+-------------------------------------------------------------------------------
+Summary: one shot, and everything standing near it.
+Base: 34 dmg, 150 RPM, 16 mag, 96 reserve, 2.0s reload, 30m.
+Delivery: DLV_Tesla (chain), 3 hops at 8m carrying 80% each.
+
+T1  CAPACITOR             60    Damage 34 to 44 on the body you actually hit.
+T2  ARC EXTENDER         150    5 hops instead of 3, 10m between them.
+T3  SUPERCONDUCTOR       350    95% carried per hop instead of 80%. Mag 24.
+T4  OVERCHARGE           800    Damage 52, 150 to 240 RPM, reload 1.3s.
+T5  STORM               2000    8 hops, 13m reach, and the arc GAINS 10% per
+                                hop. The back of a tight pack is the worst
+                                place in the arena.
+
+    WATCH T5. Ten percent over eight hops means the last body takes over twice
+    the first - roughly 690 damage per shot through a perfect nine-pack. Same
+    compounding shape as sniper Overpenetration, same first tuning candidate.
+
+
+-------------------------------------------------------------------------------
+GRENADE LAUNCHER - "BOMBARDIER"                                   280 gold
+-------------------------------------------------------------------------------
+Summary: four shells was never the problem. Four shells was the problem.
+Base: 110 dmg over a 4.5m blast, 60 RPM, 4 shells, 24 reserve, 2.6s reload.
+Delivery: DLV_Grenade (projectile), lobbed with gravity, spherecast swept.
+
+T1  HEAVY CHARGE          60    Damage 110 to 145, blast 4.5m to 5.5m.
+T2  QUICK CYCLE          150    60 to 100 RPM, reload 2.6s to 1.7s.
+T3  DRUM                 350    Magazine 4 to 8, a shell back per kill.
+T4  CLUSTER              800    Three shells a pull, fanned. Still one round.
+T5  BOMBARDIER          2000    Five shells at 150 over a 7m blast, 12 in the
+                                tube, 1.1s reload.
+
+    Blasts chain explosive barrels, and touch neither you nor your barricades.
+    Its kills charge no ultimate and refund no reserve - see debt 20.
+
+
+-------------------------------------------------------------------------------
+NOT YET BUILT - 3 OF 10
 -------------------------------------------------------------------------------
 Roster drafted 2026-09-09. All four firing modes now exist (hitscan, cone,
 chain, projectile), so each of these is a definition asset, a catalogue entry
@@ -272,14 +337,6 @@ that mode, so build one per mode before building two.
                                       and at T5 every barricade mounts a
                                       turret. The ONLY weapon that touches the
                                       fortification pillar.
-  FLAMETHROWER   250   Crowds.        "Wildfire" - ignite rather than kill,
-                                      fire spreads through packs, corpses
-                                      leave burning ground, and burn damage
-                                      scales with how many are alight.
-  GRENADE LNCHR  280   Burst AoE.     "Bombardier" - cluster rounds, and
-                                      reloading lobs a live stick.
-  TESLA COIL     300   Control.       "Storm" - chains, slows, stuns, ending
-                                      in a permanent arc that chains outward.
   SIPHON RIFLE   380   Sustain.       "Reaper" - kills heal, damage scales
                                       with missing health, and once a wave
                                       lethal damage leaves you at 1 HP.

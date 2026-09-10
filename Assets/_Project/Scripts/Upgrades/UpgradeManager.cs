@@ -170,6 +170,13 @@ namespace ZombieShooter
             if (tier.pelletCount >= 0) stats.PelletCount = tier.pelletCount;
             if (tier.spread >= 0f) stats.Spread = tier.spread;
             if (tier.penetrationFalloff >= 0f) stats.PenetrationFalloff = tier.penetrationFalloff;
+            if (tier.range >= 0f) stats.Range = tier.range;
+
+            if (tier.coneHalfAngle >= 0f) stats.ConeHalfAngle = tier.coneHalfAngle;
+            if (tier.chainBounces >= 0) stats.ChainBounces = tier.chainBounces;
+            if (tier.chainHopRange >= 0f) stats.ChainHopRange = tier.chainHopRange;
+            if (tier.chainDamagePerHop >= 0f) stats.ChainDamagePerHop = tier.chainDamagePerHop;
+            if (tier.blastRadius >= 0f) stats.BlastRadius = tier.blastRadius;
 
             if (tier.convertToFullAuto) stats.FullAuto = true;
             if (tier.holsteredReload) stats.HolsteredReload = true;

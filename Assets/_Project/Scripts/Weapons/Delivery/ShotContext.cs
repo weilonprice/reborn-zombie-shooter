@@ -49,6 +49,9 @@ namespace ZombieShooter
 
         public int PelletCount => Stats.PelletCount > 0 ? Stats.PelletCount : 1;
 
+        /// <summary>Range, upgraded if the weapon's path says so.</summary>
+        public float Range => Stats.Range >= 0f ? Stats.Range : Definition.Range;
+
         const float VerticalSpreadScale = 0.15f;
 
         /// <summary>

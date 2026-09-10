@@ -33,6 +33,20 @@ namespace ZombieShooter
         public float spread = -1f;
         [Tooltip("Damage retained per body pierced. Above 1 the round gains. -1 leaves it alone.")]
         public float penetrationFalloff = -1f;
+        [Tooltip("Effective range in metres. -1 leaves it alone.")]
+        public float range = -1f;
+
+        [Header("Delivery overrides (-1 keeps the delivery asset's own value)")]
+        [Tooltip("Cone half-angle in degrees, for flame weapons.")]
+        public float coneHalfAngle = -1f;
+        [Tooltip("How many bodies a chain hops to after the first.")]
+        public int chainBounces = -1;
+        [Tooltip("How far a chain reaches for its next target.")]
+        public float chainHopRange = -1f;
+        [Tooltip("Damage multiplier per chain hop. Above 1 the arc grows down the chain.")]
+        public float chainDamagePerHop = -1f;
+        [Tooltip("Explosion radius for projectile weapons. 0 makes them single-target.")]
+        public float blastRadius = -1f;
 
         [Header("Behaviour")]
         public bool convertToFullAuto;
