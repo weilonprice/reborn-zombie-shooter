@@ -1,0 +1,28 @@
+{
+  "weapon": "Pistol",
+  "style": "chunky stylized survival shooter prop",
+  "forward_axis": "+Y in Blender, +Z after Unity FBX import",
+  "parts": 18,
+  "attachments": [
+    "GripSocket",
+    "MuzzleSocket",
+    "EjectPortSocket"
+  ],
+  "bounds_meters": {
+    "min": [
+      -0.1599999964237213,
+      -0.18249747157096863,
+      -0.3743460774421692
+    ],
+    "max": [
+      0.18250000476837158,
+      0.9179999828338623,
+      0.5475000143051147
+    ],
+    "size": [
+      0.3425000011920929,
+      1.1004974842071533,
+      0.9218460917472839
+    ]
+  }
+}

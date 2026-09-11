@@ -1,0 +1,28 @@
+{
+  "weapon": "SMG",
+  "style": "chunky stylized survival shooter prop",
+  "forward_axis": "+Y in Blender, +Z after Unity FBX import",
+  "parts": 11,
+  "attachments": [
+    "GripSocket",
+    "MuzzleSocket",
+    "EjectPortSocket"
+  ],
+  "bounds_meters": {
+    "min": [
+      -0.1550000011920929,
+      -0.6182652711868286,
+      -0.340230792760849
+    ],
+    "max": [
+      0.20499999821186066,
+      1.4780000448226929,
+      0.5476229786872864
+    ],
+    "size": [
+      0.36000001430511475,
+      2.0962653160095215,
+      0.887853741645813
+    ]
+  }
+}

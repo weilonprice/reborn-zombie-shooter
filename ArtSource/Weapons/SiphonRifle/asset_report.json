@@ -1,0 +1,28 @@
+{
+  "weapon": "SiphonRifle",
+  "style": "chunky stylized survival shooter prop",
+  "forward_axis": "+Y in Blender, +Z after Unity FBX import",
+  "parts": 15,
+  "attachments": [
+    "GripSocket",
+    "MuzzleSocket",
+    "EjectPortSocket"
+  ],
+  "bounds_meters": {
+    "min": [
+      -0.22204534709453583,
+      -0.6561171412467957,
+      -0.22522500157356262
+    ],
+    "max": [
+      0.30461621284484863,
+      1.649999976158142,
+      0.5893397331237793
+    ],
+    "size": [
+      0.5266615748405457,
+      2.306117057800293,
+      0.8145647048950195
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "weapon": "TeslaCoil",
+  "style": "chunky stylized survival shooter prop",
+  "forward_axis": "+Y in Blender, +Z after Unity FBX import",
+  "parts": 12,
+  "attachments": [
+    "GripSocket",
+    "MuzzleSocket",
+    "EjectPortSocket"
+  ],
+  "bounds_meters": {
+    "min": [
+      -0.21599999070167542,
+      -0.17666994035243988,
+      -0.2191060334444046
+    ],
+    "max": [
+      0.30000001192092896,
+      1.409999966621399,
+      0.5554282069206238
+    ],
+    "size": [
+      0.5160000324249268,
+      1.586669921875,
+      0.7745342254638672
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "weapon": "AssaultRifle",
+  "style": "chunky stylized survival shooter prop",
+  "forward_axis": "+Y in Blender, +Z after Unity FBX import",
+  "parts": 19,
+  "attachments": [
+    "GripSocket",
+    "MuzzleSocket",
+    "EjectPortSocket"
+  ],
+  "bounds_meters": {
+    "min": [
+      -0.17499999701976776,
+      -0.6500000357627869,
+      -0.35774943232536316
+    ],
+    "max": [
+      0.22999998927116394,
+      1.7480000257492065,
+      0.6600000262260437
+    ],
+    "size": [
+      0.4049999713897705,
+      2.3980000019073486,
+      1.0177494287490845
+    ]
+  }
+}
