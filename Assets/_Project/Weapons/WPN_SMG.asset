@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10d8f0907146c4c6798249ba66c5dbc6, type: 3}
+  m_Name: WPN_SMG
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.WeaponDefinition
+  displayName: SMG
+  damage: 14
+  fireRate: 900
+  range: 32
+  spread: 3.4
+  pelletsPerShot: 1
+  fireMode: 0
+  delivery: {fileID: 0}
+  cost: 120
+  tags: 0
+  pierceCount: 0
+  penetrationFalloff: 0.6
+  magazineSize: 40
+  maxReserveAmmo: 320
+  reloadTime: 1.5
+  fireTrauma: 0.045
+  recoilKick: 0.03
+  knockbackMultiplier: 0.5
+  fireClip: {fileID: 8300000, guid: 0771a593c1c8c497e85921c459e3e8f9, type: 3}
+  impactClip: {fileID: 8300000, guid: 0171b7e57a49d41e7a628ea5f11839b4, type: 3}
+  fireVolume: 0.32
+  impactVolume: 0.3
+  tracerWidth: 0.055
+  tracerDuration: 0.035
+  shellsPerShot: 1
