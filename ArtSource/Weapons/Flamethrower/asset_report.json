@@ -1,0 +1,28 @@
+{
+  "weapon": "Flamethrower",
+  "style": "chunky stylized survival shooter prop",
+  "forward_axis": "+Y in Blender, +Z after Unity FBX import",
+  "parts": 15,
+  "attachments": [
+    "GripSocket",
+    "MuzzleSocket",
+    "EjectPortSocket"
+  ],
+  "bounds_meters": {
+    "min": [
+      -0.49000000953674316,
+      -0.4082813858985901,
+      -0.2152249962091446
+    ],
+    "max": [
+      0.49000000953674316,
+      1.1979999542236328,
+      0.64000004529953
+    ],
+    "size": [
+      0.9800000190734863,
+      1.6062812805175781,
+      0.8552250266075134
+    ]
+  }
+}

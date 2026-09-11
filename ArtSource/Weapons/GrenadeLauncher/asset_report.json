@@ -1,0 +1,28 @@
+{
+  "weapon": "GrenadeLauncher",
+  "style": "chunky stylized survival shooter prop",
+  "forward_axis": "+Y in Blender, +Z after Unity FBX import",
+  "parts": 20,
+  "attachments": [
+    "GripSocket",
+    "MuzzleSocket",
+    "EjectPortSocket"
+  ],
+  "bounds_meters": {
+    "min": [
+      -0.17499999701976776,
+      -0.6483619213104248,
+      -0.22280578315258026
+    ],
+    "max": [
+      0.24400000274181366,
+      1.3619999885559082,
+      0.6700000166893005
+    ],
+    "size": [
+      0.4189999997615814,
+      2.010361909866333,
+      0.892805814743042
+    ]
+  }
+}
