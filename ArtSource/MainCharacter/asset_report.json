@@ -1,0 +1,60 @@
+{
+  "character": "MainCharacter",
+  "style": "chunky stylized survival shooter hero",
+  "forward_axis": "+Y in Blender, +Z after Unity FBX import",
+  "mesh_objects": 1,
+  "bones": 18,
+  "attachments": [
+    "WeaponSocket_R",
+    "WeaponSocket_L",
+    "BackSocket",
+    "HeadSocket"
+  ],
+  "clips": {
+    "Idle": {
+      "frames": 61,
+      "seconds": 2.0,
+      "loop": true
+    },
+    "Walk": {
+      "frames": 36,
+      "seconds": 1.17,
+      "loop": true
+    },
+    "Run": {
+      "frames": 24,
+      "seconds": 0.77,
+      "loop": true
+    },
+    "Aim": {
+      "frames": 36,
+      "seconds": 1.17,
+      "loop": true
+    },
+    "Fire": {
+      "frames": 12,
+      "seconds": 0.37,
+      "loop": false
+    },
+    "Reload": {
+      "frames": 58,
+      "seconds": 1.9,
+      "loop": false
+    },
+    "GetShot": {
+      "frames": 24,
+      "seconds": 0.77,
+      "loop": false
+    },
+    "Stagger": {
+      "frames": 44,
+      "seconds": 1.43,
+      "loop": false
+    },
+    "Death": {
+      "frames": 58,
+      "seconds": 1.9,
+      "loop": false
+    }
+  }
+}

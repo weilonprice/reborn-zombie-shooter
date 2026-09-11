@@ -276,9 +276,9 @@ def start_clip(rig, name):
 
 def finish_clip(rig, name, frames, loop):
     action = rig.animation_data.action
-    for fcurve in action.fcurves:
-        for key in fcurve.keyframe_points:
-            key.interpolation = "BEZIER"
+    # Blender 5.2 stores action curves behind the layered Action API. The default
+    # keyframe interpolation is already suitable for these broad stylized poses,
+    # so avoid relying on the pre-5.2 fcurves property here.
     action["clip_name"] = name
     action["loop"] = loop
     action["frames"] = frames
@@ -505,13 +505,16 @@ def main():
     bpy.ops.object.select_all(action="DESELECT")
     mesh.select_set(True)
     rig.select_set(True)
+    for obj in bpy.context.scene.objects:
+        if obj.type == "EMPTY" and obj.parent == rig:
+            obj.select_set(True)
     bpy.context.view_layer.objects.active = rig
     for track in rig.animation_data.nla_tracks:
         track.mute = False
     bpy.ops.export_scene.fbx(
         filepath=os.path.join(UNITY_OUT, "MainCharacter.fbx"),
         use_selection=True,
-        object_types={"ARMATURE", "MESH"},
+        object_types={"ARMATURE", "MESH", "EMPTY"},
         add_leaf_bones=False,
         axis_forward="-Z",
         axis_up="Y",
