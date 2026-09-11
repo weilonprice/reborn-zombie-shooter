@@ -2,6 +2,28 @@ import bpy, math, os, json
 from mathutils import Vector, Quaternion
 from math import sin, cos, pi
 BASE=os.path.dirname(os.path.abspath(__file__))
+
+# Horde detail budget.
+#
+# This character is the BASELINE archetype: spawn weight 10, never falls off, so most of the
+# sixty enemies alive at wave 15 are this mesh. The camera sits about 23m out, which makes it
+# roughly eighty pixels tall on a 1080p screen.
+#
+# Resolution is therefore lowered at GENERATION time rather than by decimating a finished
+# mesh - primitives built coarse stay clean, decimated ones do not. And a Unity LODGroup
+# would achieve nothing here: the top-down camera never changes distance, so every zombie
+# would sit on the same LOD level forever.
+#
+# ZOMBIE_DETAIL=hero restores the original resolution for renders, marketing or a boss.
+DETAIL=os.environ.get('ZOMBIE_DETAIL','horde')
+if DETAIL=='hero': SPHERE_SEG,SPHERE_RINGS,TUBE_N,BEVEL_SEG=16,10,12,2
+else: SPHERE_SEG,SPHERE_RINGS,TUBE_N,BEVEL_SEG=8,5,6,1
+
+# Cycles proof renders cost far more than the build. Skipping them makes iterating on the
+# polygon budget a few seconds rather than a few minutes.
+SKIP_RENDER=os.environ.get('ZOMBIE_SKIP_RENDER','0')=='1'
+def render_still():
+ if not SKIP_RENDER: bpy.ops.render.render(write_still=True)
 OUT=os.path.abspath(os.path.join(BASE,'../../Assets/_Project/Art/Characters/NormalZombie'))
 bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
 for a in list(bpy.data.actions): bpy.data.actions.remove(a)
@@ -22,18 +44,23 @@ def finish(o,name,material,bone):
  for p in o.data.polygons:p.use_smooth=True
  g=o.vertex_groups.new(name=bone);g.add(list(range(len(o.data.vertices))),1,'REPLACE');parts.append(o);return o
 
-def ell(name,c,s,material,bone,seg=16,rings=10):
+def ell(name,c,s,material,bone,seg=SPHERE_SEG,rings=SPHERE_RINGS):
+ # Call sites pass resolution POSITIONALLY for the parts that want it - the cranium asks for
+ # 24x16. Clamping here rather than editing each one keeps the authored intent visible while
+ # still honouring the budget, and hero mode is left exactly as written.
+ if DETAIL!='hero': seg=min(seg,SPHERE_SEG);rings=min(rings,SPHERE_RINGS)
  bpy.ops.mesh.primitive_uv_sphere_add(segments=seg,ring_count=rings,location=c)
  o=bpy.context.object;o.scale=s;return finish(o,name,material,bone)
 def box(name,c,s,material,bone,bevel=.02):
  bpy.ops.mesh.primitive_cube_add(size=1,location=c);o=bpy.context.object;o.scale=s
  bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
  if bevel:
-  mod=o.modifiers.new('Soft manufactured edges','BEVEL');mod.width=bevel;mod.segments=2
+  mod=o.modifiers.new('Soft manufactured edges','BEVEL');mod.width=bevel;mod.segments=BEVEL_SEG
   bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=mod.name)
  return finish(o,name,material,bone)
 # Cross-section lofts, with a ragged end option. All vertices carry explicit bone weights.
-def tube(name,points,radii,material,bone,other=None,ragged=False,n=12):
+def tube(name,points,radii,material,bone,other=None,ragged=False,n=TUBE_N):
+ if DETAIL!='hero': n=min(n,TUBE_N)
  pts=[Vector(p) for p in points]; direction=(pts[-1]-pts[0]).normalized(); u=direction.cross(Vector((0,1,0))).normalized();v=direction.cross(u).normalized()
  verts=[]
  for j,(c,r) in enumerate(zip(pts,radii)):
@@ -241,7 +268,7 @@ scene.world.color=(.17,.17,.17);scene.view_settings.view_transform='AgX'
 scene.render.resolution_x=900;scene.render.resolution_y=1000;scene.render.resolution_percentage=100
 scene.render.image_settings.file_format='PNG';scene.render.filepath=os.path.join(BASE,'NormalZombie_Preview.png')
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(BASE,'NormalZombie.blend'))
-bpy.ops.render.render(write_still=True)
+render_still()
 # Animation proof frames, three moments per clip.
 scene.render.resolution_x=400;scene.render.resolution_y=460;scene.cycles.samples=12
 os.makedirs(os.path.join(BASE,'proof'),exist_ok=True)
@@ -250,7 +277,7 @@ for name,fs in {'Chase':[1,9,25],'Attack':[8,18,32],'GetShot':[1,4,12],'Stagger'
  cam.location=(3,-5,2.9) if name!='Death' else (3,-5,3)
  aim(cam,(0,-.08,1.03) if name!='Death' else (0,-.8,.6));cam.data.ortho_scale=2.65 if name!='Death' else 3.15
  for f in fs:
-  scene.frame_set(f);scene.render.filepath=os.path.join(BASE,'proof',f'{name}_{f:02}.png');bpy.ops.render.render(write_still=True)
+  scene.frame_set(f);scene.render.filepath=os.path.join(BASE,'proof',f'{name}_{f:02}.png');render_still()
 mesh.data.calc_loop_triangles()
 with open(os.path.join(BASE,'asset_report.json'),'w') as f:json.dump({'vertices':len(mesh.data.vertices),'triangles':len(mesh.data.loop_triangles),'bones':len(arm.bones),'materials':len(mesh.data.materials),'clips':clips},f,indent=2)
 print('ZOMBIE_BUILD_COMPLETE',len(mesh.data.vertices),len(mesh.data.loop_triangles),flush=True)

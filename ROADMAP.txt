@@ -228,6 +228,36 @@ PROGRESS LOG
             ricochet and mark code was deleted rather than left dormant. Third
             and current: a single Gunslinger path, authored, with two columns
             left as placeholders for paths still to be designed.
+2026-09-11  First authored character, and its cost brought down to fit a horde.
+            The normal zombie shipped at 19,708 triangles and 10,112 vertices,
+            on the BASELINE archetype - spawn weight 10, never falls off, so
+            most of the sixty alive at wave 15 are this mesh. The camera sits
+            23m out, making it about eighty pixels tall on a 1080p screen.
+            Now 6,660 triangles and 3,588 vertices. Vertices are the figure
+            that matters: skinning cost scales with them, so per-frame work
+            for a full horde went from 607k to 215k.
+            Lowered at GENERATION time rather than by decimating a finished
+            mesh - primitives built coarse stay clean, decimated ones do not.
+            build_zombie.py takes ZOMBIE_DETAIL=horde|hero, and call sites that
+            ask for resolution positionally (the cranium asks for 24x16) are
+            CLAMPED rather than edited, so authored intent stays readable and
+            hero still produces exactly what was written.
+            A Unity LODGroup would have achieved nothing: the top-down camera
+            never changes distance, so every zombie would sit on the same LOD
+            level forever. Worth remembering before reaching for LODs on any
+            future character.
+            ArenaBuilder.TuneForHorde does the rest, and it is worth more than
+            the polygon count - skinned meshes do not batch and the GPU
+            Resident Drawer does not touch them, so every horde member is its
+            own draw call and its own skinning pass, and a shadow-casting one
+            pays both twice. Shadow casting off, two-bone skinning, no
+            per-frame bounds recalculation, and animator culling that keeps the
+            state machine ticking while skipping transform writes nothing can
+            see.
+            Verified by rendering, not just by the counter: the silhouette,
+            palette and expression survive, slightly more faceted.
+            STILL NOT PROFILED IN PLAY. These are reductions in known costs,
+            not a measurement.
 2026-09-10  Weapon roster finished - 10 weapons, 10 paths.
               SMG "Adrenaline" (120) stacks move speed AND fire rate per kill,
               lapsing on a timer. Move speed was cut from the pistol path for
@@ -777,6 +807,13 @@ KNOWN DEBT IN THE CURRENT BUILD
    direction only; separation still walks every pair and the barricade cast
    still runs per zombie per frame. It did not get worse either - a field
    lookup is cheaper than the normalize it replaced.
+   RENDER COST ADDRESSED SEPARATELY 2026-09-11, and the two should not be
+   confused. Authored characters added a per-frame render and skinning cost
+   the greybox capsules never had; that has been cut roughly threefold and is
+   documented in the art README. THIS entry is still about CPU steering work,
+   which nothing has touched. When the horde is finally profiled, expect to
+   find out which of the two actually dominates - the honest answer today is
+   that nobody knows.
    DEFERRED, deliberately. Reviewed 2026-09-08: maxAliveAtOnce is 60, so this
    is ~3,600 distance checks and 60 casts per frame - trivial for a modern
    CPU. A spatial hash now is premature optimisation. Revisit in Phase 2 when

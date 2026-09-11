@@ -535,6 +535,8 @@ namespace ZombieShooter.EditorTools
                     animator.runtimeAnimatorController = LoadOrCreateNormalZombieController();
                     animator.applyRootMotion = false;
 
+                    TuneForHorde(model);
+
                     var driver = zombie.AddComponent<ZombieAnimator>();
                     using (var f = new Fields(driver))
                     {
@@ -560,6 +562,42 @@ namespace ZombieShooter.EditorTools
 
             PrefabUtility.SaveAsPrefabAsset(zombie, ZombiePrefabPath);
             Object.DestroyImmediate(zombie);
+        }
+
+        /// <summary>
+        /// Trims the per-instance cost of a character that appears sixty times at once.
+        /// <para>
+        /// These are worth more than the polygon budget. Skinned meshes do not batch and the
+        /// GPU Resident Drawer does not touch them, so every horde member is its own draw
+        /// call and its own skinning pass - and a shadow-casting one pays both twice.
+        /// </para>
+        /// </summary>
+        static void TuneForHorde(GameObject model)
+        {
+            foreach (var skin in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                // Individual shadows from a horde read as noise from 23m up, and cost a
+                // second skinning pass plus a second draw each. The arena's own geometry
+                // still casts, so the scene keeps its grounding.
+                skin.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                skin.receiveShadows = true;
+
+                // Two influences rather than four. On a rig this chunky the difference is
+                // invisible and it halves the skinning maths.
+                skin.quality = SkinQuality.Bone2;
+
+                // The bounds are authored, so there is no reason to recompute them per frame.
+                skin.updateWhenOffscreen = false;
+                skin.skinnedMotionVectors = false;
+            }
+
+            foreach (var animator in model.GetComponentsInChildren<Animator>(true))
+            {
+                // Off-screen zombies keep their state machine ticking - they are still
+                // walking toward the player and must arrive in the right place - but stop
+                // writing transforms nothing can see.
+                animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+            }
         }
 
         static void ConfigureNormalZombieImportSettings()
