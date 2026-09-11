@@ -1,0 +1,38 @@
+/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/build_zombie.py:12: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  m=bpy.data.materials.new(name); m.diffuse_color=(*color,1); m.use_nodes=True
+/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/build_zombie.py:215: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  material=bpy.data.materials.new('NormalZombie • unified palette');material.use_nodes=True
+
+FBX export starting... '/Users/weilonprice/Documents/zombie shooter/zombie shooter/Assets/_Project/Art/Characters/NormalZombie/NormalZombie.fbx'
+(bpy.data.armatures['NormalZombie_Skeleton'], 'POSE')
+export finished in 0.1939 sec.
+INFO Draco is available, use library at /Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/libbf_intern_draco_bridge.dylib
+INFO MeshOptimizer is available, use library at /Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/libbf_intern_meshopt_bridge.dylib
+18:06:20 | INFO: Starting glTF 2.0 export
+18:06:20 | INFO: Extracting primitive: Trousers waist
+18:06:20 | INFO: Primitives created: 1
+18:06:21 | INFO: Finished glTF 2.0 export in 0.21694731712341309 s
+/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/build_zombie.py:12: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  m=bpy.data.materials.new(name); m.diffuse_color=(*color,1); m.use_nodes=True
+00:10.129  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/NormalZombie_Preview.png'
+00:10.989  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/Chase_01.png'
+00:12.019  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/Chase_09.png'
+00:12.922  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/Chase_25.png'
+00:13.766  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/Attack_08.png'
+00:14.616  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/Attack_18.png'
+00:15.522  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/Attack_32.png'
+00:16.380  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/GetShot_01.png'
+00:17.236  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/GetShot_04.png'
+00:18.071  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/GetShot_12.png'
+00:18.877  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/Stagger_07.png'
+00:19.741  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/Stagger_15.png'
+00:20.641  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/Stagger_34.png'
+00:21.548  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/Death_17.png'
+00:22.364  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/Death_32.png'
+00:23.203  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/NormalZombie/proof/Death_55.png'
+
+Info: Saved as "NormalZombie.blend"
+ZOMBIE_BUILD_COMPLETE 10112 19708
+Blender 5.2.1 LTS (hash 9e2066aef7ef built 2026-08-25 01:35:57)
+
+Blender quit

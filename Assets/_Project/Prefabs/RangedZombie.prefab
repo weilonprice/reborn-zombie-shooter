@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &837398730901218946
+--- !u!1 &3474564959089997858
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,9 +8,184 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2240676570867324546}
-  - component: {fileID: 4915436501869544326}
-  - component: {fileID: 5616878759003341826}
+  - component: {fileID: 5449523949155856801}
+  - component: {fileID: 4697666443516449681}
+  - component: {fileID: 8661747553579791644}
+  - component: {fileID: 6626322378678629228}
+  - component: {fileID: 2421038571533124474}
+  - component: {fileID: 1994371944483764669}
+  m_Layer: 0
+  m_Name: RangedZombie
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5449523949155856801
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3474564959089997858}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8508183758732677922}
+  - {fileID: 7135001203497725327}
+  - {fileID: 5445495539663341757}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!143 &4697666443516449681
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3474564959089997858}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 1.75
+  m_Radius: 0.38
+  m_SlopeLimit: 45
+  m_StepOffset: 0.35
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &8661747553579791644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3474564959089997858}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 768d1ef1480ad46cbb2a5dfd4e70d5a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.Health
+  maxHealth: 60
+--- !u!114 &6626322378678629228
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3474564959089997858}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 225f534df19ed49d09c52328b980b3a0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.ZombieAI
+  moveSpeed: 1.8
+  turnSpeed: 320
+  gravity: -20
+  separationRadius: 1.4
+  separationStrength: 2.5
+  knockbackForce: 3.5
+  knockbackDecay: 14
+  attackRange: 13.5
+  attackDamage: 15
+  attackCooldown: 2.2
+  barricadeDamageMultiplier: 1
+  scoreValue: 25
+  goldReward: 25
+  deathLinger: 0.2
+  deathClip: {fileID: 8300000, guid: 9e65ae5b350164ce98b50756f9b5882f, type: 3}
+  deathVolume: 0.5
+  killTrauma: 0.2
+  isRanged: 1
+  projectilePrefab: {fileID: 4776949919325970477, guid: 4294c5bcc94c04c28a509b68e29c56db, type: 3}
+  preferredRange: 11
+  shootPoint: {fileID: 5445495539663341757}
+  shootClip: {fileID: 8300000, guid: 0771a593c1c8c497e85921c459e3e8f9, type: 3}
+  shootVolume: 0.4
+--- !u!114 &2421038571533124474
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3474564959089997858}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb70724378e244a568047f95b70def37, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.DeathPop
+  health: {fileID: 8661747553579791644}
+  body: {fileID: 0}
+  duration: 0.2
+  squash: 1.5
+  spinDegrees: 100
+--- !u!114 &1994371944483764669
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3474564959089997858}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 558b5eff40b744aa8b2af92ce7180aae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.HitFlash
+  health: {fileID: 8661747553579791644}
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  duration: 0.06
+--- !u!1 &7349724018478807715
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5445495539663341757}
+  m_Layer: 0
+  m_Name: ShootPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5445495539663341757
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7349724018478807715}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.35, z: 0.7}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5449523949155856801}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8037095346041207482
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8508183758732677922}
+  - component: {fileID: 8886256341403027509}
+  - component: {fileID: 5422241528060406519}
   m_Layer: 0
   m_Name: Body
   m_TagString: Untagged
@@ -18,36 +193,36 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &2240676570867324546
+--- !u!4 &8508183758732677922
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 837398730901218946}
+  m_GameObject: {fileID: 8037095346041207482}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.82, y: 0.86, z: 0.82}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 9155831059945301798}
+  m_Father: {fileID: 5449523949155856801}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &4915436501869544326
+--- !u!33 &8886256341403027509
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 837398730901218946}
+  m_GameObject: {fileID: 8037095346041207482}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
---- !u!23 &5616878759003341826
+--- !u!23 &5422241528060406519
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 837398730901218946}
+  m_GameObject: {fileID: 8037095346041207482}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -90,7 +265,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1 &1886367963961298684
+--- !u!1 &8055403848049804466
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -98,184 +273,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 9155831059945301798}
-  - component: {fileID: 2886875102031324812}
-  - component: {fileID: 6363259781839746358}
-  - component: {fileID: 1712286729229458567}
-  - component: {fileID: 7461906049608217094}
-  - component: {fileID: 7453257405798187025}
-  m_Layer: 0
-  m_Name: RangedZombie
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &9155831059945301798
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1886367963961298684}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2240676570867324546}
-  - {fileID: 1363111757994822752}
-  - {fileID: 4225556401084851264}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!143 &2886875102031324812
-CharacterController:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1886367963961298684}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 1.75
-  m_Radius: 0.38
-  m_SlopeLimit: 45
-  m_StepOffset: 0.35
-  m_SkinWidth: 0.08
-  m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &6363259781839746358
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1886367963961298684}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 768d1ef1480ad46cbb2a5dfd4e70d5a9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.Health
-  maxHealth: 60
---- !u!114 &1712286729229458567
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1886367963961298684}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 225f534df19ed49d09c52328b980b3a0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.ZombieAI
-  moveSpeed: 1.8
-  turnSpeed: 320
-  gravity: -20
-  separationRadius: 1.4
-  separationStrength: 2.5
-  knockbackForce: 3.5
-  knockbackDecay: 14
-  attackRange: 13.5
-  attackDamage: 15
-  attackCooldown: 2.2
-  barricadeDamageMultiplier: 1
-  scoreValue: 25
-  goldReward: 25
-  deathLinger: 0.2
-  deathClip: {fileID: 8300000, guid: 9e65ae5b350164ce98b50756f9b5882f, type: 3}
-  deathVolume: 0.5
-  killTrauma: 0.2
-  isRanged: 1
-  projectilePrefab: {fileID: 1709126210705465715, guid: 4294c5bcc94c04c28a509b68e29c56db, type: 3}
-  preferredRange: 11
-  shootPoint: {fileID: 4225556401084851264}
-  shootClip: {fileID: 8300000, guid: 0771a593c1c8c497e85921c459e3e8f9, type: 3}
-  shootVolume: 0.4
---- !u!114 &7461906049608217094
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1886367963961298684}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eb70724378e244a568047f95b70def37, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.DeathPop
-  health: {fileID: 6363259781839746358}
-  body: {fileID: 0}
-  duration: 0.2
-  squash: 1.5
-  spinDegrees: 100
---- !u!114 &7453257405798187025
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1886367963961298684}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 558b5eff40b744aa8b2af92ce7180aae, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.HitFlash
-  health: {fileID: 6363259781839746358}
-  flashColor: {r: 1, g: 1, b: 1, a: 1}
-  duration: 0.06
---- !u!1 &3073026266319699909
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4225556401084851264}
-  m_Layer: 0
-  m_Name: ShootPoint
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &4225556401084851264
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3073026266319699909}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.35, z: 0.7}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 9155831059945301798}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &3856615027918694314
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1363111757994822752}
-  - component: {fileID: 7132728789531265865}
-  - component: {fileID: 6119391486938707795}
+  - component: {fileID: 7135001203497725327}
+  - component: {fileID: 1575856507036803193}
+  - component: {fileID: 1281165942495744257}
   m_Layer: 0
   m_Name: Snout
   m_TagString: Untagged
@@ -283,36 +283,36 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1363111757994822752
+--- !u!4 &7135001203497725327
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3856615027918694314}
+  m_GameObject: {fileID: 8055403848049804466}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0.32, z: 0.41}
   m_LocalScale: {x: 0.28, y: 0.28, z: 0.36}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 9155831059945301798}
+  m_Father: {fileID: 5449523949155856801}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &7132728789531265865
+--- !u!33 &1575856507036803193
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3856615027918694314}
+  m_GameObject: {fileID: 8055403848049804466}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!23 &6119391486938707795
+--- !u!23 &1281165942495744257
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3856615027918694314}
+  m_GameObject: {fileID: 8055403848049804466}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1

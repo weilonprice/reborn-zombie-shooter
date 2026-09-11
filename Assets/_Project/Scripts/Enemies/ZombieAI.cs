@@ -86,6 +86,8 @@ namespace ZombieShooter
 
         /// <summary>Raised when this zombie dies, so the spawner can recycle it.</summary>
         public event Action<ZombieAI> Died;
+        /// <summary>Raised when the attack cooldown resolves an attack.</summary>
+        public event Action Attacked;
 
         public int ScoreValue => scoreValue;
         public int GoldReward => goldReward;
@@ -323,6 +325,7 @@ namespace ZombieShooter
                 var rot = dir.sqrMagnitude > 0.0001f ? Quaternion.LookRotation(dir, Vector3.up) : transform.rotation;
 
                 EnemyProjectile.Spawn(projectilePrefab, origin, rot, attackDamage, gameObject);
+                Attacked?.Invoke();
 
                 if (shootClip != null)
                     SfxPlayer.Instance?.PlayAt(shootClip, origin, shootVolume);
@@ -330,6 +333,7 @@ namespace ZombieShooter
             else
             {
                 nextAttackTime = Time.time + attackCooldown;
+                Attacked?.Invoke();
 
                 var damageable = target.GetComponentInParent<IDamageable>();
                 if (damageable == null || !damageable.IsAlive) return;

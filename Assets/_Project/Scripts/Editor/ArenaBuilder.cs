@@ -1,4 +1,5 @@
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
@@ -30,6 +31,8 @@ namespace ZombieShooter.EditorTools
         const string ScreamerPrefabPath = Root + "/Prefabs/Screamer.prefab";
         const string RevenantPrefabPath = Root + "/Prefabs/Revenant.prefab";
         const string CrawlerPrefabPath = Root + "/Prefabs/Crawler.prefab";
+        const string NormalZombieModelPath = Root + "/Art/Characters/NormalZombie/NormalZombie.fbx";
+        const string NormalZombieControllerPath = Root + "/Art/Characters/NormalZombie/NormalZombie.controller";
         const string SpitterPrefabPath = Root + "/Prefabs/Spitter.prefab";
         const string AcidPoolPrefabPath = Root + "/Prefabs/AcidPool.prefab";
         const string AcidProjectilePrefabPath = Root + "/Prefabs/AcidProjectile.prefab";
@@ -506,8 +509,128 @@ namespace ZombieShooter.EditorTools
                  .F("duration", 0.06f);
             }
 
+            // Replace the prototype primitives with the authored, skinned normal zombie.
+            // Keep the gameplay root and its existing components in place: WaveManager pools
+            // this object, ZombieAI owns movement, and the imported Animator owns only visuals.
+            var modelAsset = AssetDatabase.LoadAssetAtPath<GameObject>(NormalZombieModelPath);
+            if (modelAsset != null)
+            {
+                // The capsule/cube above are only a fallback prototype. Remove them before
+                // saving the authored skinned model so the prefab has one visible character.
+                Object.DestroyImmediate(body);
+                Object.DestroyImmediate(snout);
+
+                var model = PrefabUtility.InstantiatePrefab(modelAsset) as GameObject;
+                if (model != null)
+                {
+                    model.name = "NormalZombie_Model";
+                    model.transform.SetParent(zombie.transform, false);
+                    model.transform.localPosition = Vector3.zero;
+                    model.transform.localRotation = Quaternion.identity;
+                    model.transform.localScale = Vector3.one;
+
+                    var animator = model.GetComponent<Animator>();
+                    if (animator == null) animator = model.AddComponent<Animator>();
+                    ConfigureNormalZombieImportSettings();
+                    animator.runtimeAnimatorController = LoadOrCreateNormalZombieController();
+                    animator.applyRootMotion = false;
+
+                    var driver = zombie.AddComponent<ZombieAnimator>();
+                    using (var f = new Fields(driver))
+                    {
+                        f.Obj("animator", animator)
+                         .F("attackDuration", 1.27f)
+                         .F("getShotDuration", 0.57f)
+                         .F("staggerDuration", 1.5f)
+                         .F("deathPlaybackSpeed", 2.5f)
+                         .F("heavyHealthFraction", 0.4f).F("heavyKnockback", 2.5f)
+                         .F("lightReactionInterval", 1.2f).F("heavyReactionInterval", 4f)
+                         .B("stopDuringStagger", true);
+                    }
+
+                    // The model's authored death is 1.8s; play it at 2.5x during the existing
+                    // prototype linger so it completes without holding a dead horde slot.
+                    using (var f = new Fields(ai)) f.F("deathLinger", 0.75f);
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"ArenaBuilder: no authored normal zombie model at {NormalZombieModelPath}; keeping greybox visuals.");
+            }
+
             PrefabUtility.SaveAsPrefabAsset(zombie, ZombiePrefabPath);
             Object.DestroyImmediate(zombie);
+        }
+
+        static void ConfigureNormalZombieImportSettings()
+        {
+            var importer = AssetImporter.GetAtPath(NormalZombieModelPath) as ModelImporter;
+            if (importer == null) return;
+
+            var clips = importer.clipAnimations;
+            if (clips == null || clips.Length == 0) clips = importer.defaultClipAnimations;
+            if (clips == null || clips.Length == 0) return;
+
+            bool changed = false;
+            for (int i = 0; i < clips.Length; i++)
+            {
+                bool shouldLoop = clips[i].name == "Chase";
+                if (clips[i].loopTime == shouldLoop) continue;
+                clips[i].loopTime = shouldLoop;
+                changed = true;
+            }
+
+            if (!changed) return;
+            importer.clipAnimations = clips;
+            importer.SaveAndReimport();
+        }
+
+        static RuntimeAnimatorController LoadOrCreateNormalZombieController()
+        {
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(NormalZombieControllerPath);
+            if (controller == null)
+            {
+                EnsureFolder(Root + "/Art");
+                EnsureFolder(Root + "/Art/Characters");
+                EnsureFolder(Root + "/Art/Characters/NormalZombie");
+                controller = AnimatorController.CreateAnimatorControllerAtPath(NormalZombieControllerPath);
+            }
+
+            var clips = AssetDatabase.LoadAllAssetsAtPath(NormalZombieModelPath);
+            var machine = controller.layers[0].stateMachine;
+            var names = new[] { "Chase", "Attack", "GetShot", "Stagger", "Death" };
+
+            for (int i = 0; i < names.Length; i++)
+            {
+                AnimationClip clip = null;
+                for (int c = 0; c < clips.Length; c++)
+                {
+                    if (clips[c] is AnimationClip candidate && candidate.name == names[i])
+                    {
+                        clip = candidate;
+                        break;
+                    }
+                }
+                if (clip == null) continue;
+
+                AnimatorState state = null;
+                for (int s = 0; s < machine.states.Length; s++)
+                {
+                    if (machine.states[s].state.name == names[i])
+                    {
+                        state = machine.states[s].state;
+                        break;
+                    }
+                }
+
+                if (state == null) state = machine.AddState(names[i]);
+                state.motion = clip;
+                if (names[i] == "Chase") machine.defaultState = state;
+            }
+
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+            return controller;
         }
 
         static void BuildBrutePrefab()
@@ -887,10 +1010,28 @@ namespace ZombieShooter.EditorTools
         /// The parts every melee archetype shares. A new one is this call plus whatever
         /// component makes it different, rather than sixty lines copied and edited.
         /// </summary>
+        /// <summary>
+        /// Hit tests start at the player's centre and travel flat. Anything whose collider
+        /// tops out below this is unhittable by every hitscan weapon in the game.
+        /// </summary>
+        const float PlayerRayHeight = 1.1f;
+
         static (GameObject go, Health health, ZombieAI ai) BuildMeleeArchetype(
             string name, Material mat, Vector3 bodyScale, float controllerHeight,
-            float controllerRadius, float maxHealth, System.Action<Fields> configureAi)
+            float controllerRadius, float maxHealth, System.Action<Fields> configureAi,
+            float bodyOffsetY = 0f)
         {
+            // The controller centre sits on the pivot, so a grounded enemy occupies 0 to
+            // controllerHeight. Caught the hard way: the crawler was 0.9 tall and every
+            // bullet in the game passed over it.
+            if (controllerHeight <= PlayerRayHeight)
+            {
+                Debug.LogError($"ArenaBuilder: '{name}' has a {controllerHeight}m collider, " +
+                               $"which tops out below the {PlayerRayHeight}m hit ray - no " +
+                               "hitscan weapon can touch it. Raise the collider and offset " +
+                               "the body down if it should still look small.");
+            }
+
             var go = new GameObject(name);
             go.transform.position = Vector3.zero;
 
@@ -898,6 +1039,7 @@ namespace ZombieShooter.EditorTools
             body.name = "Body";
             body.transform.SetParent(go.transform, false);
             body.transform.localScale = bodyScale;
+            body.transform.localPosition = new Vector3(0f, bodyOffsetY, 0f);
             body.GetComponent<MeshRenderer>().sharedMaterial = mat;
             Object.DestroyImmediate(body.GetComponent<CapsuleCollider>());
 
@@ -1108,13 +1250,18 @@ namespace ZombieShooter.EditorTools
         {
             var (go, _, _) = BuildMeleeArchetype(
                 "Crawler", LoadMaterial("M_Runner"),
-                new Vector3(0.5f, 0.4f, 0.5f), 0.9f, 0.26f, 22f,
+                new Vector3(0.5f, 0.4f, 0.5f), 1.6f, 0.34f, 22f,
                 f => f.F("moveSpeed", 5.4f).F("turnSpeed", 560f)
                       .F("separationRadius", 0.55f).F("separationStrength", 1.4f)
                       .F("attackRange", 1.1f).F("attackDamage", 4f).F("attackCooldown", 0.6f)
                       .I("scoreValue", 8).I("goldReward", 6)
                       .F("knockbackForce", 7.5f).F("knockbackDecay", 15f)
-                      .F("deathLinger", 0.1f).F("killTrauma", 0.06f));
+                      .F("deathLinger", 0.1f).F("killTrauma", 0.06f),
+                // The collider is deliberately taller than the model. It has to reach the
+                // hit ray, and the body is dropped to the floor so it still LOOKS knee-high -
+                // a generous hitbox on something this small and this fast is invisible to
+                // the player and the only way it is fair to shoot at.
+                bodyOffsetY: -0.4f);
 
             PrefabUtility.SaveAsPrefabAsset(go, CrawlerPrefabPath);
             Object.DestroyImmediate(go);

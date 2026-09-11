@@ -1,0 +1,33 @@
+{
+  "vertices": 10112,
+  "triangles": 19708,
+  "bones": 18,
+  "materials": 1,
+  "clips": {
+    "Chase": {
+      "frames": 33,
+      "seconds": 1.0666666666666667,
+      "loop": true
+    },
+    "Attack": {
+      "frames": 39,
+      "seconds": 1.2666666666666666,
+      "loop": false
+    },
+    "GetShot": {
+      "frames": 18,
+      "seconds": 0.5666666666666667,
+      "loop": false
+    },
+    "Stagger": {
+      "frames": 46,
+      "seconds": 1.5,
+      "loop": false
+    },
+    "Death": {
+      "frames": 55,
+      "seconds": 1.8,
+      "loop": false
+    }
+  }
+}
