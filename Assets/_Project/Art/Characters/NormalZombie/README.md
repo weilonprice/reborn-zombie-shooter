@@ -10,6 +10,36 @@ Stylized, original infected civilian for Reborn. The proportions are intentional
 
 The editable Blender source and the generation script live in `ArtSource/NormalZombie/`.
 
+## Detail budget
+
+This is the **baseline** archetype — spawn weight 10, never falls off — so most of the sixty
+enemies alive at wave 15 are this mesh. The camera sits about 23m out, which makes it roughly
+eighty pixels tall on a 1080p screen.
+
+`build_zombie.py` therefore builds at two resolutions, chosen with `ZOMBIE_DETAIL`:
+
+| | Spheres | Tubes | Bevel | Result |
+|---|---|---|---|---|
+| `horde` (default) | 8 × 5 | 6 | 1 | what ships |
+| `hero` | 16 × 10 | 12 | 2 | the original, for renders or a close-up |
+
+Resolution is lowered **at generation time** rather than by decimating a finished mesh —
+primitives built coarse stay clean, decimated ones do not. Call sites that ask for more
+detail positionally (the cranium asks for 24 × 16) are clamped to the budget rather than
+edited, so the authored intent stays readable and `hero` still produces exactly what was
+written.
+
+Note that a Unity `LODGroup` would achieve nothing here: the top-down camera never changes
+distance, so every zombie would sit on the same LOD level forever. Lower resolution is the
+whole fix.
+
+`ArenaBuilder.TuneForHorde` handles the rest on the Unity side — shadow casting off,
+two-bone skinning, no per-frame bounds recalculation, and animator culling that keeps the
+state machine ticking while skipping transform writes nothing can see. Those matter more than
+the polygon count, because skinned meshes do not batch and the GPU Resident Drawer does not
+touch them: every horde member is its own draw call and its own skinning pass, and a
+shadow-casting one pays both twice.
+
 ## Rig and clips
 
 The rig is `NormalZombie_Rig` with 18 bones. The mesh is one skinned object, so the character can be imported as one prefab and remains inexpensive to render in a horde.
