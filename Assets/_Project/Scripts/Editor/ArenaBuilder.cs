@@ -322,8 +322,18 @@ namespace ZombieShooter.EditorTools
                 root.SetParent(env, false);
 
                 var blocks = layout.Blocks();
-                for (int b = 0; b < blocks.Length; b++)
-                    FillFootprint(root, blocks[b], wallMat, i * 100 + b);
+
+                // The authored buildings have far more visual weight than the old greybox
+                // columns. Keep roughly one in five of the original placements and sample
+                // them evenly through the layout so the survivors do not clump in one corner.
+                int keepCount = Mathf.Max(1, Mathf.RoundToInt(blocks.Length * BuildingKeepFraction));
+                for (int kept = 0; kept < keepCount; kept++)
+                {
+                    int b = Mathf.Min(blocks.Length - 1,
+                        Mathf.FloorToInt((kept + 0.5f) * blocks.Length / keepCount));
+                    FillFootprint(root, CompactBuildingFootprint(blocks[b]),
+                                  wallMat, i * 100 + b);
+                }
 
                 layoutRoots[i] = root.gameObject;
             }
@@ -333,6 +343,21 @@ namespace ZombieShooter.EditorTools
             {
                 f.Arr("layouts", layoutRoots).I("forcedIndex", -1);
             }
+        }
+
+        /// <summary>Twenty percent of the old cover positions remain as buildings.</summary>
+        const float BuildingKeepFraction = 0.20f;
+
+        static (Vector3 position, Vector3 size) CompactBuildingFootprint(
+            (Vector3 position, Vector3 size) block)
+        {
+            // A retained corridor slab should become one building, not a terrace stretching
+            // across the old 20-38m obstacle. Capping its run opens the surrounding lane and
+            // also guarantees FillFootprint places exactly one authored model here.
+            var size = block.size;
+            if (size.x >= size.z) size.x = Mathf.Min(size.x, BuildingRunPerUnit);
+            else size.z = Mathf.Min(size.z, BuildingRunPerUnit);
+            return (block.position, size);
         }
 
         static void CreateWall(Transform parent, string name, Vector3 position, Vector3 size, Material mat)
@@ -549,7 +574,7 @@ namespace ZombieShooter.EditorTools
         /// lengths run from a 1.1m pistol to a 2.62m sniper against a 2m player - readable
         /// from above, but the sniper's muzzle ends up nearly a body length ahead.
         /// </summary>
-        const float WeaponModelScale = 1f;
+        const float WeaponModelScale = PlayerWeaponGrip.ModelScale;
 
         /// <summary>
         /// Art folder per weapon, in the same order as LoadOrCreateWeapons returns them.
@@ -2608,6 +2633,12 @@ namespace ZombieShooter.EditorTools
         /// drive. Fire and Reload carry speed parameters so the clip can be fitted to the
         /// weapon's real rate of fire and reload time, both of which upgrades change.
         /// </summary>
+        [MenuItem("Tools/Zombie Shooter/Repair Weapon Animation Controllers")]
+        public static void RepairWeaponAnimationControllers()
+        {
+            foreach (var name in WeaponArtNames) LoadOrCreateWeaponController(name);
+        }
+
         static AnimatorController LoadOrCreateWeaponController(string artName)
         {
             string modelPath = $"{Root}/Art/Weapons/{artName}/{artName}.fbx";
@@ -2625,13 +2656,13 @@ namespace ZombieShooter.EditorTools
             var wanted = new List<string>(SharedWeaponClips);
             foreach (var cycle in WeaponCycleClips)
                 foreach (var asset in clips)
-                    if (asset is AnimationClip c && c.name == cycle) wanted.Add(cycle);
+                    if (asset is AnimationClip c && ClipNameMatches(c.name, cycle)) wanted.Add(cycle);
 
             foreach (var name in wanted)
             {
                 AnimationClip clip = null;
                 foreach (var asset in clips)
-                    if (asset is AnimationClip candidate && candidate.name == name) { clip = candidate; break; }
+                    if (asset is AnimationClip candidate && ClipNameMatches(candidate.name, name)) { clip = candidate; break; }
 
                 if (clip == null) continue;
 
@@ -2793,6 +2824,13 @@ namespace ZombieShooter.EditorTools
                 if (state == null) state = machine.AddState(name);
                 state.motion = clip;
                 if (name == "Idle") machine.defaultState = state;
+                if (name == "Fire" || name == "Reload")
+                {
+                    string parameter = name == "Fire" ? "FireSpeed" : ReloadSpeedParameter;
+                    EnsureFloatParameter(controller, parameter);
+                    state.speedParameterActive = true;
+                    state.speedParameter = parameter;
+                }
             }
 
             EditorUtility.SetDirty(controller);
