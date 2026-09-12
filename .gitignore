@@ -51,3 +51,6 @@ crashlytics-build.properties
 
 # Blender auto-backups
 *.blend1
+
+# Python bytecode
+__pycache__/

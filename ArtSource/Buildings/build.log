@@ -1,0 +1,392 @@
+/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/Buildings/build_buildings.py:27: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  mat.use_nodes = True
+00:02.451  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/Buildings/Shack/Shack_Preview.png'
+Info: Saved as "Shack.blend"
+
+FBX export starting... '/Users/weilonprice/Documents/zombie shooter/zombie shooter/Assets/_Project/Art/Buildings/Shack/Shack.fbx'
+export finished in 0.0183 sec.
+INFO Draco is available, use library at /Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/libbf_intern_draco_bridge.dylib
+INFO MeshOptimizer is available, use library at /Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/libbf_intern_meshopt_bridge.dylib
+22:45:22 | INFO: Starting glTF 2.0 export
+22:45:22 | INFO: Extracting primitive: Cube.019
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.020
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.021
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.022
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.004
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.006
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.007
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.005
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cylinder
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.001
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.003
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.002
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.016
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.017
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.018
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.015
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.014
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.010
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.011
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.012
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.009
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.008
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Extracting primitive: Cube.013
+22:45:22 | INFO: Primitives created: 1
+22:45:22 | INFO: Finished glTF 2.0 export in 0.027189016342163086 s
+/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/Buildings/build_buildings.py:27: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  mat.use_nodes = True
+00:03.257  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/Buildings/Storefront/Storefront_Preview.png'
+
+Info: Saved as "Storefront.blend"
+
+FBX export starting... '/Users/weilonprice/Documents/zombie shooter/zombie shooter/Assets/_Project/Art/Buildings/Storefront/Storefront.fbx'
+export finished in 0.0172 sec.
+22:45:23 | INFO: Starting glTF 2.0 export
+22:45:23 | INFO: Extracting primitive: Cube.019
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.020
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.027
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.028
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.003
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.005
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.006
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.004
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cylinder
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.001
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.002
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.024
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.025
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.026
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.023
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.022
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cylinder.001
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cylinder.002
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cylinder.003
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.021
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.009
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.015
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.010
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.016
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.011
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.017
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.008
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.014
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.007
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.013
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.012
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.018
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Finished glTF 2.0 export in 0.031636953353881836 s
+00:04.005  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/Buildings/Warehouse/Warehouse_Preview.png'
+
+Info: Saved as "Warehouse.blend"
+
+FBX export starting... '/Users/weilonprice/Documents/zombie shooter/zombie shooter/Assets/_Project/Art/Buildings/Warehouse/Warehouse.fbx'
+export finished in 0.0261 sec.
+22:45:23 | INFO: Starting glTF 2.0 export
+22:45:23 | INFO: Extracting primitive: Cube.041
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.042
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.043
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.004
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.008
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.012
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.006
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.010
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.014
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.007
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.011
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.015
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.005
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.009
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.013
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cylinder
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cylinder.001
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cylinder.002
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.040
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.001
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.003
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.002
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cone
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cone.001
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cylinder.003
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cylinder.004
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.018
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.024
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.030
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.036
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.019
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.025
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.031
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.037
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.020
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.026
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.032
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.038
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.017
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.023
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.029
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.035
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.016
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.022
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.028
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.034
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.021
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.027
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.033
+22:45:23 | INFO: Primitives created: 1
+22:45:23 | INFO: Extracting primitive: Cube.039
+22:45:23 | INFO: Primitives created: 1
+22:45:24 | INFO: Finished glTF 2.0 export in 0.04118084907531738 s
+00:04.821  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/Buildings/ApartmentBlock/ApartmentBlock_Preview.png'
+
+Info: Saved as "ApartmentBlock.blend"
+
+FBX export starting... '/Users/weilonprice/Documents/zombie shooter/zombie shooter/Assets/_Project/Art/Buildings/ApartmentBlock/ApartmentBlock.fbx'
+export finished in 0.0372 sec.
+22:45:24 | INFO: Starting glTF 2.0 export
+22:45:24 | INFO: Extracting primitive: Cube.045
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.046
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.047
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.048
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.049
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.052
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.053
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.054
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.055
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.056
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.044
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.051
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.043
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.050
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.064
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.065
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.003
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.005
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.006
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.004
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cylinder
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.057
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.058
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.001
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.002
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.061
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.062
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.063
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.060
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.059
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.009
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.015
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.021
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.027
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.033
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.039
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.010
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.016
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.022
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.028
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.034
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.040
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.011
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.017
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.023
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.029
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.035
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.041
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.008
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.014
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.020
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.026
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.032
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.038
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.007
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.013
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.019
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.025
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.031
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.037
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.012
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.018
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.024
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.030
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.036
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Extracting primitive: Cube.042
+22:45:24 | INFO: Primitives created: 1
+22:45:24 | INFO: Finished glTF 2.0 export in 0.07026886940002441 s
+
+BUILDING_BUILD_COMPLETE
+Blender 5.2.1 LTS (hash 9e2066aef7ef built 2026-08-25 01:35:57)
+
+Blender quit

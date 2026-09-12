@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace ZombieShooter
@@ -29,6 +30,10 @@ namespace ZombieShooter
         float nextLeapTime;
         bool leaping;
 
+        public event Action<float> LeapStarted;
+        public bool IsLeaping => leaping;
+        public float LeapProgress => leaping ? Mathf.Clamp01(elapsed / Mathf.Max(.01f, leapSeconds)) : 1f;
+
         void Awake() => controller = GetComponent<CharacterController>();
 
         void OnEnable()
@@ -57,13 +62,15 @@ namespace ZombieShooter
 
             elapsed = 0f;
             leaping = true;
+            transform.rotation = Quaternion.LookRotation(across.normalized, Vector3.up);
+            LeapStarted?.Invoke(Mathf.Max(.01f, leapSeconds));
             return Advance(deltaTime);
         }
 
         bool Advance(float deltaTime)
         {
             elapsed += deltaTime;
-            float t = Mathf.Clamp01(elapsed / leapSeconds);
+            float t = Mathf.Clamp01(elapsed / Mathf.Max(.01f, leapSeconds));
 
             var flat = Vector3.Lerp(from, to, t);
             // Sine rather than a parabola: it leaves and lands flat, so the arc reads as a

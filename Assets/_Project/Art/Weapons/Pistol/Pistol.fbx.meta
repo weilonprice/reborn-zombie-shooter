@@ -90,9 +90,9 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: Pistol_Root|Fire.001
-      takeName: Pistol_Root|Fire.001
-      internalID: 7951671398819428504
+      name: Pistol_Root|Fire
+      takeName: Pistol_Root|Fire
+      internalID: 219129541025183443
       firstFrame: 0
       lastFrame: 11
       wrapMode: 0
@@ -119,9 +119,9 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: Pistol_Root|Idle.001
-      takeName: Pistol_Root|Idle.001
-      internalID: 6106774605722423734
+      name: Pistol_Root|Idle
+      takeName: Pistol_Root|Idle
+      internalID: -4495075969044377629
       firstFrame: 0
       lastFrame: 60
       wrapMode: 0
@@ -206,9 +206,9 @@ ModelImporter:
       maskSource: {instanceID: 0}
       additiveReferencePoseFrame: 0
     - serializedVersion: 16
-      name: Pistol_Root|Reload.001
-      takeName: Pistol_Root|Reload.001
-      internalID: -7519921158337297012
+      name: Pistol_Root|Reload
+      takeName: Pistol_Root|Reload
+      internalID: -1521860317764024938
       firstFrame: 0
       lastFrame: 57
       wrapMode: 0

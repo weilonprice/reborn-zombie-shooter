@@ -39,6 +39,11 @@ namespace ZombieShooter
         const string Stagger = "Stagger";
         const string Death = "Death";
 
+        HordeAura aura;
+        Revenant revenant;
+        BarricadeLeaper leaper;
+        float abilityUntil;
+
         Health health;
         ZombieAI ai;
         float returnToChaseAt;
@@ -51,6 +56,9 @@ namespace ZombieShooter
             health = GetComponent<Health>();
             ai = GetComponent<ZombieAI>();
             if (animator == null) animator = GetComponentInChildren<Animator>(true);
+            aura = GetComponent<HordeAura>();
+            revenant = GetComponent<Revenant>();
+            leaper = GetComponent<BarricadeLeaper>();
         }
 
         void OnEnable()
@@ -59,10 +67,14 @@ namespace ZombieShooter
             returnToChaseAt = 0f;
             nextLightAt = 0f;
             nextHeavyAt = 0f;
+            abilityUntil = 0f;
 
             if (health != null) health.Damaged += OnDamaged;
             if (health != null) health.Died += OnDied;
             if (ai != null) ai.Attacked += OnAttacked;
+            if (aura != null) aura.Screamed += OnScream;
+            if (revenant != null) revenant.Reviving += OnGetUp;
+            if (leaper != null) leaper.LeapStarted += OnLeap;
 
             Play(Chase, 0.05f);
         }
@@ -72,6 +84,9 @@ namespace ZombieShooter
             if (health != null) health.Damaged -= OnDamaged;
             if (health != null) health.Died -= OnDied;
             if (ai != null) ai.Attacked -= OnAttacked;
+            if (aura != null) aura.Screamed -= OnScream;
+            if (revenant != null) revenant.Reviving -= OnGetUp;
+            if (leaper != null) leaper.LeapStarted -= OnLeap;
 
             if (animator != null) animator.speed = 1f;
         }
@@ -87,7 +102,7 @@ namespace ZombieShooter
 
         void OnAttacked()
         {
-            if (dead) return;
+            if (dead || Time.time < abilityUntil) return;
 
             Play(Attack, 0.08f);
             returnToChaseAt = Time.time + attackDuration;
@@ -95,7 +110,7 @@ namespace ZombieShooter
 
         void OnDamaged(DamageInfo info)
         {
-            if (dead || animator == null) return;
+            if (dead || animator == null || Time.time < abilityUntil) return;
 
             float fraction = health != null && health.Max > 0f
                 ? info.Amount / health.Max
@@ -138,12 +153,29 @@ namespace ZombieShooter
             if (dead) return;
             dead = true;
             returnToChaseAt = 0f;
+            abilityUntil = 0f;
 
             if (animator != null)
             {
                 animator.speed = Mathf.Max(0.1f, deathPlaybackSpeed);
                 animator.Play(Death, 0, 0f);
             }
+        }
+
+        void OnScream(float seconds) => PlayAbility("Scream", 1.5f, seconds);
+        void OnGetUp(float seconds) => PlayAbility("GetUp", 2.2f, seconds);
+        void OnLeap(float seconds) => PlayAbility("Leap", 0.65f, seconds);
+
+        void PlayAbility(string state, float clipSeconds, float seconds)
+        {
+            if (dead || animator == null || !animator.HasState(0, Animator.StringToHash(state))) return;
+
+            seconds = Mathf.Max(.01f, seconds);
+            abilityUntil = returnToChaseAt = Time.time + seconds;
+            // These signature actions own the whole rig. Death can still interrupt; attack
+            // callbacks and the triggering damage reaction cannot erase the defining pose.
+            animator.speed = clipSeconds / seconds;
+            animator.Play(state, 0, 0f);
         }
 
         void Play(string state, float fade)

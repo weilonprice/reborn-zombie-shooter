@@ -83,6 +83,14 @@ namespace ZombieShooter
         float nextAttackTime;
         Vector3 knockback;
         bool dying;
+        float actionsSuspendedUntil;
+
+        /// <summary>Plant the enemy during a howl or recovery without changing its speed stats.</summary>
+        public void SuspendActions(float seconds)
+        {
+            actionsSuspendedUntil = Mathf.Max(actionsSuspendedUntil, Time.time + seconds);
+            knockback = Vector3.zero;
+        }
 
         /// <summary>Raised when this zombie dies, so the spawner can recycle it.</summary>
         public event Action<ZombieAI> Died;
@@ -149,6 +157,7 @@ namespace ZombieShooter
             nextAttackTime = 0f;
             knockback = Vector3.zero;
             dying = false;
+            actionsSuspendedUntil = 0f;
             controller.enabled = true;
         }
 
@@ -168,6 +177,14 @@ namespace ZombieShooter
         {
             if (!health.IsAlive) return;
             if (GameManager.Instance != null && GameManager.Instance.State != GameState.Playing) return;
+
+            if (Time.time < actionsSuspendedUntil)
+            {
+                // Still settle on the ground, but never slide or attack while getting up.
+                verticalVelocity = controller.isGrounded ? -2f : verticalVelocity + gravity * Time.deltaTime;
+                controller.Move(Vector3.up * (verticalVelocity * Time.deltaTime));
+                return;
+            }
 
             if (target == null)
             {
@@ -193,8 +210,8 @@ namespace ZombieShooter
 
             // An archetype driving itself - mid-leap, say - has already moved this frame, and
             // running the ordinary path on top would pin it back to the ground.
-            if (motionOverride == null || !motionOverride.MoveSelf(Time.deltaTime))
-                Steer(toTarget, distance, useField);
+            if (motionOverride != null && motionOverride.MoveSelf(Time.deltaTime)) return;
+            Steer(toTarget, distance, useField);
 
             if (distance <= attackRange)
             {
@@ -345,6 +362,7 @@ namespace ZombieShooter
 
         void OnDamaged(DamageInfo info)
         {
+            if (Time.time < actionsSuspendedUntil) return;
             // The surface normal points back toward the shooter, so its inverse is the
             // bullet's direction of travel. Flattened, that pushes the body away from you.
             var away = -info.Normal;

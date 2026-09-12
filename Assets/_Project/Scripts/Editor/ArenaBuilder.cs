@@ -67,6 +67,8 @@ namespace ZombieShooter.EditorTools
 
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
+            AbilityAnimationSetup.ConfigureImports();
+
             // Two strict passes. Object references do NOT survive NewScene: Unity reimports
             // assets written moments earlier, and the stale reference then serializes as null
             // without any error. So every asset is written and flushed first, and reloaded by
@@ -182,6 +184,12 @@ namespace ZombieShooter.EditorTools
         /// Four spaces that ask different questions of the same arsenal. All 90x90 and all
         /// with a clear centre, so spawn radius, placement bounds and the player's start need
         /// no per-arena tuning - the difference is entirely in what the cover does.
+        /// <para>
+        /// Footprints are sized in BUILDINGS, not in abstract blocks. The narrowest source
+        /// mesh is 8.95m across, so a 3m-wide slab squashed it to a quarter of its width -
+        /// these were authored when cover was featureless boxes, and the models changed the
+        /// unit. Nothing below is narrower than about five metres.
+        /// </para>
         /// </summary>
         static readonly ArenaLayout[] ArenaLayouts =
         {
@@ -189,11 +197,11 @@ namespace ZombieShooter.EditorTools
             // measured against, and the one the game was tuned in.
             new("The Yard", new (float, float, float, float)[]
             {
-                (-18f, 12f, 3.5f, 3.5f), (21f, -9f, 3.5f, 3.5f), (6f, 26f, 3.5f, 3.5f),
-                (-27f, -21f, 3.5f, 3.5f), (14f, 14f, 3.5f, 3.5f), (-9f, -28f, 3.5f, 3.5f),
-                (0f, -14f, 9f, 3f), (-33f, 4f, 3f, 9f), (33f, 18f, 3f, 9f),
-                (18f, -30f, 9f, 3f), (-20f, 30f, 7f, 3f), (30f, -20f, 3.5f, 3.5f),
-                (-34f, -34f, 3.5f, 3.5f), (34f, 34f, 3.5f, 3.5f),
+                (-18f, 12f, 6f, 6f), (21f, -9f, 6f, 6f), (6f, 26f, 6f, 6f),
+                (-27f, -21f, 6f, 6f), (14f, 14f, 6f, 6f), (-9f, -28f, 6f, 6f),
+                (0f, -14f, 12f, 5.5f), (-33f, 4f, 5.5f, 12f), (33f, 18f, 5.5f, 12f),
+                (18f, -30f, 12f, 5.5f), (-20f, 30f, 10f, 5.5f), (30f, -20f, 6f, 6f),
+                (-34f, -34f, 6f, 6f), (34f, 34f, 6f, 6f),
             }),
 
             // Long parallel lanes. Sightlines run one way and not the other, which is the
@@ -201,14 +209,14 @@ namespace ZombieShooter.EditorTools
             // lane closes it completely, so fortification is at its strongest here.
             new("The Corridors", new (float, float, float, float)[]
             {
-                (-30f, -22f, 3f, 30f), (-30f, 18f, 3f, 24f),
-                (-15f, -2f, 3f, 38f),
-                (0f, -28f, 3f, 22f), (0f, 16f, 3f, 26f),
-                (15f, -2f, 3f, 38f),
-                (30f, -22f, 3f, 30f), (30f, 18f, 3f, 24f),
+                (-31f, -22f, 7f, 30f), (-31f, 18f, 7f, 24f),
+                (-15f, -2f, 7f, 38f),
+                (1f, -28f, 7f, 22f), (1f, 16f, 7f, 26f),
+                (17f, -2f, 7f, 38f),
+                (33f, -22f, 7f, 30f), (33f, 18f, 7f, 24f),
                 // Two cross-pieces, so the lanes are not perfectly parallel and a player
                 // cannot simply hold one line forever.
-                (-22f, 34f, 18f, 3f), (22f, -34f, 18f, 3f),
+                (-23f, 34f, 18f, 6f), (23f, -34f, 18f, 6f),
             }),
 
             // Open centre, a dense band of cover at mid radius, open again at the edge. You
@@ -216,12 +224,12 @@ namespace ZombieShooter.EditorTools
             // ranged enemies get clean shots across the middle.
             new("The Ring", new (float, float, float, float)[]
             {
-                (0f, 20f, 12f, 3.5f), (0f, -20f, 12f, 3.5f),
-                (20f, 0f, 3.5f, 12f), (-20f, 0f, 3.5f, 12f),
-                (15f, 15f, 6f, 3.5f), (-15f, 15f, 6f, 3.5f),
-                (15f, -15f, 6f, 3.5f), (-15f, -15f, 6f, 3.5f),
-                (22f, 22f, 3.5f, 6f), (-22f, 22f, 3.5f, 6f),
-                (22f, -22f, 3.5f, 6f), (-22f, -22f, 3.5f, 6f),
+                (0f, 21f, 14f, 6f), (0f, -21f, 14f, 6f),
+                (21f, 0f, 6f, 14f), (-21f, 0f, 6f, 14f),
+                (16f, 16f, 8f, 6f), (-16f, 16f, 8f, 6f),
+                (16f, -16f, 8f, 6f), (-16f, -16f, 8f, 6f),
+                (25f, 25f, 6f, 8f), (-25f, 25f, 6f, 8f),
+                (25f, -25f, 6f, 8f), (-25f, -25f, 6f, 8f),
             }),
 
             // Dense small cover everywhere, no long sightlines. The shotgun's and
@@ -240,10 +248,12 @@ namespace ZombieShooter.EditorTools
             var random = new System.Random(20260911);
             var blocks = new List<(float, float, float, float)>();
 
-            const float clearRadius = 9f;
-            const float spacing = 7.5f;
+            // Fewer and larger than the original scatter: 26 boxes of 3m became 26 buildings
+            // filling the arena once cover stopped being abstract.
+            const float clearRadius = 11f;
+            const float spacing = 12f;
 
-            for (int attempt = 0; attempt < 400 && blocks.Count < 26; attempt++)
+            for (int attempt = 0; attempt < 600 && blocks.Count < 18; attempt++)
             {
                 float x = (float)(random.NextDouble() * 72f - 36f);
                 float z = (float)(random.NextDouble() * 72f - 36f);
@@ -259,7 +269,7 @@ namespace ZombieShooter.EditorTools
                 }
                 if (tooClose) continue;
 
-                float size = 2.6f + (float)random.NextDouble() * 2.2f;
+                float size = 5.5f + (float)random.NextDouble() * 3f;
                 blocks.Add((x, z, size, size));
             }
 
@@ -300,7 +310,8 @@ namespace ZombieShooter.EditorTools
                 new Vector3(2f, WallHeight, ArenaHalfSize * 2f + 2f), wallMat);
 
             // Every layout is built and all but one switched off at runtime. The builder
-            // generates the scene once and cannot know which arena a future run wants.
+            // generates the scene once and cannot know which arena a future run wants. Each
+            // old cover footprint now receives a scaled authored building instead of a cube.
             var layoutRoots = new Object[ArenaLayouts.Length];
 
             for (int i = 0; i < ArenaLayouts.Length; i++)
@@ -312,7 +323,7 @@ namespace ZombieShooter.EditorTools
 
                 var blocks = layout.Blocks();
                 for (int b = 0; b < blocks.Length; b++)
-                    CreateWall(root, $"Block_{b}", blocks[b].position, blocks[b].size, wallMat);
+                    FillFootprint(root, blocks[b], wallMat, i * 100 + b);
 
                 layoutRoots[i] = root.gameObject;
             }
@@ -332,6 +343,189 @@ namespace ZombieShooter.EditorTools
             wall.transform.localPosition = position;
             wall.transform.localScale = size;
             wall.GetComponent<MeshRenderer>().sharedMaterial = mat;
+        }
+
+        static readonly Dictionary<string, Vector3> BuildingSourceDimensions =
+            new Dictionary<string, Vector3>
+            {
+                { "Shack", new Vector3(8.95f, 7.13f, 7.27f) },
+                { "Storefront", new Vector3(12.54f, 5.21f, 8.85f) },
+                { "Warehouse", new Vector3(16.55f, 9.43f, 10.36f) },
+                { "ApartmentBlock", new Vector3(10.54f, 9.41f, 9.81f) },
+            };
+
+        /// <summary>
+        /// Covers one layout block with buildings, tiling along its long axis rather than
+        /// stretching a single mesh to fit.
+        /// <para>
+        /// The Corridors has slabs up to 38m. Fitting one Warehouse to a 3x38m footprint
+        /// scaled it 0.18 across and 3.67 along - a twenty-to-one distortion that smears
+        /// every door, window and roof ridge. A row of buildings reads as a terrace; one
+        /// stretched building reads as a bug.
+        /// </para>
+        /// </summary>
+        static void FillFootprint(Transform parent, (Vector3 position, Vector3 size) block,
+                                  Material fallbackMat, int index)
+        {
+            bool alongX = block.size.x >= block.size.z;
+
+            float length = alongX ? block.size.x : block.size.z;
+            float width = alongX ? block.size.z : block.size.x;
+
+            // One building per roughly nine metres of run, so a 38m slab becomes four rather
+            // than one enormous one. Ceil, so a footprint is always fully covered.
+            int count = Mathf.Max(1, Mathf.CeilToInt(length / BuildingRunPerUnit));
+            float step = length / count;
+
+            for (int i = 0; i < count; i++)
+            {
+                // Centre of this slice along the run.
+                float offset = -length * 0.5f + step * (i + 0.5f);
+
+                var slice = alongX
+                    ? new Vector3(step, block.size.y, width)
+                    : new Vector3(width, block.size.y, step);
+
+                var position = alongX
+                    ? new Vector3(block.position.x + offset, 0f, block.position.z)
+                    : new Vector3(block.position.x, 0f, block.position.z + offset);
+
+                var artName = BuildingArtForFootprint(slice, index * 10 + i);
+                float yaw = slice.x >= slice.z ? 0f : 90f;
+
+                // Alternate the facing along a terrace so a row does not read as one mesh
+                // repeated, which is the other way tiling can look wrong.
+                if (count > 1 && i % 2 == 1) yaw += 180f;
+
+                CreateBuilding(parent, artName, position, yaw,
+                               BuildingScaleForFootprint(artName, slice), fallbackMat,
+                               index * 10 + i);
+            }
+        }
+
+        /// <summary>Metres of footprint each building covers before another is placed.</summary>
+        const float BuildingRunPerUnit = 9f;
+
+        /// <summary>
+        /// How much of a building's measured footprint is actual wall. Roof overhang and
+        /// debris push the bounds wider than the thing the player can walk into.
+        /// </summary>
+        const float WallInsetFromBounds = 0.88f;
+
+        /// <summary>
+        /// Picks a building for a footprint, varying by index so a terrace is not one mesh
+        /// repeated down its whole length.
+        /// <para>
+        /// Candidates are filtered by how evenly they would have to scale, not just by size:
+        /// squashing a 16m warehouse onto a 6m footprint distorts it as badly as stretching
+        /// a shack. Only when nothing fits well does the least-bad option win outright.
+        /// </para>
+        /// </summary>
+        static string BuildingArtForFootprint(Vector3 size, int index)
+        {
+            string[] options = { "Shack", "Storefront", "ApartmentBlock", "Warehouse" };
+
+            var good = new List<string>();
+            string best = options[0];
+            float bestPenalty = float.MaxValue;
+
+            foreach (var option in options)
+            {
+                if (!BuildingSourceDimensions.TryGetValue(option, out var source)) continue;
+
+                float sx = Mathf.Max(size.x, 0.8f) / source.x;
+                float sz = Mathf.Max(size.z, 0.8f) / source.z;
+
+                // Penalty is how far from square the two scales are, and how far the overall
+                // scale strays from life size.
+                float aspect = Mathf.Max(sx, sz) / Mathf.Max(0.01f, Mathf.Min(sx, sz));
+                float shrink = 1f / Mathf.Max(0.01f, Mathf.Min(sx, sz));
+                float penalty = aspect + shrink * 0.35f;
+
+                if (penalty < bestPenalty) { bestPenalty = penalty; best = option; }
+                if (aspect <= 1.6f && sx >= 0.35f && sz >= 0.35f) good.Add(option);
+            }
+
+            if (good.Count == 0) return best;
+            return good[Mathf.Abs(index) % good.Count];
+        }
+
+        static Vector3 BuildingScaleForFootprint(string artName, Vector3 footprint)
+        {
+            if (!BuildingSourceDimensions.TryGetValue(artName, out var source))
+                return Vector3.one;
+
+            float sx = Mathf.Max(footprint.x, 0.8f) / source.x;
+            float sz = Mathf.Max(footprint.z, 0.8f) / source.z;
+            // Thin corridor buildings stay readable without making tiny Warren props tower
+            // over the player. The source meshes are allowed to squash in X/Z because the
+            // layouts contain long slab footprints.
+            // Capped well below life size on purpose. The camera looks down at 61 degrees,
+            // so a building of height h hides roughly 0.55h of ground behind it - and the
+            // screen-space occlusion fade that would make tall cover safe is not due until
+            // Phase 3. Until then, shorter buildings lose the player less often.
+            float sy = Mathf.Clamp(Mathf.Min(sx, sz) * 1.6f, 0.45f, 0.72f);
+            return new Vector3(sx, sy, sz);
+        }
+
+        static void CreateBuilding(Transform parent, string artName, Vector3 position, float yaw,
+                                   Vector3 scale, Material fallbackMat, int index)
+        {
+            string path = $"{Root}/Art/Buildings/{artName}/{artName}.fbx";
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (asset == null)
+            {
+                // Keep the editor menu useful if someone runs it before importing the art.
+                CreateWall(parent, $"BuildingFallback_{index}", position, new Vector3(7f, 2.5f, 7f), fallbackMat);
+                Debug.LogWarning($"ArenaBuilder: no building model at {path}; using a fallback cover block.");
+                return;
+            }
+
+            var building = PrefabUtility.InstantiatePrefab(asset, parent) as GameObject;
+            if (building == null) return;
+
+            building.name = $"{artName}_{index:00}";
+            building.transform.localPosition = position;
+            building.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+            building.transform.localScale = scale;
+            MarkBuildingStaticAndAddColliders(building);
+
+            // One box per building, and it is the only collider. Sized to the walls rather
+            // than to the mesh bounds: bounds include the roof overhang, which would block
+            // movement in the open air beside the building.
+            if (BuildingSourceDimensions.TryGetValue(artName, out var sourceDimensions))
+            {
+                var cover = building.GetComponent<BoxCollider>();
+                if (cover == null) cover = building.AddComponent<BoxCollider>();
+
+                var walls = new Vector3(sourceDimensions.x * WallInsetFromBounds,
+                                        sourceDimensions.y,
+                                        sourceDimensions.z * WallInsetFromBounds);
+
+                cover.center = new Vector3(0f, walls.y * 0.5f, 0f);
+                cover.size = walls;
+            }
+        }
+
+        static void MarkBuildingStaticAndAddColliders(GameObject building)
+        {
+            building.isStatic = true;
+            foreach (var renderer in building.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                renderer.receiveShadows = true;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                renderer.gameObject.isStatic = true;
+            }
+
+            // Deliberately NO per-part MeshColliders. The apartment alone is 67 parts, and
+            // The Warren places 26 buildings - that is well over a thousand non-convex mesh
+            // colliders for the flow field's 8,100-cell bake and every bullet to test
+            // against. They also buy nothing: the solid root box below already blocks
+            // anything that would have reached them, so the detail is unreachable. Doors and
+            // windows are decorative at this scale; if a building ever becomes enterable,
+            // the box is what has to go, not the other way round.
+            foreach (var filter in building.GetComponentsInChildren<MeshFilter>(true))
+                filter.gameObject.isStatic = true;
         }
 
         /// <summary>
@@ -682,7 +876,7 @@ namespace ZombieShooter.EditorTools
         }
 
         /// <summary>Clips that play on the legs, full body. The base layer.</summary>
-        static readonly string[] LocomotionClips = { "Idle", "Walk", "Run", "Death" };
+        static readonly string[] LocomotionClips = { "Idle", "Walk", "Run", "Death", "Ultimate" };
 
         /// <summary>Clips that play on the arms only, over whatever the legs are doing.</summary>
         static readonly string[] UpperBodyClips = { "Aim", "Fire", "Reload", "GetShot", "Stagger" };
@@ -702,7 +896,7 @@ namespace ZombieShooter.EditorTools
             if (controller == null)
                 controller = AnimatorController.CreateAnimatorControllerAtPath(MainCharacterControllerPath);
 
-            var clips = AssetDatabase.LoadAllAssetsAtPath(MainCharacterModelPath);
+            var clips = AbilityAnimationSetup.WithAbilities(MainCharacterModelPath, AbilityAnimationSetup.SurvivorPack);
 
             FillLayer(controller, 0, "Base Layer", LocomotionClips, "Idle", clips, null);
 
@@ -1109,9 +1303,9 @@ namespace ZombieShooter.EditorTools
                 controller = AnimatorController.CreateAnimatorControllerAtPath(NormalZombieControllerPath);
             }
 
-            var clips = AssetDatabase.LoadAllAssetsAtPath(NormalZombieModelPath);
+            var clips = AbilityAnimationSetup.WithAbilities(NormalZombieModelPath, AbilityAnimationSetup.ZombiePack);
             var machine = controller.layers[0].stateMachine;
-            var names = new[] { "Chase", "Attack", "GetShot", "Stagger", "Death" };
+            var names = new[] { "Chase", "Attack", "GetShot", "Stagger", "Death", "Scream", "GetUp", "Leap" };
 
             for (int i = 0; i < names.Length; i++)
             {
@@ -1699,6 +1893,7 @@ namespace ZombieShooter.EditorTools
                  .F("leapSeconds", 0.65f).F("leapHeight", 2.6f).F("cooldown", 2.5f);
             }
 
+            AbilityAnimationSetup.InstallOnEnemy(go);
             PrefabUtility.SaveAsPrefabAsset(go, LeaperPrefabPath);
             Object.DestroyImmediate(go);
         }
@@ -1730,6 +1925,7 @@ namespace ZombieShooter.EditorTools
             using (var f = new Fields(aura))
                 f.F("radius", 12f).F("speedMultiplier", 1.5f).F("tickInterval", 0.25f);
 
+            AbilityAnimationSetup.InstallOnEnemy(go);
             PrefabUtility.SaveAsPrefabAsset(go, ScreamerPrefabPath);
             Object.DestroyImmediate(go);
         }
@@ -1754,6 +1950,7 @@ namespace ZombieShooter.EditorTools
                  .Col("revivedTint", new Color(0.85f, 0.25f, 0.75f));
             }
 
+            AbilityAnimationSetup.InstallOnEnemy(go);
             PrefabUtility.SaveAsPrefabAsset(go, RevenantPrefabPath);
             Object.DestroyImmediate(go);
         }
