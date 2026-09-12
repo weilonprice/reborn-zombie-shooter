@@ -1833,6 +1833,24 @@ namespace ZombieShooter.EditorTools
         /// the hit ray leaves the player's centre at PlayerRayHeight and travels flat.
         /// </para>
         /// </summary>
+        /// <summary>
+        /// Hit zones along the actual bones, so a shot connects with the body the player can
+        /// see rather than with a shape drawn near it.
+        /// <para>
+        /// Three versions of this now. One fat capsule around the torso fixed the arms being
+        /// unhittable and made shots register in mid-air. Spheres pinned to each bone's head
+        /// fixed that and left the arms 40% covered - a 0.14m ball on a 0.35m upper arm,
+        /// nothing at all on the hand - so bullets went through the limb between the joints.
+        /// This covers each SEGMENT, joint to joint.
+        /// </para>
+        /// <para>
+        /// A capsule needs its direction to match the bone's length axis, which is why the
+        /// last version avoided them. It is not a guess though: the child joint's position
+        /// measured in the parent's local space IS the axis, so the builder reads it off the
+        /// rig and only falls back to a string of spheres when no axis is dominant enough to
+        /// trust. Rigs that behave cost one collider per limb; strange ones still get covered.
+        /// </para>
+        /// </summary>
         internal static void AddHitZones(GameObject root, Transform model)
         {
             if (root.transform.Find(LimbHitboxName) != null) return;
@@ -1840,41 +1858,42 @@ namespace ZombieShooter.EditorTools
             var zones = new GameObject(LimbHitboxName);
             zones.transform.SetParent(root.transform, false);
 
-            int made = 0;
-
-            // bone, radius, damage. Torso and head are a clean hit; limbs are graze value.
-            var spec = new (string bone, float radius, float multiplier)[]
+            // joint, next joint along, radius, damage.
+            var segments = new (string from, string to, float radius, float multiplier)[]
             {
-                ("Spine",       0.26f, 1f),
-                ("Chest",       0.26f, 1f),
-                ("Head",        0.19f, 1f),
-                ("UpperArm.L",  0.14f, LimbDamageScale),
-                ("UpperArm.R",  0.14f, LimbDamageScale),
-                ("Forearm.L",   0.12f, LimbDamageScale),
-                ("Forearm.R",   0.12f, LimbDamageScale),
+                ("Spine",      "Chest",     0.25f, 1f),
+                ("Chest",      "Neck",      0.26f, 1f),
+                ("Head",       null,        0.19f, 1f),
+                ("UpperArm.L", "Forearm.L", 0.13f, LimbDamageScale),
+                ("UpperArm.R", "Forearm.R", 0.13f, LimbDamageScale),
+                ("Forearm.L",  "Hand.L",    0.11f, LimbDamageScale),
+                ("Forearm.R",  "Hand.R",    0.11f, LimbDamageScale),
+                ("Hand.L",     null,        0.10f, LimbDamageScale),
+                ("Hand.R",     null,        0.10f, LimbDamageScale),
             };
 
-            foreach (var (bone, radius, multiplier) in spec)
+            int made = 0, colliders = 0;
+            foreach (var (from, to, radius, multiplier) in segments)
             {
-                var joint = model != null ? FindDeep(model, bone) : null;
+                var joint = model != null ? FindDeep(model, from) : null;
                 if (joint == null) continue;
 
-                var zone = new GameObject($"Hit_{bone}");
-                zone.transform.SetParent(joint, false);
-                zone.transform.localPosition = Vector3.zero;
-                zone.transform.localRotation = Quaternion.identity;
-
-                var sphere = zone.AddComponent<SphereCollider>();
-                sphere.isTrigger = true;
-                // Authored in unscaled model units. The bone already carries the archetype's
-                // scale, so scaling the radius again here would apply it twice.
-                sphere.radius = radius;
-
-                using (var f = new Fields(zone.AddComponent<Hitbox>()))
-                    f.F("damageMultiplier", multiplier);
+                var next = to != null ? FindDeep(model, to) : null;
+                int added = MountHitZone(joint, next, radius, multiplier, from);
+                if (added <= 0) continue;
 
                 made++;
+                colliders += added;
             }
+
+            // Worth saying out loud. Nine zones is the capsule path; a much larger number
+            // means the rig's bones do not run along a local axis and every limb fell back
+            // to beads, which is correct but multiplies collider count across a sixty-strong
+            // horde. That is debt 6 territory and should be measured, not assumed.
+            if (colliders > made * 2)
+                Debug.LogWarning($"ArenaBuilder: '{root.name}' needed {colliders} colliders for " +
+                                 $"{made} hit zones - its bones are not axis-aligned, so each " +
+                                 "limb is a string of spheres. Correct, but costly in a horde.");
 
             if (made == 0)
             {
@@ -1887,6 +1906,73 @@ namespace ZombieShooter.EditorTools
 
             // Only now is it safe for weapon fire to ignore this body's movement capsule.
             if (root.GetComponent<HitZoneSet>() == null) root.AddComponent<HitZoneSet>();
+        }
+
+        /// <summary>
+        /// Covers one bone, out to <paramref name="next"/> when there is one.
+        /// Returns how many colliders it took.
+        /// </summary>
+        static int MountHitZone(Transform joint, Transform next, float radius,
+                                float multiplier, string label)
+        {
+            var zone = new GameObject($"Hit_{label}");
+            zone.transform.SetParent(joint, false);
+            zone.transform.localPosition = Vector3.zero;
+            zone.transform.localRotation = Quaternion.identity;
+            zone.transform.localScale = Vector3.one;
+
+            using (var f = new Fields(zone.AddComponent<Hitbox>()))
+                f.F("damageMultiplier", multiplier);
+
+            // A tip joint - head, hand - has nothing past it, so one ball is the whole zone.
+            if (next == null)
+            {
+                var ball = zone.AddComponent<SphereCollider>();
+                ball.isTrigger = true;
+                ball.radius = radius;
+                return 1;
+            }
+
+            var tip = joint.InverseTransformPoint(next.position);
+            float length = tip.magnitude;
+            if (length < 0.01f)
+            {
+                var ball = zone.AddComponent<SphereCollider>();
+                ball.isTrigger = true;
+                ball.radius = radius;
+                return 1;
+            }
+
+            var direction = tip / length;
+            int axis = 0;
+            for (int i = 1; i < 3; i++)
+                if (Mathf.Abs(direction[i]) > Mathf.Abs(direction[axis])) axis = i;
+
+            // Clearly along one local axis: one capsule covers the segment end to end.
+            if (Mathf.Abs(direction[axis]) > 0.9f)
+            {
+                var capsule = zone.AddComponent<CapsuleCollider>();
+                capsule.isTrigger = true;
+                capsule.direction = axis;
+                capsule.radius = radius;
+                capsule.height = length + radius * 2f;
+                capsule.center = tip * 0.5f;
+                return 1;
+            }
+
+            // Otherwise the bone runs diagonally through its own local space and a capsule
+            // would lie across the limb. Beads on a string instead - more colliders, but they
+            // cannot be oriented wrongly because they have no orientation.
+            int beads = Mathf.Max(2, Mathf.CeilToInt(length / Mathf.Max(0.01f, radius)));
+            for (int i = 0; i <= beads; i++)
+            {
+                var bead = zone.AddComponent<SphereCollider>();
+                bead.isTrigger = true;
+                bead.radius = radius;
+                bead.center = tip * (i / (float)beads);
+            }
+
+            return beads + 1;
         }
 
         static (GameObject go, Health health, ZombieAI ai) BuildMeleeArchetype(
