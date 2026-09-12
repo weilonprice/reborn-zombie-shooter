@@ -41,10 +41,12 @@ namespace ZombieShooter
                 : damagePerHop;
             var endPoint = shot.Origin + direction * range;
 
+            // Collide, so the arc can be started by a limb rather than only by centre mass.
             int count = Physics.RaycastNonAlloc(shot.Origin, direction, HitBuffer, range,
-                                                shot.HitMask, QueryTriggerInteraction.Ignore);
+                                                shot.HitMask, QueryTriggerInteraction.Collide);
 
             Health seed = null;
+            float seedMultiplier = 1f;
             float bestDistance = float.MaxValue;
             bool blocked = false;
 
@@ -69,6 +71,7 @@ namespace ZombieShooter
 
                 bestDistance = HitBuffer[i].distance;
                 seed = health;
+                seedMultiplier = Hitbox.MultiplierOf(HitBuffer[i].collider);
                 endPoint = HitBuffer[i].point;
                 blocked = false;
             }
@@ -81,7 +84,9 @@ namespace ZombieShooter
             firstImpact = endPoint;
             float damage = shot.Damage;
 
-            shot.Weapon.ApplyShot(seed, seed, endPoint, -direction, damage,
+            // Only the seed is aimed; every hop after it picks its own target centre, so
+            // the limb rate applies here and nowhere else in the arc.
+            shot.Weapon.ApplyShot(seed, seed, endPoint, -direction, damage * seedMultiplier,
                                   shot.Stats.KnockbackMultiplier);
 
             Visited.Clear();

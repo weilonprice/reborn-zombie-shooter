@@ -11,12 +11,6 @@ namespace ZombieShooter
     /// would be a hitch for no benefit. Their lightweight Animator components stay dormant
     /// until the model is shown.
     /// </para>
-    /// <para>
-    /// Muzzle placement is split deliberately. This component writes the muzzle's local Y and
-    /// Z from the socket, and <see cref="Weapon"/> writes its X for the akimbo offset. Two
-    /// owners on one transform only works because they touch different axes - if either
-    /// starts writing a full position, the other silently loses.
-    /// </para>
     /// </summary>
     public class WeaponVisuals : MonoBehaviour
     {
@@ -46,6 +40,8 @@ namespace ZombieShooter
         public event System.Action<Animator> Changed;
         Animator shownAnimator;
         Animator shownOffHandAnimator;
+        PlayerWeaponGrip grip;
+        Transform[] offMuzzleSockets;
 
         /// <summary>Animator on the currently visible weapon model, if its FBX has one.</summary>
         public Animator CurrentAnimator => shownAnimator;
@@ -55,6 +51,12 @@ namespace ZombieShooter
         void Start()
         {
             if (loadout == null) loadout = GetComponent<WeaponLoadout>();
+            offMuzzleSockets = new Transform[offHandModels?.Length ?? 0];
+            for (int i = 0; i < offMuzzleSockets.Length; i++)
+                if (offHandModels[i] != null)
+                    offMuzzleSockets[i] = PlayerWeaponGrip.Find(offHandModels[i].transform, "MuzzleSocket");
+            if (GetComponent<PlayerAnimator>() != null)
+                grip = new PlayerWeaponGrip(transform, mainModels, offHandModels);
 
             if (loadout != null)
             {
@@ -73,8 +75,9 @@ namespace ZombieShooter
             // Recoil and reload clips animate the model root. Keep the gameplay sockets in
             // lockstep so muzzle flashes, tracers, and shell ejection follow the moving mesh.
             if (shown < 0) return;
+            grip?.Apply(shown);
             PlaceOnSocket(muzzle, At(muzzleSockets, shown));
-            PlaceOnSocket(offHandMuzzle, At(muzzleSockets, shown));
+            PlaceOnSocket(offHandMuzzle, At(offMuzzleSockets, shown));
             PlaceOnSocket(ejectPort, At(ejectSockets, shown));
         }
 
@@ -107,22 +110,18 @@ namespace ZombieShooter
             if (index < 0) return;
 
             PlaceOnSocket(muzzle, At(muzzleSockets, index));
-            PlaceOnSocket(offHandMuzzle, At(muzzleSockets, index));
+            PlaceOnSocket(offHandMuzzle, At(offMuzzleSockets, index));
             PlaceOnSocket(ejectPort, At(ejectSockets, index));
         }
 
         /// <summary>
-        /// Moves a transform to a socket without touching its X, which belongs to the akimbo
-        /// offset. Works in the player's local space so it survives the player rotating.
+        /// Follow the actual model after hand placement, including its lateral offset.
         /// </summary>
         void PlaceOnSocket(Transform target, Transform socket)
         {
             if (target == null || socket == null) return;
 
-            var local = transform.InverseTransformPoint(socket.position);
-            var current = target.localPosition;
-
-            target.localPosition = new Vector3(current.x, local.y, local.z);
+            target.position = socket.position;
         }
 
         int IndexOf(WeaponDefinition definition)
