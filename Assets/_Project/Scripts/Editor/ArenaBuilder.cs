@@ -767,6 +767,11 @@ namespace ZombieShooter.EditorTools
                     f.Obj("animator", characterAnimator)
                      .Obj("health", health)
                      .Obj("weapon", weapon)
+                     .Obj("movement", move)
+                     // Legs follow travel rather than aim. Zero this to see the bug it
+                     // fixes: aim across your direction of travel and the survivor floats.
+                     .F("maxHipTurn", 90f)
+                     .F("hipTurnSpeed", 720f)
                      .F("fireDuration", 0.37f)
                      .F("reloadDuration", 1.90f)
                      .F("getShotDuration", 0.77f)

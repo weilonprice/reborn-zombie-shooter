@@ -12,6 +12,10 @@ namespace ZombieShooter
     /// until the model is shown.
     /// </para>
     /// </summary>
+    // Runs after PlayerAnimator, which turns the hips toward travel in its own LateUpdate.
+    // The grip solves arm IK from where the shoulders ended up, so it has to see the final
+    // pose - reverse the order and the arms are solved against last frame's body.
+    [DefaultExecutionOrder(50)]
     public class WeaponVisuals : MonoBehaviour
     {
         [SerializeField] WeaponLoadout loadout;

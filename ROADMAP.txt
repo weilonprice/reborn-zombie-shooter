@@ -1284,6 +1284,20 @@ START HERE - THIS WEEK
 0. RE-RUN THE ARENA BUILDER BEFORE PLAYING. Hit zones are authored into the
    prefabs, so the hitbox fix does not exist in a scene built before it.
 
+FOUND IN PLAY 2026-09-12, FIXED: the survivor floated when aiming across its
+   direction of travel. Facing and movement are independent in a twin-stick game
+   and there are only three locomotion clips, all of which run FORWARD - so
+   aiming left while walking north played a forward run pointed left while the
+   body slid north. The legs stopped meaning anything.
+   Fixed by turning the hips toward travel and unwinding the same angle at the
+   spine, so the legs lead and the torso still aims. Two bones is the whole
+   correction because the rig hangs legs off Pelvis and everything else off
+   Spine. maxHipTurn on PlayerAnimator is the knob; zero restores the bug.
+   Worth noting what found it. This is the second defect in two sessions that was
+   invisible to reading and obvious in the first minute of play, and like the
+   hitbox it was not a wrong value - every part was individually correct and the
+   fault was in how two correct things combined.
+
 1. PLAY IT. The first partial playthrough already paid for itself and proved
    the point twice over.
    It found the hitbox in one round - zombies had to be hit near centre mass

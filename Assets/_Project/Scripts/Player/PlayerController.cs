@@ -30,6 +30,13 @@ namespace ZombieShooter
         public Vector3 AimPoint { get; private set; }
 
         /// <summary>
+        /// Smoothed world velocity, horizontal. Exposed because facing and travel are
+        /// independent here: the animator needs the direction the body is actually going,
+        /// which is not the direction it is pointing and not the raw input either.
+        /// </summary>
+        public Vector3 Velocity => velocity;
+
+        /// <summary>
         /// While set, the mouse and right stick stop steering facing and the player spins at
         /// <see cref="SpinDegreesPerSecond"/> instead. Movement is deliberately left alone -
         /// during the ultimate it is the only agency the player has, and taking it away too

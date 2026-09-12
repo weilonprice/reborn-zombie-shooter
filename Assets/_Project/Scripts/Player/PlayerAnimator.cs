@@ -8,6 +8,7 @@ namespace ZombieShooter
     /// visual clips and keeps root motion disabled so the collider never fights the rig.
     /// </summary>
     [RequireComponent(typeof(Health))]
+    [DefaultExecutionOrder(-10)]
     public class PlayerAnimator : MonoBehaviour
     {
         [SerializeField] Animator animator;
@@ -19,6 +20,15 @@ namespace ZombieShooter
         [SerializeField] float reloadDuration = 1.90f;
         [SerializeField] float getShotDuration = 0.77f;
         [SerializeField] float staggerDuration = 1.43f;
+
+        [Header("Lower body")]
+        [Tooltip("How far the hips may turn away from the aim to follow the direction of " +
+                 "travel. Zero restores the old behaviour: legs always point where the gun " +
+                 "points, and the survivor slides sideways.")]
+        [SerializeField, Range(0f, 90f)] float maxHipTurn = 90f;
+        [Tooltip("Degrees per second the hips turn. Low values read as the survivor " +
+                 "planting a foot; high values snap.")]
+        [SerializeField] float hipTurnSpeed = 720f;
 
         [Header("Reactions")]
         [SerializeField, Range(0.05f, 1f)] float heavyHealthFraction = 0.40f;
@@ -43,6 +53,11 @@ namespace ZombieShooter
 
         static readonly int ReloadSpeed = Animator.StringToHash("ReloadSpeed");
 
+        [SerializeField] PlayerController movement;
+        Transform pelvis;
+        Transform spine;
+        float hipTurn;
+
         float upperLockedUntil;
         bool dead;
         string baseState;
@@ -54,6 +69,58 @@ namespace ZombieShooter
             if (health == null) health = GetComponent<Health>();
             if (weapon == null) weapon = GetComponent<Weapon>();
             if (animator == null) animator = GetComponentInChildren<Animator>(true);
+            if (movement == null) movement = GetComponent<PlayerController>();
+
+            if (animator != null)
+            {
+                pelvis = PlayerWeaponGrip.Find(animator.transform, "Pelvis");
+                spine = PlayerWeaponGrip.Find(animator.transform, "Spine");
+            }
+        }
+
+        /// <summary>
+        /// Turns the hips toward the direction the survivor is actually travelling, and
+        /// unwinds the same angle at the spine so the torso keeps facing the aim.
+        /// <para>
+        /// Facing and movement are independent in a twin-stick game, but there are only
+        /// three locomotion clips and all three run FORWARD. Aim left while walking north
+        /// and the survivor played a forward run pointed left while sliding north - which
+        /// reads exactly as reported from play: the legs stop meaning anything and the
+        /// character floats. Strafe clips would be the other fix; this one needs no new art
+        /// and stays correct at every angle rather than at four of them.
+        /// </para>
+        /// <para>
+        /// Legs hang off Pelvis and everything else hangs off Spine, so two bones is the
+        /// whole correction. It has to happen in LateUpdate, after the Animator has written
+        /// the authored pose, and before WeaponVisuals solves the grip - hence the execution
+        /// order on both.
+        /// </para>
+        /// </summary>
+        void LateUpdate()
+        {
+            if (pelvis == null || spine == null) return;
+
+            float wanted = 0f;
+
+            // Dead, mid-ultimate, or standing still: unwind to neutral rather than holding
+            // a twist. A corpse with its hips cocked ninety degrees is worse than no fix.
+            if (!dead && !ultimatePose && movement != null)
+            {
+                var travel = movement.Velocity;
+                travel.y = 0f;
+
+                if (travel.sqrMagnitude > 0.04f)
+                    wanted = Mathf.Clamp(
+                        Vector3.SignedAngle(transform.forward, travel.normalized, Vector3.up),
+                        -maxHipTurn, maxHipTurn);
+            }
+
+            hipTurn = Mathf.MoveTowardsAngle(hipTurn, wanted, hipTurnSpeed * Time.deltaTime);
+            if (Mathf.Abs(hipTurn) < 0.01f) return;
+
+            var turn = Quaternion.AngleAxis(hipTurn, Vector3.up);
+            pelvis.rotation = turn * pelvis.rotation;
+            spine.rotation = Quaternion.AngleAxis(-hipTurn, Vector3.up) * spine.rotation;
         }
 
         void OnEnable()
