@@ -97,12 +97,21 @@ namespace ZombieShooter
         /// </summary>
         public float ReloadSeconds => stats.ReloadTime;
 
+        /// <summary>Seconds between shots at the current rate, upgrades and fan included.</summary>
+        public float SecondsBetweenShots => 60f / Mathf.Max(1f, CurrentFireRate());
+
         /// <summary>(ammo, magazineSize)</summary>
         public event Action<int, int> AmmoChanged;
 
         /// <summary>Raised whenever a shot from this weapon kills something.</summary>
         public event Action Killed;
         public event Action UltimateEnded;
+        /// <summary>Raised after a round is accepted and the weapon begins its shot effects.</summary>
+        public event Action Fired;
+        /// <summary>Raised when a reload coroutine starts.</summary>
+        public event Action ReloadStarted;
+        /// <summary>Raised after the reload coroutine fills the magazine.</summary>
+        public event Action ReloadFinished;
 
         /// <summary>
         /// Whether the reserve is currently bottomless. Read by the HUD: infinite reserve
@@ -416,6 +425,7 @@ namespace ZombieShooter
             nextFireTime = Time.time + (60f / Mathf.Max(1f, CurrentFireRate()));
             Ammo--;
             AmmoChanged?.Invoke(Ammo, MagazineSize);
+            Fired?.Invoke();
 
             // Akimbo alternates hands. Until Split Focus is bought the off-hand is only a
             // second origin - the shot still goes wherever you are aiming.
@@ -627,6 +637,7 @@ namespace ZombieShooter
                 !stats.InfiniteReserve && loadout.CurrentReserveAmmo <= 0) return;
 
             reloadRoutine = StartCoroutine(ReloadRoutine());
+            ReloadStarted?.Invoke();
         }
 
         void CancelReload()
@@ -635,6 +646,7 @@ namespace ZombieShooter
 
             StopCoroutine(reloadRoutine);
             reloadRoutine = null;
+            ReloadFinished?.Invoke();
         }
 
         IEnumerator ReloadRoutine()
@@ -650,6 +662,11 @@ namespace ZombieShooter
             Ammo += loaded;
             AmmoChanged?.Invoke(Ammo, MagazineSize);
             reloadRoutine = null;
+
+            // Raised on completion as well as on cancellation. Without this a listener is
+            // told a reload began and never told it ended, which leaves anything animating
+            // it stuck in the clip until the next swap.
+            ReloadFinished?.Invoke();
 
             // Quick Draw. Armed only on a reload that actually loaded something, so dry
             // firing an empty reserve cannot hand out a free crit.

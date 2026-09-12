@@ -8,6 +8,17 @@
     "MuzzleSocket",
     "EjectPortSocket"
   ],
+  "animations": [
+    "Charge",
+    "Drain",
+    "Equip",
+    "Fire",
+    "Idle",
+    "Inspect",
+    "Melee",
+    "Reload",
+    "Unequip"
+  ],
   "bounds_meters": {
     "min": [
       -0.22204534709453583,

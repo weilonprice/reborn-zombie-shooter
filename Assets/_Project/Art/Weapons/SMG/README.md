@@ -10,4 +10,4 @@ Stylized low-poly weapon prop for Reborn. The model is authored around the playe
 
 ## Attachment points
 
-The exported hierarchy includes `GripSocket`, `MuzzleSocket`, and `EjectPortSocket` for later prefab wiring. Root motion and animation are intentionally absent: the current weapon runtime owns aim, firing, muzzle flash, and shell effects.
+The exported hierarchy includes `GripSocket`, `MuzzleSocket`, and `EjectPortSocket` for prefab wiring. Animation clips are authored on the root so the sockets follow recoil and reload motion: `Idle`, `Equip`, `Unequip`, `Fire`, `Reload`, `Charge`, `Inspect`, `Melee`, plus a class-specific mechanical cycle.
