@@ -1,0 +1,24 @@
+{
+  "building": "ApartmentBlock",
+  "style": "stylized low-poly Dark War survival arena building",
+  "parts": 67,
+  "bounds_meters": {
+    "min": [
+      -5.269999980926514,
+      -5.456686496734619,
+      0.0
+    ],
+    "max": [
+      5.269999980926514,
+      4.349999904632568,
+      9.40999984741211
+    ],
+    "size": [
+      10.539999961853027,
+      9.806686401367188,
+      9.40999984741211
+    ]
+  },
+  "unity_forward_axis": "+Z",
+  "static_colliders": "generated on MeshFilters by ArenaBuilder"
+}

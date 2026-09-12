@@ -1,0 +1,24 @@
+{
+  "building": "Shack",
+  "style": "stylized low-poly Dark War survival arena building",
+  "parts": 24,
+  "bounds_meters": {
+    "min": [
+      -4.474999904632568,
+      -3.866673469543457,
+      0.0
+    ],
+    "max": [
+      4.474999904632568,
+      3.4000000953674316,
+      7.126654148101807
+    ],
+    "size": [
+      8.949999809265137,
+      7.266673564910889,
+      7.126654148101807
+    ]
+  },
+  "unity_forward_axis": "+Z",
+  "static_colliders": "generated on MeshFilters by ArenaBuilder"
+}

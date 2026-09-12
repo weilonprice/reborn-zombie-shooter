@@ -228,6 +228,41 @@ PROGRESS LOG
             ricochet and mark code was deleted rather than left dormant. Third
             and current: a single Gunslinger path, authored, with two columns
             left as placeholders for paths still to be designed.
+2026-09-11  Four arenas, chosen per run. The layout was hardcoded inline in
+            BuildEnvironment; it is data now, and every layout is built into
+            the scene with all but one switched off at runtime, because the
+            builder generates the scene once and cannot know which arena a
+            future run wants.
+              The Yard        scattered blocks and long anchors - the balanced
+                              baseline everything was tuned in
+              The Corridors   long parallel lanes. Sightlines run one way and
+                              not the other, so it is the sniper's and rifle's
+                              arena and the flamethrower's worst. A barricade
+                              across a lane closes it completely, which should
+                              make fortification stronger here than anywhere.
+              The Ring        open centre, dense band at mid radius, open edge.
+                              Kiting is easy, holding a spot is hard, and
+                              ranged enemies get clean shots across the middle.
+              The Warren      26 small blocks, no long sightlines. The
+                              shotgun's and flamethrower's arena, and the
+                              hardest test the flow field gets - every route is
+                              a sequence of corners.
+            All 90x90 with a clear centre, so spawn radius, placement bounds
+            and the player's start need no per-arena tuning. The difference is
+            entirely in what the cover does.
+            TWO ORDERING BUGS HAD TO BE FIXED FOR THIS TO WORK, and both were
+            the silent kind. FlowField baked its static blocking in Awake and
+            ArenaSelector picks in Awake; Unity guarantees nothing about
+            Awake-versus-Awake order, so the field could have mapped the walls
+            of an arena that was about to be switched off. The bake moved to
+            Start, which is guaranteed to follow every Awake.
+            And enemies spawn on a ring of radius 38 with no geometry check.
+            The Corridors has slabs that ring crosses, so a zombie could be
+            born inside one and have to shove its way out before it could
+            chase. Spawn points are now rejected for being inside cover, with
+            damageables ignored so a barricade or another zombie standing there
+            is still fine. That was latent in The Yard too - the new layouts
+            only made it likely.
 2026-09-11  Weapon animations wired. Every weapon carries nine to sixteen
             authored clips; four of them are now driven from the weapon's own
             events, and the rest are honestly left inert.
@@ -749,8 +784,20 @@ main reason content comes first.
     Mod cores are gone entirely, which closed debt item 15 by deletion.
     Remaining constraint is debt item 17, and the three new paths cost seven
     more fields exactly as predicted.
-[ ] Arenas - 3-4 spaces with different tactical character.
+[x] Arenas - DONE 2026-09-11. Four with genuinely different character: The
+    Yard, The Corridors, The Ring, The Warren. Chosen at random per run by
+    ArenaSelector; ArenaLayout is data, so a fifth is a line in an array.
+    Unverified: whether The Corridors really does make barricades stronger,
+    and whether The Warren's seeded scatter produces an awkward clump - it is
+    deterministic, so it would be the same clump every build.
 [ ] Meta progression - needs the save system, debt item 4.
+[ ] Enemy models. Only the normal zombie is authored; eleven archetypes and the
+    boss are still primitives. Twelve archetypes that look like three variations
+    of a capsule READ as repetition even when they are not, so this is a Gate 2
+    item rather than a Phase 3 one.
+    Priority is by how load-bearing the silhouette is: Screamer first, since
+    its entire design is "pick it out of a crowd", then Bloater and Armored,
+    whose counterplay the player cannot infer from damage alone.
 [ ] Performance - profile the horde. Debt item 6, deferred to exactly here.
 
 GATE 2: 10+ hours of play without repetition becoming obvious, and no run

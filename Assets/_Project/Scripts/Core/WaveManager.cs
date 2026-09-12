@@ -302,25 +302,51 @@ namespace ZombieShooter
         ZombieAI BaselinePrefab =>
             spawnTable != null && spawnTable.Length > 0 ? spawnTable[0]?.prefab : null;
 
+        static readonly Collider[] SpawnProbe = new Collider[4];
+
         Vector3 PickSpawnPoint()
         {
             var centre = transform.position;
 
-            // A handful of tries is plenty to find a point away from the player;
-            // the last candidate is accepted regardless so this always terminates.
+            // A handful of tries is plenty; the last candidate is accepted regardless so this
+            // always terminates. Candidates are rejected for being on top of the player OR
+            // inside cover - the spawn ring crosses the outer blocks in several layouts, and
+            // a zombie born inside a slab has to shove its way out before it can chase.
             Vector3 point = centre + Vector3.up * spawnHeight;
-            for (int attempt = 0; attempt < 8; attempt++)
+            for (int attempt = 0; attempt < 12; attempt++)
             {
                 float angle = UnityEngine.Random.value * Mathf.PI * 2f;
                 point = centre + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * spawnRadius;
                 point.y = centre.y + spawnHeight;
 
+                if (BlockedAt(point)) continue;
                 if (player == null) break;
+
                 if ((point - player.position).sqrMagnitude >= minDistanceFromPlayer * minDistanceFromPlayer)
                     break;
             }
 
             return point;
+        }
+
+        /// <summary>
+        /// Whether solid level geometry occupies a spawn point. Damageables are ignored - a
+        /// barricade or another zombie standing there is fine, walls are not.
+        /// </summary>
+        static bool BlockedAt(Vector3 point)
+        {
+            int count = Physics.OverlapSphereNonAlloc(point, 0.6f, SpawnProbe, ~0,
+                                                      QueryTriggerInteraction.Ignore);
+
+            for (int i = 0; i < count; i++)
+            {
+                if (SpawnProbe[i] == null) continue;
+                if (SpawnProbe[i].GetComponentInParent<IDamageable>() != null) continue;
+
+                return true;
+            }
+
+            return false;
         }
 
         ZombieAI Rent(ZombieAI prefab)

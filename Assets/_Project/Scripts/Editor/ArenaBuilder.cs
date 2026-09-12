@@ -147,6 +147,125 @@ namespace ZombieShooter.EditorTools
             Validate(waves);
         }
 
+        /// <summary>
+        /// One arena's cover. Height and elevation are shared, so a layout only states where
+        /// its blocks are and how big they are on the floor plane.
+        /// </summary>
+        readonly struct ArenaLayout
+        {
+            public readonly string Name;
+            readonly (float x, float z, float sx, float sz)[] blocks;
+
+            public ArenaLayout(string name, (float, float, float, float)[] blocks)
+            {
+                Name = name;
+                this.blocks = blocks;
+            }
+
+            public (Vector3 position, Vector3 size)[] Blocks()
+            {
+                var result = new (Vector3, Vector3)[blocks.Length];
+
+                for (int i = 0; i < blocks.Length; i++)
+                {
+                    result[i] = (new Vector3(blocks[i].x, CoverHeight * 0.5f, blocks[i].z),
+                                 new Vector3(blocks[i].sx, CoverHeight, blocks[i].sz));
+                }
+
+                return result;
+            }
+        }
+
+        const float CoverHeight = 2.5f;
+
+        /// <summary>
+        /// Four spaces that ask different questions of the same arsenal. All 90x90 and all
+        /// with a clear centre, so spawn radius, placement bounds and the player's start need
+        /// no per-arena tuning - the difference is entirely in what the cover does.
+        /// </summary>
+        static readonly ArenaLayout[] ArenaLayouts =
+        {
+            // Scattered blocks and long anchors. The balanced baseline everything else is
+            // measured against, and the one the game was tuned in.
+            new("The Yard", new (float, float, float, float)[]
+            {
+                (-18f, 12f, 3.5f, 3.5f), (21f, -9f, 3.5f, 3.5f), (6f, 26f, 3.5f, 3.5f),
+                (-27f, -21f, 3.5f, 3.5f), (14f, 14f, 3.5f, 3.5f), (-9f, -28f, 3.5f, 3.5f),
+                (0f, -14f, 9f, 3f), (-33f, 4f, 3f, 9f), (33f, 18f, 3f, 9f),
+                (18f, -30f, 9f, 3f), (-20f, 30f, 7f, 3f), (30f, -20f, 3.5f, 3.5f),
+                (-34f, -34f, 3.5f, 3.5f), (34f, 34f, 3.5f, 3.5f),
+            }),
+
+            // Long parallel lanes. Sightlines run one way and not the other, which is the
+            // sniper's and rifle's arena and the flamethrower's worst. A barricade across a
+            // lane closes it completely, so fortification is at its strongest here.
+            new("The Corridors", new (float, float, float, float)[]
+            {
+                (-30f, -22f, 3f, 30f), (-30f, 18f, 3f, 24f),
+                (-15f, -2f, 3f, 38f),
+                (0f, -28f, 3f, 22f), (0f, 16f, 3f, 26f),
+                (15f, -2f, 3f, 38f),
+                (30f, -22f, 3f, 30f), (30f, 18f, 3f, 24f),
+                // Two cross-pieces, so the lanes are not perfectly parallel and a player
+                // cannot simply hold one line forever.
+                (-22f, 34f, 18f, 3f), (22f, -34f, 18f, 3f),
+            }),
+
+            // Open centre, a dense band of cover at mid radius, open again at the edge. You
+            // fight in a donut: kiting around the band is easy, holding a spot is hard, and
+            // ranged enemies get clean shots across the middle.
+            new("The Ring", new (float, float, float, float)[]
+            {
+                (0f, 20f, 12f, 3.5f), (0f, -20f, 12f, 3.5f),
+                (20f, 0f, 3.5f, 12f), (-20f, 0f, 3.5f, 12f),
+                (15f, 15f, 6f, 3.5f), (-15f, 15f, 6f, 3.5f),
+                (15f, -15f, 6f, 3.5f), (-15f, -15f, 6f, 3.5f),
+                (22f, 22f, 3.5f, 6f), (-22f, 22f, 3.5f, 6f),
+                (22f, -22f, 3.5f, 6f), (-22f, -22f, 3.5f, 6f),
+            }),
+
+            // Dense small cover everywhere, no long sightlines. The shotgun's and
+            // flamethrower's arena and the sniper's worst, and the hardest test the flow
+            // field gets - every route is a sequence of corners.
+            new("The Warren", WarrenBlocks()),
+        };
+
+        /// <summary>
+        /// A deterministic scatter. Seeded rather than hand-placed because two dozen blocks
+        /// are data, not design, and the centre is kept clear so the player never starts
+        /// inside cover.
+        /// </summary>
+        static (float, float, float, float)[] WarrenBlocks()
+        {
+            var random = new System.Random(20260911);
+            var blocks = new List<(float, float, float, float)>();
+
+            const float clearRadius = 9f;
+            const float spacing = 7.5f;
+
+            for (int attempt = 0; attempt < 400 && blocks.Count < 26; attempt++)
+            {
+                float x = (float)(random.NextDouble() * 72f - 36f);
+                float z = (float)(random.NextDouble() * 72f - 36f);
+
+                if (x * x + z * z < clearRadius * clearRadius) continue;
+
+                bool tooClose = false;
+                foreach (var placed in blocks)
+                {
+                    float dx = placed.Item1 - x;
+                    float dz = placed.Item2 - z;
+                    if (dx * dx + dz * dz < spacing * spacing) { tooClose = true; break; }
+                }
+                if (tooClose) continue;
+
+                float size = 2.6f + (float)random.NextDouble() * 2.2f;
+                blocks.Add((x, z, size, size));
+            }
+
+            return blocks.ToArray();
+        }
+
         // ---------------------------------------------------------------- environment
 
         static void BuildEnvironment(Material groundMat, Material wallMat)
@@ -180,31 +299,29 @@ namespace ZombieShooter.EditorTools
             CreateWall(walls, "West", new Vector3(-ArenaHalfSize, WallHeight / 2f, 0f),
                 new Vector3(2f, WallHeight, ArenaHalfSize * 2f + 2f), wallMat);
 
-            // A few blocks so the empty field has landmarks and sightline breaks.
-            var cover = new GameObject("Cover").transform;
-            cover.SetParent(env, false);
-            // Scaled out with the arena and roughly doubled. Sparse cover in a 90x90 space
-            // reads as an empty field; these are the anchors funnels get built against.
-            (Vector3 pos, Vector3 size)[] spots =
+            // Every layout is built and all but one switched off at runtime. The builder
+            // generates the scene once and cannot know which arena a future run wants.
+            var layoutRoots = new Object[ArenaLayouts.Length];
+
+            for (int i = 0; i < ArenaLayouts.Length; i++)
             {
-                (new(-18f, 1.25f, 12f), new(3.5f, 2.5f, 3.5f)),
-                (new(21f, 1.25f, -9f),  new(3.5f, 2.5f, 3.5f)),
-                (new(6f, 1.25f, 26f),   new(3.5f, 2.5f, 3.5f)),
-                (new(-27f, 1.25f, -21f),new(3.5f, 2.5f, 3.5f)),
-                (new(14f, 1.25f, 14f),  new(3.5f, 2.5f, 3.5f)),
-                (new(-9f, 1.25f, -28f), new(3.5f, 2.5f, 3.5f)),
-                // Longer slabs give barricade lines something to anchor against.
-                (new(0f, 1.25f, -14f),  new(9f, 2.5f, 3f)),
-                (new(-33f, 1.25f, 4f),  new(3f, 2.5f, 9f)),
-                (new(33f, 1.25f, 18f),  new(3f, 2.5f, 9f)),
-                (new(18f, 1.25f, -30f), new(9f, 2.5f, 3f)),
-                (new(-20f, 1.25f, 30f), new(7f, 2.5f, 3f)),
-                (new(30f, 1.25f, -20f), new(3.5f, 2.5f, 3.5f)),
-                (new(-34f, 1.25f, -34f),new(3.5f, 2.5f, 3.5f)),
-                (new(34f, 1.25f, 34f),  new(3.5f, 2.5f, 3.5f)),
-            };
-            for (int i = 0; i < spots.Length; i++)
-                CreateWall(cover, $"Block_{i}", spots[i].pos, spots[i].size, wallMat);
+                var layout = ArenaLayouts[i];
+
+                var root = new GameObject(layout.Name).transform;
+                root.SetParent(env, false);
+
+                var blocks = layout.Blocks();
+                for (int b = 0; b < blocks.Length; b++)
+                    CreateWall(root, $"Block_{b}", blocks[b].position, blocks[b].size, wallMat);
+
+                layoutRoots[i] = root.gameObject;
+            }
+
+            var selector = env.gameObject.AddComponent<ArenaSelector>();
+            using (var f = new Fields(selector))
+            {
+                f.Arr("layouts", layoutRoots).I("forcedIndex", -1);
+            }
         }
 
         static void CreateWall(Transform parent, string name, Vector3 position, Vector3 size, Material mat)
@@ -3705,6 +3822,20 @@ namespace ZombieShooter.EditorTools
                 {
                     Debug.LogError($"<b>Zombie Shooter</b>: spawn table entry {i} has no prefab - " +
                                    "that archetype will never appear. Re-run the builder.", waves);
+                    return;
+                }
+            }
+
+            var selector = Object.FindAnyObjectByType<ArenaSelector>();
+            if (selector != null)
+            {
+                var layouts = new SerializedObject(selector).FindProperty("layouts");
+
+                if (layouts == null || layouts.arraySize == 0)
+                {
+                    Debug.LogError("<b>Zombie Shooter</b>: no arena layouts serialized onto " +
+                                   "ArenaSelector - every run would be fought in an empty box. " +
+                                   "Re-run the builder.", selector);
                     return;
                 }
             }

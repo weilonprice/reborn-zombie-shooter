@@ -80,7 +80,6 @@ namespace ZombieShooter
             heapCell = new int[Mathf.Max(64, cells)];
             heapDistance = new float[heapCell.Length];
 
-            BakeStaticBlocking();
         }
 
         void OnDestroy()
@@ -96,6 +95,10 @@ namespace ZombieShooter
                 if (player != null) target = player.transform;
             }
 
+            // Baked in Start rather than Awake: ArenaSelector switches layouts in Awake, and
+            // Unity only guarantees that every Awake precedes every Start. Baking in Awake
+            // would race the arena choice and silently map the wrong walls.
+            BakeStaticBlocking();
             Rebuild();
         }
 
