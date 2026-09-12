@@ -1999,21 +1999,27 @@ namespace ZombieShooter.EditorTools
             zone.transform.localRotation = Quaternion.identity;
             zone.transform.localScale = Vector3.one;
 
-            using (var f = new Fields(zone.AddComponent<Hitbox>()))
-                f.F("damageMultiplier", multiplier);
+            int colliders = Shape(zone, joint, next, radius);
 
+            // Hitbox goes on AFTER the colliders, and that ordering is not cosmetic. Hitbox
+            // declares RequireComponent(typeof(Collider)); Collider is abstract, so Unity
+            // cannot manufacture one to satisfy it and AddComponent simply returns null.
+            // Adding it first threw inside Fields on a null target, which is a confusing way
+            // to be told the component was never created.
+            var hitbox = zone.AddComponent<Hitbox>();
+            using (var f = new Fields(hitbox)) f.F("damageMultiplier", multiplier);
+
+            return colliders;
+        }
+
+        /// <summary>Puts collider volume on a zone and says how many it took.</summary>
+        static int Shape(GameObject zone, Transform joint, Transform next, float radius)
+        {
             // A tip joint - head, hand - has nothing past it, so one ball is the whole zone.
-            if (next == null)
-            {
-                var ball = zone.AddComponent<SphereCollider>();
-                ball.isTrigger = true;
-                ball.radius = radius;
-                return 1;
-            }
+            var tip = next != null ? joint.InverseTransformPoint(next.position) : Vector3.zero;
+            float length = next != null ? tip.magnitude : 0f;
 
-            var tip = joint.InverseTransformPoint(next.position);
-            float length = tip.magnitude;
-            if (length < 0.01f)
+            if (next == null || length < 0.01f)
             {
                 var ball = zone.AddComponent<SphereCollider>();
                 ball.isTrigger = true;
@@ -4487,6 +4493,18 @@ namespace ZombieShooter.EditorTools
 
             public Fields(Object target)
             {
+                // SerializedObject's own message for a null target is "Object at index 0 is
+                // null", which names neither the caller nor the reason. The usual reason is
+                // an AddComponent that quietly failed - most often a RequireComponent naming
+                // an abstract type, which Unity cannot satisfy and so refuses.
+                if (target == null)
+                    throw new System.ArgumentNullException(
+                        nameof(target),
+                        "Fields was handed a null target. If this came straight from " +
+                        "AddComponent, that call returned null - check the component for a " +
+                        "[RequireComponent] naming a type Unity cannot create, such as the " +
+                        "abstract Collider.");
+
                 owner = target;
                 so = new SerializedObject(target);
             }

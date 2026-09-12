@@ -19,7 +19,6 @@ namespace ZombieShooter
     /// not enemy melee. Only the deliveries that opt in do.
     /// </para>
     /// </summary>
-    [RequireComponent(typeof(Collider))]
     public class Hitbox : MonoBehaviour
     {
         [Tooltip("Damage scale for shots that connect here and nowhere better. " +
@@ -32,6 +31,17 @@ namespace ZombieShooter
         {
             var collider = GetComponent<Collider>();
             if (collider != null) collider.isTrigger = true;
+        }
+
+        // Deliberately NOT [RequireComponent(typeof(Collider))]. Collider is abstract, so
+        // Unity cannot create one to satisfy the requirement - it refuses the AddComponent
+        // outright and hands back null, which surfaces far away from the cause. The
+        // requirement is real, so it is checked and reported here instead.
+        void OnValidate()
+        {
+            if (GetComponent<Collider>() == null)
+                Debug.LogWarning($"Hitbox on '{name}' has no collider, so nothing can be shot " +
+                                 "through it.", this);
         }
 
         /// <summary>
