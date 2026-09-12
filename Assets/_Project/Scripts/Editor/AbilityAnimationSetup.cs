@@ -145,6 +145,10 @@ namespace ZombieShooter.EditorTools
             ai.FindProperty("deathLinger").floatValue = .75f;
             ai.ApplyModifiedPropertiesWithoutUndo();
 
+            // Same mesh, same problem: these archetypes show a full zombie scaled to their
+            // own height while walking around inside a capsule narrower than its shoulders.
+            ArenaBuilder.AddLimbHitbox(enemy, height, model.localScale);
+
             var material = ArchetypeMaterial(enemy.name);
             foreach (var skin in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {

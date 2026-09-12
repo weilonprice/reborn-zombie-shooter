@@ -790,6 +790,20 @@ main reason content comes first.
     Unverified: whether The Corridors really does make barricades stronger,
     and whether The Warren's seeded scatter produces an awkward clump - it is
     deterministic, so it would be the same clump every build.
+[x] Weapons held in the hands - DONE 2026-09-12. Two-bone IK puts both palms
+    on the grip; authored actions carry the weapon with the palm instead of
+    fighting the solver. Also fixed the off-hand muzzle, which was reading the
+    main weapon's socket - the second pistol fired from the right gun's barrel.
+[x] Hit zones - DONE 2026-09-12. Found by playing, not by reading. Bodies now
+    carry a trigger capsule matching their silhouette at 0.6x damage, with the
+    walking capsule underneath at full damage and the better of the two paid
+    out - so a clean body shot is unchanged and a clipped arm now registers.
+    Hittable width went from 73-86% of the visible enemy to 101-105% across the
+    four archetypes that use the authored mesh. Debt 9 closed; see it for why
+    the deferral held for so long while being aimed at the wrong axis.
+    Unverified: whether 0.6x is the right number, and whether body shots still
+    feel identical - that is the failure mode if the zone wins where it should
+    not.
 [ ] Meta progression - needs the save system, debt item 4.
 [ ] Enemy models. Only the normal zombie is authored; eleven archetypes and the
     boss are still primitives. Twelve archetypes that look like three variations
@@ -1011,7 +1025,20 @@ KNOWN DEBT IN THE CURRENT BUILD
    Easy to forget, and the symptom is silent (see item 7). Now mitigated by
    SystemsCheck, and goes away entirely when the builder retires in Phase 3.
 
-9. HIT TEST IS A RAY, NOT A SPHERECAST. - DEFERRED, deliberately.
+9. HIT TEST IS A RAY, NOT A SPHERECAST. - CLOSED 2026-09-12, differently.
+   The deferral below reasoned about the wrong axis. It asked whether the ray
+   was too THIN and decided the answer did not matter yet; play showed the
+   problem was that the TARGET was too narrow, which no amount of deferring
+   was going to surface. Measured off the mesh in Blender: at the 1.0m height
+   shots travel, the authored zombie is 0.573m wide to each side and its
+   CharacterController is 0.42m. Twenty-seven percent of the visible zombie
+   was not there to be hit, and it was the arms - the part the eye aims at.
+   Closed by giving bodies their own hit volumes rather than by widening the
+   ray, so the shot stays a line and only what it can touch changed.
+   The original case - an enemy closing inside the player's centre - is still
+   open in principle and still cannot occur at current values.
+   Kept because the reasoning is the lesson: a deferral that names the wrong
+   axis stays comfortable indefinitely, because nothing it predicts ever fails.
    Reviewed 2026-09-08: switching to a spherecast would subtly widen every
    shot, changing hit feel that has now been validated through two gates. Not
    worth destabilising for a case that cannot currently occur. Fix it when an
@@ -1231,12 +1258,21 @@ ZOMBIE STEERING VS DEPLOYABLE BARRICADES - resolved 2026-09-08.
 START HERE - THIS WEEK
 ===============================================================================
 
-1. PLAY IT. Seventeen commits have landed since anything was verified in play,
-   and the pattern is no longer arguable: a floating zombie, a floating player,
-   an unmirrored weapon socket, a roof standing on its edge, a revenant that
-   could hang a wave. Every one was found by reading, days late, and every one
-   would have been obvious in the first minute of a run.
-   Nothing on this list is worth more than one playthrough.
+0. RE-RUN THE ARENA BUILDER BEFORE PLAYING. Hit zones are authored into the
+   prefabs, so the hitbox fix does not exist in a scene built before it.
+
+1. PLAY IT. The first partial playthrough already paid for itself and proved
+   the point twice over.
+   It found the hitbox in one round - zombies had to be hit near centre mass
+   because a quarter of each one was not there to hit (debt 9, now closed).
+   Reading had not found that in eighteen commits, and would not have: every
+   number involved was individually defensible. It only shows up as a feel.
+   And the fix needed a measurement, not a guess. The mesh half-width came out
+   of Blender at 0.573m against a 0.42m capsule; the first instinct - widen
+   the walking capsule - would have changed crowding, spacing and pathing to
+   fix an aiming problem.
+   So: finish the playthrough. The earlier list stands, and everything on it is
+   still unverified.
    Watch, in rough order of how likely they are to be wrong:
      The Sapper - a 4x barricade multiplier could make walls pointless, and a
      26m search radius could send it across the map past a defenceless player.
@@ -1251,7 +1287,11 @@ START HERE - THIS WEEK
      has been deferred on assumption since the beginning and has never once
      been measured.
 
-2. Fix whatever that turns up.
+2. Fix whatever that turns up. Confirm the hit zones first, since they are the
+   one thing on this list that changed since the last run: a clean body shot
+   should read the same as it always did, and a clipped arm should now register
+   at 0.6x instead of passing through. If body shots feel different, the zone
+   is winning where the capsule should - that is the failure mode to watch.
 
 3. Enemy models, 11 archetypes and the boss. The only remaining Gate 2 content:
    twelve enemies that look like three variations of a capsule read as
@@ -1267,6 +1307,25 @@ START HERE - THIS WEEK
 
 5. GATE 2: 10+ hours without repetition becoming obvious, and no run feeling
    like a strictly worse version of another.
+
+LOOSE ENDS FROM THE GRIP PASS, neither urgent:
+   ApplyAkimboVisuals is dead code. All three of its SlideSideways calls -
+   mainGunVisual (which is the GunHolder, and so PlayerWeaponGrip's holder),
+   muzzle, and offHandMuzzle - are overwritten absolutely every LateUpdate by
+   the grip and by WeaponVisuals writing a full position. The akimbo spread now
+   comes from the grip's own +/-0.30 offsets. Harmless while the grip runs;
+   if it is ever bypassed the old offset silently returns and the guns jump.
+   The grip harness cannot fail on five of its seven poses. Reload, GetShot,
+   Stagger, Ultimate and Death take Apply's action branch, where Follow assigns
+   holder.position += palm - socket.position and the assertion then measures
+   palm against socket.position - a value against itself. Aim and Fire are the
+   real tests: they run Reach first, so an arm that cannot make it would show.
+   That is 120 genuine checks of 420, which is still a good harness - the
+   number just means less than it looks like. The muzzle-direction assertion
+   is worth more than the distance one.
+   Neither render shows an arm clearly connecting to the weapon; both were shot
+   from the same angle, where the right arm is behind the gun body. A second
+   render from ~45 degrees off would settle whether that is occlusion or pose.
 
 STILL OPEN, kept for the specifics:
    The arena and deployables have not been played either. Two things to watch:

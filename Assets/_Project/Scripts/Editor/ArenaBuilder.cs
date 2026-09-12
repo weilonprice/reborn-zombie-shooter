@@ -1227,6 +1227,9 @@ namespace ZombieShooter.EditorTools
                     // The model's authored death is 1.8s; play it at 2.5x during the existing
                     // prototype linger so it completes without holding a dead horde slot.
                     using (var f = new Fields(ai)) f.F("deathLinger", 0.75f);
+
+                    // The authored mesh is far wider than the capsule that walks it around.
+                    AddLimbHitbox(zombie, controller.height, model.transform.localScale);
                 }
             }
             else
@@ -1745,8 +1748,68 @@ namespace ZombieShooter.EditorTools
         /// <summary>
         /// Hit tests start at the player's centre and travel flat. Anything whose collider
         /// tops out below this is unhittable by every hitscan weapon in the game.
+        /// <para>
+        /// Derived, not typed. Weapon.rayOrigin is the player transform itself, and a
+        /// CharacterController centred on its pivot puts that pivot at half its height. This
+        /// was hardcoded to 1.1 while the real figure was 1.0 - harmless for the guard below,
+        /// which only erred towards warning, but wrong for anyone sizing a hitbox against it.
+        /// </para>
         /// </summary>
-        const float PlayerRayHeight = 1.1f;
+        const float PlayerRayHeight = PlayerControllerHeight * 0.5f;
+
+
+        /// <summary>Damage a shot keeps when it caught a limb rather than the body.</summary>
+        const float LimbDamageScale = 0.6f;
+
+        /// <summary>
+        /// Half-width of the authored zombie across the chest, measured off the mesh rather
+        /// than guessed: 0.57m to each side at the 1.0m height shots travel at, rising to
+        /// 0.60m just above it, against a 0.42m walking capsule. A quarter of the visible
+        /// zombie was not there to be hit, and it was the quarter the arms occupy.
+        /// </summary>
+        const float ZombieLimbRadius = 0.60f;
+
+        const string LimbHitboxName = "Hitbox_Limbs";
+
+        /// <summary>
+        /// Wraps a body in a trigger capsule that matches what the player can see, so shots
+        /// that clearly connect do damage instead of passing through an arm.
+        /// <para>
+        /// Deliberately a capsule rather than a box shaped to the arms. A capsule is the same
+        /// width from every angle, so it cannot be authored facing the wrong way - and on a
+        /// top-down camera the player aims left and right, which is the axis this fixes.
+        /// The walking capsule is still in the mask underneath, so a shot through the middle
+        /// reaches both and the delivery pays out the better of the two.
+        /// </para>
+        /// </summary>
+        internal static void AddLimbHitbox(GameObject root, float controllerHeight,
+                                           Vector3 modelScale)
+        {
+            // InstallOnEnemy runs again over prefabs that already exist, and its own menu
+            // item re-runs it on demand. Authoring a second capsule each time would stack
+            // damage zones on one body.
+            if (root.transform.Find(LimbHitboxName) != null) return;
+
+            var zone = new GameObject(LimbHitboxName);
+            zone.transform.SetParent(root.transform, false);
+
+            var capsule = zone.AddComponent<CapsuleCollider>();
+            capsule.isTrigger = true;
+            capsule.direction = 1;
+
+            // Widest of the two horizontal axes, because the capsule is round and the player
+            // aims across it. The Screamer is the only archetype squeezed on one axis.
+            float lateral = Mathf.Max(modelScale.x, modelScale.z);
+            capsule.radius = ZombieLimbRadius * lateral;
+            capsule.height = 1.3f * modelScale.y;
+
+            // Chest height in model space, against a pivot that sits at the controller's
+            // centre rather than at the feet.
+            capsule.center = new Vector3(0f, 1.2f * modelScale.y - controllerHeight * 0.5f, 0f);
+
+            using (var f = new Fields(zone.AddComponent<Hitbox>()))
+                f.F("damageMultiplier", LimbDamageScale);
+        }
 
         static (GameObject go, Health health, ZombieAI ai) BuildMeleeArchetype(
             string name, Material mat, Vector3 bodyScale, float controllerHeight,
