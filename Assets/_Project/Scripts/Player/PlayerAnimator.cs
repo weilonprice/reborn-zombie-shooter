@@ -30,6 +30,11 @@ namespace ZombieShooter
                  "planting a foot; high values snap.")]
         [SerializeField] float hipTurnSpeed = 720f;
 
+        [Tooltip("Logs every base-layer state change with a timestamp. Turn on for one run " +
+                 "if the legs ever stop: the console then says exactly what they went to " +
+                 "and when.")]
+        [SerializeField] bool logLegStates;
+
         [Header("Reactions")]
         [SerializeField, Range(0.05f, 1f)] float heavyHealthFraction = 0.40f;
         [SerializeField] float heavyKnockback = 2.5f;
@@ -264,12 +269,45 @@ namespace ZombieShooter
             }
         }
 
+        /// <summary>
+        /// Asks the animator what it is actually playing rather than trusting a cached name.
+        /// <para>
+        /// The cache alone is why the legs could stop for good. `current` recorded what was
+        /// last REQUESTED, so once anything knocked the layer off that state - an interrupted
+        /// crossfade, a clip that ended, a stray Play - every later frame compared equal,
+        /// returned early, and never asked again. The layer stayed wrong until the next time
+        /// the player changed speed, and standing in one state is exactly when that does not
+        /// happen. Verifying against the animator makes it self-healing within a frame.
+        /// </para>
+        /// </summary>
         void Play(string state, float fade, int layer, ref string current)
         {
-            if (animator == null || dead || current == state) return;
+            if (animator == null || dead) return;
+            if (current == state && IsPlaying(state, layer)) return;
 
             animator.CrossFadeInFixedTime(state, fade, layer, 0f);
             current = state;
+
+            if (logLegStates && layer == BaseLayer)
+                Debug.Log($"PlayerAnimator: base layer -> {state} at {Time.time:F2}s");
+        }
+
+        bool IsPlaying(string state, int layer)
+        {
+            if (layer >= animator.layerCount) return true;
+
+            // Mid-transition the destination is what matters; arriving there is not a reason
+            // to restart the crossfade.
+            if (animator.IsInTransition(layer))
+                return animator.GetNextAnimatorStateInfo(layer).IsName(state);
+
+            var info = animator.GetCurrentAnimatorStateInfo(layer);
+            if (!info.IsName(state)) return false;
+
+            // A looping clip that has been left to run is fine. A one-shot that has played
+            // out is holding its last frame, which on the legs is indistinguishable from
+            // the character sliding with no animation at all.
+            return info.loop || info.normalizedTime < 1f;
         }
     }
 }
