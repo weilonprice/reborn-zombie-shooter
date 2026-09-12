@@ -805,32 +805,17 @@ main reason content comes first.
     feel identical - that is the failure mode if the zone wins where it should
     not.
 [ ] Meta progression - needs the save system, debt item 4.
-[~] Enemy models - twelve authored 2026-09-12, NOT YET SEEN IN UNITY.
-    One shared skeleton, twelve bodies. The clips are authored once against the
-    normal zombie and every archetype borrows them, which is only possible
-    because the rig never changes: Generic rigs bind by transform PATH, and
-    build_zombie.py keyframes LOCATION on every bone, so a skeleton with
-    different proportions would be snapped back the moment a clip played.
-    Hence identical bones, identical rest pose, and an armature still named
-    NormalZombie_Rig in every file. That name is load-bearing, not cosmetic.
-    Separation is by plan-view mass, because the camera sits 61 degrees down and
-    height barely reads: the brute is a slab of shoulders, the bloater a sphere,
-    the armored a set of hard plates among soft bodies, the spitter carries its
-    gland high on the back where the camera looks, the crawler has no legs.
-    About 1,000 verts each against the baseline zombie's 3,588 - they are all
-    rarer than it is.
-    STILL OPEN, and honest about it:
-      Nobody has seen one of these in Unity. They are built, wired and rendered,
-      and that is all. The wiring in particular is unproven: InstallOnEnemy now
-      prefers an archetype's own body, nine builders call it that never did
-      before, and none of that has run.
-      The palette is lighter and more pastel than the baseline zombie's, which
-      is grim and desaturated. Rendered side by side the roster reads more toy
-      than horror. Values were darkened once and it was not enough.
-      Five of the twelve are separated mainly by colour - runner, sapper,
-      crawler aside, ranged zombie and revenant share a silhouette with the
-      baseline. Heads are identical across the roster, and head shape is a
-      strong read at this angle that is currently doing no work.
+[~] Enemy models - twelve authored, palette and skulls fixed 2026-09-12.
+    STILL NOT SEEN IN UNITY.
+    One shared skeleton, twelve bodies; the clips are authored once against the
+    normal zombie and every archetype borrows them, which only works because
+    Generic rigs bind by transform PATH and build_zombie.py keyframes LOCATION
+    on every bone. Identical bones, identical rest pose, armature still named
+    NormalZombie_Rig in every file. That name is load-bearing.
+    Separation is by plan-view mass - the camera is 61 degrees down - and now
+    also by skull: ten head shapes across the roster, where the first pass gave
+    all twelve the same cranium and left colour doing all the work.
+    THE PALETTE WAS NEVER THE PROBLEM. See debt 12.
 [ ] Performance - profile the horde. Debt item 6, deferred to exactly here.
 
 GATE 2: 10+ hours of play without repetition becoming obvious, and no run
@@ -1066,6 +1051,25 @@ KNOWN DEBT IN THE CURRENT BUILD
    enemy that closes inside that centre would still be missed. Cannot happen
    at current values - zombies stop at 1.6 units - but a fast archetype in
    Phase 1 could. Switch to SphereCast when that enemy exists.
+
+12. PALETTE UVs DID NOT SURVIVE THE FBX ROUND TRIP. - FIXED 2026-09-12.
+   Characters bake their colours into a sixteen-cell palette texture and ship
+   one material, which is what keeps a sixty-strong horde to one draw call each.
+   The bake set active_render on the palette UV layer and left the smart-project
+   unwrap in place. active_render does NOT survive FBX: the importer marks the
+   FIRST layer as the render one, so every character sampled a sixteen-cell
+   palette with a 6,382-point unwrap and scattered its colours at random.
+   The baseline zombie carried this from the day it was authored. Every render
+   and every judgement of "the art looks wrong" was of that artifact.
+   Cost of not catching it: two rounds of darkening the roster's palette by eye,
+   both in the wrong direction, plus a measurement harness built to compare a
+   textured model against flat-coloured ones - which was itself meaningless.
+   Once fixed, the roster measured within 1% of the baseline with no colour
+   change at all.
+   Fixed by removing the unwrap rather than deselecting it, in both the kit and
+   build_zombie.py. Removing a UV layer invalidates the other layer pointers, so
+   the layer has to be re-fetched by name afterwards - doing it the obvious way
+   exported meshes with no UVs at all.
 
 10. VFX SIZES ARE TUNED TO ONE CAMERA DISTANCE.
    Sparks and shell casings are sized in world units for a camera 22.8 units

@@ -5,7 +5,7 @@
    "vertices": 958,
    "triangles": 1764,
    "bones": 18,
-   "materials": 5,
+   "materials": 1,
    "height": 2.052,
    "half_width": 0.614,
    "chest_half_width": 0.614
@@ -15,8 +15,8 @@
    "vertices": 1096,
    "triangles": 2032,
    "bones": 18,
-   "materials": 6,
-   "height": 2.021,
+   "materials": 1,
+   "height": 2.065,
    "half_width": 0.606,
    "chest_half_width": 0.606
   },
@@ -25,7 +25,7 @@
    "vertices": 1470,
    "triangles": 2736,
    "bones": 18,
-   "materials": 5,
+   "materials": 1,
    "height": 2.1,
    "half_width": 0.64,
    "chest_half_width": 0.64
@@ -35,8 +35,8 @@
    "vertices": 1028,
    "triangles": 1904,
    "bones": 18,
-   "materials": 5,
-   "height": 2.046,
+   "materials": 1,
+   "height": 1.999,
    "half_width": 0.64,
    "chest_half_width": 0.64
   },
@@ -45,8 +45,8 @@
    "vertices": 942,
    "triangles": 1728,
    "bones": 18,
-   "materials": 6,
-   "height": 1.451,
+   "materials": 1,
+   "height": 1.417,
    "half_width": 0.603,
    "chest_half_width": 0.603
   },
@@ -55,8 +55,8 @@
    "vertices": 1094,
    "triangles": 2016,
    "bones": 18,
-   "materials": 5,
-   "height": 2.031,
+   "materials": 1,
+   "height": 1.998,
    "half_width": 0.602,
    "chest_half_width": 0.602
   },
@@ -65,8 +65,8 @@
    "vertices": 980,
    "triangles": 1804,
    "bones": 18,
-   "materials": 5,
-   "height": 2.033,
+   "materials": 1,
+   "height": 2.011,
    "half_width": 0.615,
    "chest_half_width": 0.61
   },
@@ -75,8 +75,8 @@
    "vertices": 1224,
    "triangles": 2248,
    "bones": 18,
-   "materials": 6,
-   "height": 2.029,
+   "materials": 1,
+   "height": 2.019,
    "half_width": 0.589,
    "chest_half_width": 0.589
   },
@@ -85,8 +85,8 @@
    "vertices": 1032,
    "triangles": 1904,
    "bones": 18,
-   "materials": 5,
-   "height": 2.035,
+   "materials": 1,
+   "height": 2.039,
    "half_width": 0.591,
    "chest_half_width": 0.591
   },
@@ -95,8 +95,8 @@
    "vertices": 1022,
    "triangles": 1888,
    "bones": 18,
-   "materials": 6,
-   "height": 2.025,
+   "materials": 1,
+   "height": 2.005,
    "half_width": 0.602,
    "chest_half_width": 0.602
   },
@@ -105,8 +105,8 @@
    "vertices": 1080,
    "triangles": 1992,
    "bones": 18,
-   "materials": 7,
-   "height": 2.048,
+   "materials": 1,
+   "height": 2.075,
    "half_width": 0.597,
    "chest_half_width": 0.597
   },
@@ -115,8 +115,8 @@
    "vertices": 928,
    "triangles": 1712,
    "bones": 18,
-   "materials": 6,
-   "height": 2.029,
+   "materials": 1,
+   "height": 1.998,
    "half_width": 0.602,
    "chest_half_width": 0.602
   }
