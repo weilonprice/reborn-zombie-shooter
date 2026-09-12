@@ -1429,6 +1429,7 @@ namespace ZombieShooter.EditorTools
                  .F("duration", 0.06f);
             }
 
+            AbilityAnimationSetup.InstallOnEnemy(brute);
             PrefabUtility.SaveAsPrefabAsset(brute, BrutePrefabPath);
             Object.DestroyImmediate(brute);
         }
@@ -1519,6 +1520,7 @@ namespace ZombieShooter.EditorTools
                 f.Obj("health", health).Col("flashColor", Color.white).F("duration", 0.06f);
             }
 
+            AbilityAnimationSetup.InstallOnEnemy(boss);
             PrefabUtility.SaveAsPrefabAsset(boss, BossPrefabPath);
             Object.DestroyImmediate(boss);
         }
@@ -1888,6 +1890,7 @@ namespace ZombieShooter.EditorTools
                  .Obj("blastClip", LoadClip("SFX_Impact")).F("blastVolume", 0.7f);
             }
 
+            AbilityAnimationSetup.InstallOnEnemy(go);
             PrefabUtility.SaveAsPrefabAsset(go, BloaterPrefabPath);
             Object.DestroyImmediate(go);
         }
@@ -1922,6 +1925,7 @@ namespace ZombieShooter.EditorTools
             using (var f = new Fields(armor))
                 f.F("frontalMultiplier", 0.25f).F("arcHalfAngle", 70f);
 
+            AbilityAnimationSetup.InstallOnEnemy(go);
             PrefabUtility.SaveAsPrefabAsset(go, ArmoredPrefabPath);
             Object.DestroyImmediate(go);
         }
@@ -1949,6 +1953,7 @@ namespace ZombieShooter.EditorTools
             using (var f = new Fields(sapper))
                 f.F("searchRadius", 26f).F("searchInterval", 0.6f);
 
+            AbilityAnimationSetup.InstallOnEnemy(go);
             PrefabUtility.SaveAsPrefabAsset(go, SapperPrefabPath);
             Object.DestroyImmediate(go);
         }
@@ -2061,6 +2066,7 @@ namespace ZombieShooter.EditorTools
                 // the player and the only way it is fair to shoot at.
                 bodyOffsetY: -0.4f);
 
+            AbilityAnimationSetup.InstallOnEnemy(go);
             PrefabUtility.SaveAsPrefabAsset(go, CrawlerPrefabPath);
             Object.DestroyImmediate(go);
         }
@@ -2135,6 +2141,7 @@ namespace ZombieShooter.EditorTools
                  .Obj("shootClip", LoadClip("SFX_Impact")).F("shootVolume", 0.4f);
             }
 
+            AbilityAnimationSetup.InstallOnEnemy(go);
             PrefabUtility.SaveAsPrefabAsset(go, SpitterPrefabPath);
             Object.DestroyImmediate(go);
         }
@@ -2200,6 +2207,7 @@ namespace ZombieShooter.EditorTools
                  .F("duration", 0.06f);
             }
 
+            AbilityAnimationSetup.InstallOnEnemy(runner);
             PrefabUtility.SaveAsPrefabAsset(runner, RunnerPrefabPath);
             Object.DestroyImmediate(runner);
         }
@@ -2275,6 +2283,7 @@ namespace ZombieShooter.EditorTools
                  .F("duration", 0.06f);
             }
 
+            AbilityAnimationSetup.InstallOnEnemy(ranged);
             PrefabUtility.SaveAsPrefabAsset(ranged, RangedPrefabPath);
             Object.DestroyImmediate(ranged);
         }

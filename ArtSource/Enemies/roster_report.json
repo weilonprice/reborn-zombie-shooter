@@ -1,0 +1,124 @@
+{
+ "archetypes": [
+  {
+   "name": "Armored",
+   "vertices": 958,
+   "triangles": 1764,
+   "bones": 18,
+   "materials": 5,
+   "height": 2.052,
+   "half_width": 0.614,
+   "chest_half_width": 0.614
+  },
+  {
+   "name": "Bloater",
+   "vertices": 1096,
+   "triangles": 2032,
+   "bones": 18,
+   "materials": 6,
+   "height": 2.021,
+   "half_width": 0.606,
+   "chest_half_width": 0.606
+  },
+  {
+   "name": "Boss",
+   "vertices": 1470,
+   "triangles": 2736,
+   "bones": 18,
+   "materials": 5,
+   "height": 2.1,
+   "half_width": 0.64,
+   "chest_half_width": 0.64
+  },
+  {
+   "name": "Brute",
+   "vertices": 1028,
+   "triangles": 1904,
+   "bones": 18,
+   "materials": 5,
+   "height": 2.046,
+   "half_width": 0.64,
+   "chest_half_width": 0.64
+  },
+  {
+   "name": "Crawler",
+   "vertices": 942,
+   "triangles": 1728,
+   "bones": 18,
+   "materials": 6,
+   "height": 1.451,
+   "half_width": 0.603,
+   "chest_half_width": 0.603
+  },
+  {
+   "name": "Leaper",
+   "vertices": 1094,
+   "triangles": 2016,
+   "bones": 18,
+   "materials": 5,
+   "height": 2.031,
+   "half_width": 0.602,
+   "chest_half_width": 0.602
+  },
+  {
+   "name": "RangedZombie",
+   "vertices": 980,
+   "triangles": 1804,
+   "bones": 18,
+   "materials": 5,
+   "height": 2.033,
+   "half_width": 0.615,
+   "chest_half_width": 0.61
+  },
+  {
+   "name": "Revenant",
+   "vertices": 1224,
+   "triangles": 2248,
+   "bones": 18,
+   "materials": 6,
+   "height": 2.029,
+   "half_width": 0.589,
+   "chest_half_width": 0.589
+  },
+  {
+   "name": "Runner",
+   "vertices": 1032,
+   "triangles": 1904,
+   "bones": 18,
+   "materials": 5,
+   "height": 2.035,
+   "half_width": 0.591,
+   "chest_half_width": 0.591
+  },
+  {
+   "name": "Sapper",
+   "vertices": 1022,
+   "triangles": 1888,
+   "bones": 18,
+   "materials": 6,
+   "height": 2.025,
+   "half_width": 0.602,
+   "chest_half_width": 0.602
+  },
+  {
+   "name": "Screamer",
+   "vertices": 1080,
+   "triangles": 1992,
+   "bones": 18,
+   "materials": 7,
+   "height": 2.048,
+   "half_width": 0.597,
+   "chest_half_width": 0.597
+  },
+  {
+   "name": "Spitter",
+   "vertices": 928,
+   "triangles": 1712,
+   "bones": 18,
+   "materials": 6,
+   "height": 2.029,
+   "half_width": 0.602,
+   "chest_half_width": 0.602
+  }
+ ]
+}
