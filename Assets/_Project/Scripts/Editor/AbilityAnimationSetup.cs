@@ -165,7 +165,7 @@ namespace ZombieShooter.EditorTools
 
             // Same mesh, same problem: these archetypes show a full zombie scaled to their
             // own height while walking around inside a capsule narrower than its shoulders.
-            ArenaBuilder.AddLimbHitbox(enemy, height, model.localScale);
+            ArenaBuilder.AddHitZones(enemy, model);
 
             // An authored body brings its own palette. Tinting is only for the archetypes
             // still wearing the shared zombie mesh, which need SOMETHING to tell them apart.

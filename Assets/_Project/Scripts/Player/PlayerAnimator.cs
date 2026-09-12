@@ -21,6 +21,15 @@ namespace ZombieShooter
         [SerializeField] float getShotDuration = 0.77f;
         [SerializeField] float staggerDuration = 1.43f;
 
+        [Header("Stride")]
+        [Tooltip("Metres per second the Walk clip was authored to cover. Measured off the " +
+                 "source: 0.790m of foot travel over a 1.133s cycle, two steps per cycle.")]
+        [SerializeField] float walkClipSpeed = 1.39f;
+        [Tooltip("Metres per second the Run clip was authored to cover: 1.052m of foot " +
+                 "travel over a 0.767s cycle. The survivor actually moves at 7.")]
+        [SerializeField] float runClipSpeed = 2.74f;
+        [SerializeField] Vector2 strideRange = new(0.6f, 3.2f);
+
         [Header("Lower body")]
         [Tooltip("How far the hips may turn away from the aim to follow the direction of " +
                  "travel. Zero restores the old behaviour: legs always point where the gun " +
@@ -57,6 +66,7 @@ namespace ZombieShooter
         const int UpperLayer = 1;
 
         static readonly int ReloadSpeed = Animator.StringToHash("ReloadSpeed");
+        static readonly int LocomotionSpeed = Animator.StringToHash("LocomotionSpeed");
 
         [SerializeField] PlayerController movement;
         Transform pelvis;
@@ -197,16 +207,37 @@ namespace ZombieShooter
             DriveArms();
         }
 
-        /// <summary>Never locked. The legs answer to movement and nothing else.</summary>
+        /// <summary>
+        /// Never locked. The legs answer to movement and nothing else.
+        /// <para>
+        /// The clip is also fitted to the distance actually being covered. Walk and Run are
+        /// authored at a fixed stride - 1.39 and 2.74 m/s, measured off the source rather
+        /// than estimated - and the survivor moves at 7. Played at their authored rate the
+        /// feet plant and the body glides past them, which is the walk-then-float that came
+        /// back from play: the legs were animating the whole time, just far too slowly for
+        /// the ground being covered.
+        /// </para>
+        /// </summary>
         void DriveLegs()
         {
-            float speed = InputReader.Move.sqrMagnitude;
+            float input = InputReader.Move.sqrMagnitude;
 
-            string wanted = speed > 0.55f ? Run
-                          : speed > 0.02f ? Walk
+            string wanted = input > 0.55f ? Run
+                          : input > 0.02f ? Walk
                           : Idle;
 
             Play(wanted, 0.10f, BaseLayer, ref baseState);
+
+            float travelled = movement != null
+                ? new Vector2(movement.Velocity.x, movement.Velocity.z).magnitude
+                : 0f;
+
+            float authored = wanted == Run ? runClipSpeed : walkClipSpeed;
+            float stride = wanted == Idle || authored <= 0.01f
+                ? 1f
+                : Mathf.Clamp(travelled / authored, strideRange.x, strideRange.y);
+
+            animator.SetFloat(LocomotionSpeed, stride);
         }
 
         void DriveArms()

@@ -53,6 +53,8 @@ namespace ZombieShooter
             for (int i = 0; i < count; i++)
             {
                 if (HitBuffer[i].distance >= bestDistance) continue;
+                // Movement capsules are not a target surface - see HitscanDelivery.
+                if (HitBuffer[i].collider is CharacterController) continue;
 
                 var health = HitBuffer[i].collider.GetComponentInParent<Health>();
                 var damageable = HitBuffer[i].collider.GetComponentInParent<IDamageable>();

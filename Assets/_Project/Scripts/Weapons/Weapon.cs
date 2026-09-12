@@ -523,13 +523,15 @@ namespace ZombieShooter
         {
             int count = Physics.RaycastNonAlloc(origin, muzzle.forward, HitBuffer,
                                                 definition.Range, hitMask,
-                                                QueryTriggerInteraction.Ignore);
+                                                QueryTriggerInteraction.Collide);
 
             Health closest = null;
             float bestDistance = float.MaxValue;
 
             for (int i = 0; i < count; i++)
             {
+                if (HitBuffer[i].collider is CharacterController) continue;
+
                 var health = HitBuffer[i].collider.GetComponentInParent<Health>();
 
                 if (health == null || health == ownerHealth || !health.IsAlive) continue;

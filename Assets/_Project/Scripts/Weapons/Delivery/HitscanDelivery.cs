@@ -67,6 +67,13 @@ namespace ZombieShooter
                 for (int i = 0; i < count; i++)
                 {
                     var hit = HitBuffer[i];
+
+                    // A CharacterController is sized for walking, not for being shot: the
+                    // zombie's is 0.42m across where its torso is barely 0.30m. Leaving it in
+                    // the mask is what made shots register beside the body. Bodies are hit
+                    // through their authored zones or not at all.
+                    if (hit.collider is CharacterController) continue;
+
                     var target = hit.collider.GetComponentInParent<IDamageable>();
 
                     if (target == null)

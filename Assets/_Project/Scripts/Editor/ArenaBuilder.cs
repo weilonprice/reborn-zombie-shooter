@@ -946,6 +946,7 @@ namespace ZombieShooter.EditorTools
         }
 
         public const string ReloadSpeedParameter = "ReloadSpeed";
+        public const string LocomotionSpeedParameter = "LocomotionSpeed";
 
         static void EnsureFloatParameter(AnimatorController controller, string name)
         {
@@ -1033,6 +1034,16 @@ namespace ZombieShooter.EditorTools
                     EnsureFloatParameter(controller, ReloadSpeedParameter);
                     state.speedParameterActive = true;
                     state.speedParameter = ReloadSpeedParameter;
+                }
+
+                // Walk and Run are authored at a fixed stride and the survivor moves at 7m/s,
+                // which is 2.6x the run clip's own 2.74m/s. Left alone the feet plant and the
+                // body glides straight past them - measured, not guessed: see PlayerAnimator.
+                if (wanted[i] == "Walk" || wanted[i] == "Run")
+                {
+                    EnsureFloatParameter(controller, LocomotionSpeedParameter);
+                    state.speedParameterActive = true;
+                    state.speedParameter = LocomotionSpeedParameter;
                 }
             }
 
@@ -1234,7 +1245,7 @@ namespace ZombieShooter.EditorTools
                     using (var f = new Fields(ai)) f.F("deathLinger", 0.75f);
 
                     // The authored mesh is far wider than the capsule that walks it around.
-                    AddLimbHitbox(zombie, controller.height, model.transform.localScale);
+                    AddHitZones(zombie, model.transform);
                 }
             }
             else
@@ -1789,33 +1800,77 @@ namespace ZombieShooter.EditorTools
         /// reaches both and the delivery pays out the better of the two.
         /// </para>
         /// </summary>
-        internal static void AddLimbHitbox(GameObject root, float controllerHeight,
-                                           Vector3 modelScale)
+        /// <summary>
+        /// Hit zones on the actual bones, so a shot connects with the body the player can see
+        /// rather than with a shape drawn near it.
+        /// <para>
+        /// The first version was one fat capsule around the whole torso. It fixed the arms
+        /// being unhittable and introduced the opposite complaint from play: a 0.60m radius
+        /// is round, the zombie's torso is barely 0.30m across, and the difference is air
+        /// that registered as a hit. Bone-mounted spheres follow the animation instead, so
+        /// reach forward and the reach is what gets shot.
+        /// </para>
+        /// <para>
+        /// Spheres rather than capsules on purpose. A capsule needs its direction to match
+        /// the bone's length axis, which differs per rig and per exporter, and a wrong guess
+        /// leaves every limb wearing a collider across it instead of along it. A sphere has
+        /// no orientation to get wrong.
+        /// </para>
+        /// <para>
+        /// Only the chest band is covered, because that is the only band a shot can be in:
+        /// the hit ray leaves the player's centre at PlayerRayHeight and travels flat.
+        /// </para>
+        /// </summary>
+        internal static void AddHitZones(GameObject root, Transform model)
         {
-            // InstallOnEnemy runs again over prefabs that already exist, and its own menu
-            // item re-runs it on demand. Authoring a second capsule each time would stack
-            // damage zones on one body.
             if (root.transform.Find(LimbHitboxName) != null) return;
 
-            var zone = new GameObject(LimbHitboxName);
-            zone.transform.SetParent(root.transform, false);
+            var zones = new GameObject(LimbHitboxName);
+            zones.transform.SetParent(root.transform, false);
 
-            var capsule = zone.AddComponent<CapsuleCollider>();
-            capsule.isTrigger = true;
-            capsule.direction = 1;
+            int made = 0;
 
-            // Widest of the two horizontal axes, because the capsule is round and the player
-            // aims across it. The Screamer is the only archetype squeezed on one axis.
-            float lateral = Mathf.Max(modelScale.x, modelScale.z);
-            capsule.radius = ZombieLimbRadius * lateral;
-            capsule.height = 1.3f * modelScale.y;
+            // bone, radius, damage. Torso and head are a clean hit; limbs are graze value.
+            var spec = new (string bone, float radius, float multiplier)[]
+            {
+                ("Spine",       0.26f, 1f),
+                ("Chest",       0.26f, 1f),
+                ("Head",        0.19f, 1f),
+                ("UpperArm.L",  0.14f, LimbDamageScale),
+                ("UpperArm.R",  0.14f, LimbDamageScale),
+                ("Forearm.L",   0.12f, LimbDamageScale),
+                ("Forearm.R",   0.12f, LimbDamageScale),
+            };
 
-            // Chest height in model space, against a pivot that sits at the controller's
-            // centre rather than at the feet.
-            capsule.center = new Vector3(0f, 1.2f * modelScale.y - controllerHeight * 0.5f, 0f);
+            foreach (var (bone, radius, multiplier) in spec)
+            {
+                var joint = model != null ? FindDeep(model, bone) : null;
+                if (joint == null) continue;
 
-            using (var f = new Fields(zone.AddComponent<Hitbox>()))
-                f.F("damageMultiplier", LimbDamageScale);
+                var zone = new GameObject($"Hit_{bone}");
+                zone.transform.SetParent(joint, false);
+                zone.transform.localPosition = Vector3.zero;
+                zone.transform.localRotation = Quaternion.identity;
+
+                var sphere = zone.AddComponent<SphereCollider>();
+                sphere.isTrigger = true;
+                // Authored in unscaled model units. The bone already carries the archetype's
+                // scale, so scaling the radius again here would apply it twice.
+                sphere.radius = radius;
+
+                using (var f = new Fields(zone.AddComponent<Hitbox>()))
+                    f.F("damageMultiplier", multiplier);
+
+                made++;
+            }
+
+            if (made == 0)
+            {
+                Debug.LogError($"ArenaBuilder: '{root.name}' has no rig bones to hang hit zones " +
+                               "on, so nothing can shoot it. Weapon fire ignores movement " +
+                               "capsules by design - check the model was installed first.");
+                Object.DestroyImmediate(zones);
+            }
         }
 
         static (GameObject go, Health health, ZombieAI ai) BuildMeleeArchetype(
