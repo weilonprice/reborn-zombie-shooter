@@ -132,3 +132,7 @@ than impassable, so a short wall is a detour and a long one is a door.
 The debt register is the part to read before a first change. It records what is
 deliberately deferred and why, and several entries exist because the same
 mistake was made more than once.
+
+
+<img width="558" height="475" alt="Screenshot 2026-09-12 at 12 02 45 PM" src="https://github.com/user-attachments/assets/818e06fd-6a1e-4957-bf2c-87abf36dd8c9" />
+
