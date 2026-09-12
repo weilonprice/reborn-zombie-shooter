@@ -1,0 +1,24 @@
+{
+  "building": "Warehouse",
+  "style": "stylized low-poly Dark War survival arena building",
+  "parts": 51,
+  "bounds_meters": {
+    "min": [
+      -8.274999618530273,
+      -5.511173248291016,
+      0.0
+    ],
+    "max": [
+      8.274999618530273,
+      4.848917484283447,
+      9.430281639099121
+    ],
+    "size": [
+      16.549999237060547,
+      10.360090255737305,
+      9.430281639099121
+    ]
+  },
+  "unity_forward_axis": "+Z",
+  "static_colliders": "generated on MeshFilters by ArenaBuilder"
+}

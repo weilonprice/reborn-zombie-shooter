@@ -1,0 +1,24 @@
+{
+  "building": "Storefront",
+  "style": "stylized low-poly Dark War survival arena building",
+  "parts": 33,
+  "bounds_meters": {
+    "min": [
+      -6.269999980926514,
+      -4.799999713897705,
+      0.0
+    ],
+    "max": [
+      6.269999980926514,
+      4.050000190734863,
+      5.210000038146973
+    ],
+    "size": [
+      12.539999961853027,
+      8.850000381469727,
+      5.210000038146973
+    ]
+  },
+  "unity_forward_axis": "+Z",
+  "static_colliders": "generated on MeshFilters by ArenaBuilder"
+}
