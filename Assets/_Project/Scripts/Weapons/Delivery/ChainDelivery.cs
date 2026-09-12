@@ -29,6 +29,8 @@ namespace ZombieShooter
         {
             firstImpact = Vector3.zero;
 
+            PhysicsSync.EnsureThisFrame();
+
             var definition = shot.Definition;
             var direction = shot.SpreadDirection();
             float range = shot.Range;
@@ -54,7 +56,8 @@ namespace ZombieShooter
             {
                 if (HitBuffer[i].distance >= bestDistance) continue;
                 // Movement capsules are not a target surface - see HitscanDelivery.
-                if (HitBuffer[i].collider is CharacterController) continue;
+                if (HitBuffer[i].collider is CharacterController &&
+                    HitZoneSet.Covers(HitBuffer[i].collider)) continue;
 
                 var health = HitBuffer[i].collider.GetComponentInParent<Health>();
                 var damageable = HitBuffer[i].collider.GetComponentInParent<IDamageable>();

@@ -530,7 +530,8 @@ namespace ZombieShooter
 
             for (int i = 0; i < count; i++)
             {
-                if (HitBuffer[i].collider is CharacterController) continue;
+                if (HitBuffer[i].collider is CharacterController &&
+                    HitZoneSet.Covers(HitBuffer[i].collider)) continue;
 
                 var health = HitBuffer[i].collider.GetComponentInParent<Health>();
 

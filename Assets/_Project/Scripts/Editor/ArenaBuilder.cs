@@ -1879,10 +1879,14 @@ namespace ZombieShooter.EditorTools
             if (made == 0)
             {
                 Debug.LogError($"ArenaBuilder: '{root.name}' has no rig bones to hang hit zones " +
-                               "on, so nothing can shoot it. Weapon fire ignores movement " +
-                               "capsules by design - check the model was installed first.");
+                               "on. It stays hittable through its movement capsule, but at " +
+                               "capsule accuracy - check the model was installed first.");
                 Object.DestroyImmediate(zones);
+                return;
             }
+
+            // Only now is it safe for weapon fire to ignore this body's movement capsule.
+            if (root.GetComponent<HitZoneSet>() == null) root.AddComponent<HitZoneSet>();
         }
 
         static (GameObject go, Health health, ZombieAI ai) BuildMeleeArchetype(
