@@ -151,6 +151,72 @@ def tube(name, points, radii, material, bone, other=None, ragged=False, n=TUBE_N
     return o
 
 
+def _bake_palette(mesh, name, out_root):
+    """
+    Collapse every material into one palette texture and one material, exactly as
+    build_zombie.py does for the baseline.
+
+    This is not a nicety. Skinned meshes do not batch and the GPU Resident Drawer does not
+    touch them, so each material is its own draw call on every one of up to sixty enemies.
+    The first version of this roster shipped five to eight materials per archetype - a
+    seven-fold regression against the baseline, hidden because a flat-coloured model and a
+    textured one look similar in a render and nothing compared them as assets.
+
+    It is also why comparing rendered brightness against the zombie was meaningless: the
+    zombie's colour lives in a texture, and these had theirs in Principled base colours.
+    """
+    cells, size = 4, 16
+    colors = []
+    for slot in mesh.data.materials:
+        rgb = (0.1, 0.1, 0.1)
+        if slot and slot.use_nodes:
+            node = slot.node_tree.nodes.get('Principled BSDF')
+            if node: rgb = tuple(node.inputs['Base Color'].default_value[:3])
+        colors.append((*rgb, 1.0))
+
+    width = cells * size
+    pixels = []
+    for y in range(width):
+        for x in range(width):
+            index = (y // size) * cells + x // size
+            pixels.extend(colors[index] if index < len(colors) else (0.1, 0.1, 0.1, 1))
+
+    out = os.path.join(out_root, name)
+    os.makedirs(out, exist_ok=True)
+    tex = bpy.data.images.new(f'{name}_Palette', width=width, height=width)
+    tex.pixels = pixels
+    tex.filepath_raw = os.path.join(out, f'{name}_Palette.png')
+    tex.file_format = 'PNG'; tex.save(); tex.pack()
+
+    uv = mesh.data.uv_layers.new(name='palette')
+    for face in mesh.data.polygons:
+        i = face.material_index
+        point = ((i % cells + .5) / cells, (i // cells + .5) / cells)
+        for loop in face.loop_indices: uv.data[loop].uv = point
+    # Drop the smart-project unwrap. active_render does NOT survive the FBX round trip -
+    # the importer marks the FIRST layer as the render one - so leaving both layers in place
+    # sampled the sixteen-cell palette with a full unwrap and scattered the colours at
+    # random. The baseline zombie has carried exactly this bug since it was authored; see
+    # build_zombie.py, fixed in the same commit. One UV layer, no ambiguity.
+    # Remove by NAME and re-fetch afterwards: removing a UV layer invalidates every other
+    # layer pointer, and setting flags through a stale one exported a mesh with no UVs at all.
+    while len(mesh.data.uv_layers) > 1:
+        stale = next(l for l in mesh.data.uv_layers if l.name != 'palette')
+        mesh.data.uv_layers.remove(stale)
+    uv = mesh.data.uv_layers['palette']
+    mesh.data.uv_layers.active = uv; uv.active_render = True
+
+    material = bpy.data.materials.new(f'{name} - unified palette')
+    material.use_nodes = True
+    node = material.node_tree.nodes.new('ShaderNodeTexImage')
+    node.image = tex; node.interpolation = 'Closest'
+    principled = material.node_tree.nodes.get('Principled BSDF')
+    principled.inputs['Roughness'].default_value = .83
+    material.node_tree.links.new(node.outputs['Color'], principled.inputs['Base Color'])
+    mesh.data.materials.clear(); mesh.data.materials.append(material)
+    for face in mesh.data.polygons: face.material_index = 0
+
+
 def export(name, out_root, character=''):
     """Rig, join, unwrap and write <out_root>/<name>/<name>.fbx. Returns a report."""
     bpy.ops.object.select_all(action='DESELECT')
@@ -176,6 +242,8 @@ def export(name, out_root, character=''):
     bpy.context.view_layer.objects.active = mesh
     bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.uv.smart_project(island_margin=.018); bpy.ops.object.mode_set(mode='OBJECT')
+
+    _bake_palette(mesh, name, out_root)
 
     rig['Character'] = character or f'Reborn / {name}'
     rig['Forward'] = '-Y in Blender; +Z in FBX'

@@ -20,20 +20,71 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.abspath(os.path.join(BASE, '../../Assets/_Project/Art/Characters'))
 
 
+# How dark the roster sits, measured rather than judged.
+#
+# Masked by real alpha, the baseline zombie renders at mean luminance 63.9 with its dark
+# end (p10) at 33.8. The first two attempts at this were set by eye, moved the render
+# barely at all, and were then "confirmed" by a saturation-based pixel mask that reported
+# the near-neutral revenant as 79% too bright when it was already right. Rendered value
+# goes roughly as base^(1/2.2) after the view transform, so closing a 38% gap needs a base
+# factor near 0.49 - nothing like the 0.72 that looked reasonable.
+#
+# Run measure.py after changing this. It prints the roster against the baseline.
+SKIN_SCALE = 1.40
+CLOTH_SCALE = 1.15
+
+# Trim is the dark anchor - belts, collars, boots, plackets. The zombie's soles sit at
+# 0.03 and its trousers at 0.09, and the roster's dark end was further out than its mean
+# precisely because nothing on it went that low.
+TRIM_SCALE = 0.62
+
+
 def palette(skin_rgb, cloth_rgb, trim_rgb):
+    def v(rgb, k): return tuple(min(1.0, c * k) for c in rgb)
     return {
-        'skin':  mat(f'Skin {skin_rgb}', skin_rgb),
-        'cloth': mat(f'Cloth {cloth_rgb}', cloth_rgb),
-        'trim':  mat(f'Trim {trim_rgb}', trim_rgb),
-        'bone':  mat('Bone', (.72, .69, .58)),
-        'metal': mat('Metal', (.30, .31, .33), .55),
-        'mouth': mat('Mouth', (.045, .035, .03)),
-        'wound': mat('Wound', (.25, .085, .065)),
-        'sick':  mat('Sick bile', (.44, .49, .22)),
+        'skin':  mat(f'Skin {skin_rgb}', v(skin_rgb, SKIN_SCALE)),
+        'cloth': mat(f'Cloth {cloth_rgb}', v(cloth_rgb, CLOTH_SCALE)),
+        'trim':  mat(f'Trim {trim_rgb}', v(trim_rgb, TRIM_SCALE)),
+        'bone':  mat('Bone', (.30, .28, .22)),
+        'metal': mat('Metal', (.13, .14, .16), .55),
+        'mouth': mat('Mouth', (.016, .014, .012)),
+        'wound': mat('Wound', (.105, .033, .026)),
+        # The one deliberately bright material on the roster. Bile is the read on the
+        # screamer's throat and the spitter's gland, so it is allowed to carry value the
+        # rest of the palette is not.
+        'sick':  mat('Sick bile', (.30, .34, .14)),
     }
 
 
-def body(p, girth=1.0, limb=1.0, head=1.0, shoulder=1.0, ragged=True, legs=True):
+
+# Head shapes. At 61 degrees the skull is the second thing the camera sees after the
+# shoulders, and for the first twelve it was doing nothing at all - every archetype wore
+# the same cranium and was told apart by colour alone.
+SKULLS = {
+    #            cranium (x, y, z)      jaw (x, y, z)        cranium centre offset
+    'plain':    ((1.00, 1.00, 1.00),   (1.00, 1.00, 1.00),   (0, 0, 0)),
+    'narrow':   ((0.74, 1.14, 1.02),   (0.72, 1.10, 0.86),   (0, -.015, 0)),      # runner
+    'heavy':    ((1.16, 1.02, 0.82),   (1.30, 1.06, 1.02),   (0, .012, -.02)),    # brute, boss
+    'swollen':  ((1.22, 1.16, 1.20),   (0.82, 0.86, 0.90),   (0, .01, .015)),     # bloater
+    'flat':     ((1.10, 0.92, 0.70),   (1.06, 0.96, 0.74),   (0, 0, -.03)),       # armored, sapper
+    'long':     ((0.86, 1.30, 0.88),   (0.94, 1.34, 0.84),   (0, -.03, -.015)),   # leaper, crawler
+    'gaping':   ((0.94, 0.96, 1.10),   (1.16, 1.10, 1.22),   (0, -.01, .01)),     # screamer
+    'skull':    ((0.80, 1.06, 0.94),   (0.78, 1.02, 0.70),   (0, -.01, 0)),       # revenant
+    'lolling':  ((0.90, 1.02, 0.96),   (1.10, 1.18, 1.06),   (0, -.02, -.025)),   # spitter
+    'lopsided': ((1.06, 0.98, 0.92),   (0.90, 1.00, 0.88),   (.03, 0, -.01)),     # ranged
+}
+
+
+def _skull(p, head, shape):
+    (cx, cy, cz), (jx, jy, jz), (ox, oy, oz) = SKULLS[shape]
+    ell('Cranium', (ox, -.235 + oy, 1.90 + oz),
+        (.145*head*cx, .165*head*cy, .175*head*cz), p['skin'], 'Head', 12, 8)
+    ell('Jaw', (ox, -.30 + oy*.5, 1.83 + oz*.5),
+        (.105*head*jx, .10*head*jy, .075*head*jz), p['skin'], 'Head', 10, 6)
+
+
+def body(p, girth=1.0, limb=1.0, head=1.0, shoulder=1.0, ragged=True, legs=True,
+         skull='plain'):
     """The common infected frame. Every archetype starts here and then deviates."""
     g, l = girth, limb
     tube('Hips', [(0, 0, .89), (0, 0, 1.04), (0, -.01, 1.11)],
@@ -51,8 +102,7 @@ def body(p, girth=1.0, limb=1.0, head=1.0, shoulder=1.0, ragged=True, legs=True)
     ell('Sternum', (0, -.250*g, 1.50), (.105, .045, .14), p['skin'], 'Chest')
     tube('Neck', [(0, -.16, 1.53), (0, -.21, 1.68), (0, -.24, 1.77)],
          [.12, .11, .115], p['skin'], 'Neck', n=10)
-    ell('Cranium', (0, -.235, 1.90), (.145*head, .165*head, .175*head), p['skin'], 'Head', 12, 8)
-    ell('Jaw', (0, -.30, 1.83), (.105*head, .10*head, .075*head), p['skin'], 'Head', 10, 6)
+    _skull(p, head, skull)
     for sg in (-1, 1):
         ell('Eye socket', (sg*.065, -.355*head, 1.915), (.030, .022, .034), p['mouth'], 'Head', 8, 6)
         # Legs
@@ -86,7 +136,7 @@ def body(p, girth=1.0, limb=1.0, head=1.0, shoulder=1.0, ragged=True, legs=True)
 
 def Runner(p):
     """Lean and stripped down. Reads as a body with nothing left on it."""
-    body(p, girth=.86, limb=.88, head=.95, shoulder=.88)
+    body(p, girth=.86, limb=.88, head=.95, shoulder=.88, skull='narrow')
     for sg in (-1, 1):
         for i in range(4):   # exposed ribs, the only thing breaking up a thin torso
             ell('Rib', (sg*.10, -.20 + .012*i, 1.42 - i*.055), (.075, .045, .016), p['bone'], 'Chest', 8, 4)
@@ -95,7 +145,7 @@ def Runner(p):
 
 def Brute(p):
     """All mass across the shoulders, head sunk between them. Widest plan view."""
-    body(p, girth=1.35, limb=1.45, head=.85, shoulder=1.75, ragged=False)
+    body(p, girth=1.35, limb=1.45, head=.85, shoulder=1.75, ragged=False, skull='heavy')
     ell('Back slab', (0, .10, 1.46), (.40, .21, .24), p['skin'], 'Chest')
     for sg in (-1, 1):
         ell('Trapezius', (sg*.24, -.02, 1.60), (.19, .17, .13), p['skin'], 'Chest')
@@ -120,7 +170,7 @@ def Boss(p):
 
 def Bloater(p):
     """A sphere with limbs. Silhouette is the whole counterplay: do not stand near it."""
-    body(p, girth=.95, limb=1.05, head=.82, shoulder=.95, ragged=False)
+    body(p, girth=.95, limb=1.05, head=.82, shoulder=.95, ragged=False, skull='swollen')
     ell('Distended abdomen', (0, -.09, 1.16), (.40, .38, .33), p['skin'], 'Spine', 14, 10)
     ell('Gas sac', (0, -.20, 1.24), (.25, .20, .19), p['sick'], 'Spine', 12, 8)
     for i in range(7):       # split seams showing the pressure inside
@@ -131,7 +181,7 @@ def Bloater(p):
 
 def Armored(p):
     """A flat plate where the chest should be. Hard edges against a roster of soft ones."""
-    body(p, girth=1.10, limb=1.14, head=.90, shoulder=1.20, ragged=False)
+    body(p, girth=1.10, limb=1.14, head=.90, shoulder=1.20, ragged=False, skull='flat')
     box('Chest plate', (0, -.245, 1.34), (.52, .085, .46), p['metal'], 'Chest', .03)
     box('Plate ridge', (0, -.295, 1.34), (.10, .05, .46), p['metal'], 'Chest', .02)
     box('Belly plate', (0, -.215, 1.06), (.42, .075, .20), p['metal'], 'Spine', .025)
@@ -143,7 +193,7 @@ def Armored(p):
 
 def Sapper(p):
     """Carries the charge on its back, where the camera can see it. Goes for walls."""
-    body(p, girth=1.0, limb=1.0, head=.86, shoulder=1.05)
+    body(p, girth=1.0, limb=1.0, head=.86, shoulder=1.05, skull='flat')
     box('Satchel', (0, .175, 1.30), (.34, .21, .34), p['trim'], 'Spine', .03)
     for i in range(3):
         ell('Charge', (-.10 + i*.10, .265, 1.30), (.045, .05, .13), p['metal'], 'Spine', 8, 6)
@@ -155,7 +205,7 @@ def Sapper(p):
 
 def Leaper(p):
     """Coiled haunches, long reach. Wide low stance rather than a tall one."""
-    body(p, girth=.94, limb=1.0, head=.88, shoulder=1.0)
+    body(p, girth=.94, limb=1.0, head=.88, shoulder=1.0, skull='long')
     for sg in (-1, 1):
         ell('Haunch', (sg*.185, -.02, .92), (.155, .21, .225), p['skin'], f'Thigh.{"L" if sg > 0 else "R"}')
         ell('Calf', (sg*.175, -.03, .46), (.095, .12, .15), p['skin'], f'Shin.{"L" if sg > 0 else "R"}')
@@ -168,7 +218,7 @@ def Leaper(p):
 
 def Screamer(p):
     """A throat built to be seen. The one archetype you are asked to pick out of a crowd."""
-    body(p, girth=.93, limb=.95, head=1.0, shoulder=.95)
+    body(p, girth=.93, limb=.95, head=1.0, shoulder=.95, skull='gaping')
     ell('Distended throat', (0, -.255, 1.66), (.175, .175, .20), p['sick'], 'Neck', 12, 8)
     ell('Throat membrane', (0, -.315, 1.63), (.115, .10, .13), p['wound'], 'Neck', 10, 6)
     ell('Unhinged jaw', (0, -.315, 1.775), (.125, .135, .115), p['mouth'], 'Head', 10, 8)
@@ -181,7 +231,7 @@ def Screamer(p):
 
 def Revenant(p):
     """Skeletal and half-wrapped. Has to look like something that could get back up."""
-    body(p, girth=.88, limb=.86, head=.92, shoulder=.92)
+    body(p, girth=.88, limb=.86, head=.92, shoulder=.92, skull='skull')
     for sg in (-1, 1):
         for i in range(5):
             ell('Bare rib', (sg*.11, -.175 + .015*i, 1.47 - i*.052), (.10, .055, .018), p['bone'], 'Chest', 8, 4)
@@ -195,7 +245,7 @@ def Revenant(p):
 
 def Crawler(p):
     """Nothing below the knee. Small, low, and arrives in numbers."""
-    body(p, girth=.96, limb=.86, head=.92, shoulder=1.0, ragged=True, legs=False)
+    body(p, girth=.96, limb=.86, head=.92, shoulder=1.0, ragged=True, legs=False, skull='long')
     # legs=False, because it has none. An earlier pass added the stumps on top of a full
     # pair of legs and the crawler stood upright like everything else on the sheet.
     for sg in (-1, 1):
@@ -213,7 +263,7 @@ def Crawler(p):
 
 def Spitter(p):
     """The gland rides high on the back, which is exactly what a 61-degree camera sees."""
-    body(p, girth=.98, limb=1.0, head=.88, shoulder=1.05)
+    body(p, girth=.98, limb=1.0, head=.88, shoulder=1.05, skull='lolling')
     ell('Bile gland', (0, .155, 1.47), (.28, .22, .26), p['sick'], 'Chest', 12, 8)
     ell('Gland membrane', (0, .215, 1.52), (.17, .13, .15), p['wound'], 'Chest', 10, 6)
     for sg in (-1, 1):
@@ -224,7 +274,7 @@ def Spitter(p):
 
 def RangedZombie(p):
     """Asymmetric: one arm built to throw, and a bag of what it throws."""
-    body(p, girth=1.0, limb=1.02, head=.90, shoulder=1.08)
+    body(p, girth=1.0, limb=1.02, head=.90, shoulder=1.08, skull='lopsided')
     ell('Throwing shoulder', (.315, -.06, 1.53), (.175, .165, .165), p['skin'], 'UpperArm.L')
     tube('Overgrown forearm', [(.46, -.17, 1.20), (.50, -.25, 1.05), (.52, -.31, .94)],
          [.115, .105, .092], p['skin'], 'Forearm.L', n=10)
@@ -249,18 +299,18 @@ ARCHETYPES = {
     #   when they cover a whole back.
     #
     # Cloth carries the identity: each one a different corner of the wheel.
-    'Runner':       (Runner,       ((0.144, 0.202, 0.151), (0.223, 0.086, 0.065), (0.115, 0.043, 0.036))),
-    'Brute':        (Brute,        ((0.151, 0.194, 0.144), (0.180, 0.144, 0.058), (0.094, 0.072, 0.029))),
-    'Boss':         (Boss,         ((0.173, 0.187, 0.137), (0.194, 0.043, 0.058), (0.101, 0.022, 0.029))),
-    'Bloater':      (Bloater,      ((0.187, 0.223, 0.122), (0.245, 0.216, 0.065), (0.130, 0.108, 0.036))),
-    'Armored':      (Armored,      ((0.137, 0.187, 0.144), (0.079, 0.115, 0.173), (0.043, 0.058, 0.094))),
-    'Sapper':       (Sapper,       ((0.151, 0.202, 0.151), (0.259, 0.194, 0.086), (0.137, 0.101, 0.043))),
-    'Leaper':       (Leaper,       ((0.130, 0.202, 0.166), (0.043, 0.151, 0.144), (0.022, 0.079, 0.072))),
-    'Screamer':     (Screamer,     ((0.166, 0.223, 0.166), (0.065, 0.065, 0.173), (0.036, 0.036, 0.094))),
-    'Revenant':     (Revenant,     ((0.137, 0.158, 0.137), (0.209, 0.202, 0.180), (0.108, 0.108, 0.094))),
-    'Crawler':      (Crawler,      ((0.144, 0.202, 0.151), (0.144, 0.094, 0.058), (0.072, 0.050, 0.029))),
-    'Spitter':      (Spitter,      ((0.158, 0.209, 0.130), (0.108, 0.166, 0.065), (0.058, 0.086, 0.029))),
-    'RangedZombie': (RangedZombie, ((0.151, 0.194, 0.144), (0.245, 0.122, 0.050), (0.130, 0.065, 0.022))),
+    'Runner':       (Runner,       ((0.20, 0.28, 0.21), (0.31, 0.12, 0.09), (0.16, 0.06, 0.05))),
+    'Brute':        (Brute,        ((0.21, 0.27, 0.20), (0.25, 0.20, 0.08), (0.13, 0.10, 0.04))),
+    'Boss':         (Boss,         ((0.24, 0.26, 0.19), (0.27, 0.06, 0.08), (0.14, 0.03, 0.04))),
+    'Bloater':      (Bloater,      ((0.26, 0.31, 0.17), (0.34, 0.30, 0.09), (0.18, 0.15, 0.05))),
+    'Armored':      (Armored,      ((0.19, 0.26, 0.20), (0.11, 0.16, 0.24), (0.06, 0.08, 0.13))),
+    'Sapper':       (Sapper,       ((0.21, 0.28, 0.21), (0.36, 0.27, 0.12), (0.19, 0.14, 0.06))),
+    'Leaper':       (Leaper,       ((0.18, 0.28, 0.23), (0.06, 0.21, 0.20), (0.03, 0.11, 0.10))),
+    'Screamer':     (Screamer,     ((0.23, 0.31, 0.23), (0.09, 0.09, 0.24), (0.05, 0.05, 0.13))),
+    'Revenant':     (Revenant,     ((0.19, 0.22, 0.19), (0.29, 0.28, 0.25), (0.15, 0.15, 0.13))),
+    'Crawler':      (Crawler,      ((0.20, 0.28, 0.21), (0.20, 0.13, 0.08), (0.10, 0.07, 0.04))),
+    'Spitter':      (Spitter,      ((0.22, 0.29, 0.18), (0.15, 0.23, 0.09), (0.08, 0.12, 0.04))),
+    'RangedZombie': (RangedZombie, ((0.21, 0.27, 0.20), (0.34, 0.17, 0.07), (0.18, 0.09, 0.03))),
 }
 
 

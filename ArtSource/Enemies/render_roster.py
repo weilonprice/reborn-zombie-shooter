@@ -15,22 +15,26 @@ names = sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
 bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
 scene = bpy.context.scene
 scene.render.engine = 'BLENDER_EEVEE'
-scene.render.film_transparent = False
+# Transparent, and no ground plane: the alpha channel then IS the character mask, which
+# is the only way to measure these honestly. A saturation-based mask reported the revenant
+# at +79% brightness when it is near-neutral grey - it had sampled its glowing eyes and
+# almost nothing else.
+scene.render.film_transparent = True
 scene.render.resolution_x = scene.render.resolution_y = 560
+scene.render.image_settings.color_mode = 'RGBA'
 scene.view_settings.view_transform = 'Standard'
 world = bpy.data.worlds.new('W'); scene.world = world
 world.use_nodes = True
 world.node_tree.nodes['Background'].inputs[0].default_value = (.13, .15, .17, 1)
 
-ground = bpy.ops.mesh.primitive_plane_add(size=14, location=(0, 0, 0))
-gm = bpy.data.materials.new('ground'); gm.use_nodes = True
-gm.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (.17, .18, .19, 1)
-bpy.context.object.data.materials.append(gm)
 
-key = bpy.data.lights.new('key', 'SUN'); key.energy = 4.0; key.angle = .3
+# Energies matter for judging, not just for looking. At 4.0/1.4 the render responded to
+# base colour as base^0.18 - so nearly blown out that albedo barely moved the image, and
+# two rounds of "the palette is too pale" were chasing a number the lighting controlled.
+key = bpy.data.lights.new('key', 'SUN'); key.energy = 2.1; key.angle = .3
 ko = bpy.data.objects.new('key', key); scene.collection.objects.link(ko)
 ko.rotation_euler = (math.radians(52), 0, math.radians(35))
-fill = bpy.data.lights.new('fill', 'SUN'); fill.energy = 1.4
+fill = bpy.data.lights.new('fill', 'SUN'); fill.energy = 0.55
 fo = bpy.data.objects.new('fill', fill); scene.collection.objects.link(fo)
 fo.rotation_euler = (math.radians(64), 0, math.radians(-125))
 

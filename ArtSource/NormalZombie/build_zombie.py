@@ -238,6 +238,14 @@ tex.pixels=pixels;tex.filepath_raw=os.path.join(OUT,'NormalZombie_Palette.png');
 for face in mesh.data.polygons:
  i=face.material_index;uv=((i%4+.5)/4,(i//4+.5)/4)
  for li in face.loop_indices:palette.data[li].uv=uv
+# The smart-project unwrap has to go, not just be deselected. active_render does not
+# survive the FBX round trip - the importer marks the FIRST UV layer as the render one - so
+# shipping both layers meant Unity sampled this sixteen-cell palette with a 6,382-point
+# unwrap and scattered every colour on the model. Every render of this character since it
+# was authored has been of that artifact.
+# Remove by NAME and re-fetch: removing a UV layer invalidates the other layer pointers.
+while len(mesh.data.uv_layers)>1: mesh.data.uv_layers.remove(next(_l for _l in mesh.data.uv_layers if _l.name!='PaletteUV'))
+palette=mesh.data.uv_layers['PaletteUV']
 mesh.data.uv_layers.active=palette;palette.active_render=True
 material=bpy.data.materials.new('NormalZombie • unified palette');material.use_nodes=True
 node=material.node_tree.nodes.new('ShaderNodeTexImage');node.image=tex;node.interpolation='Closest'
