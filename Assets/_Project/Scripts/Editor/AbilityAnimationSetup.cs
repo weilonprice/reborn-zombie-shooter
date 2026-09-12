@@ -103,22 +103,40 @@ namespace ZombieShooter.EditorTools
             EditorUtility.SetDirty(controller);
         }
 
+        /// <summary>Where an archetype's own authored body lives, if it has one yet.</summary>
+        public static string ArchetypeModel(string name) =>
+            $"{Art}/Characters/{name}/{name}.fbx";
+
         public static void InstallOnEnemy(GameObject enemy)
         {
+            // An archetype with an authored body wears it; the rest still borrow the normal
+            // zombie's, tinted. Both paths share one skeleton, so the clips do not care which
+            // mesh turned up - see ArtSource/Enemies/enemy_kit.py for why that is load-bearing.
+            string ownPath = ArchetypeModel(enemy.name);
+            var own = AssetDatabase.LoadAssetAtPath<GameObject>(ownPath);
+            bool authored = own != null;
+
             var model = enemy.transform.Find("AbilityModel");
             if (model == null)
             {
-                var source = AssetDatabase.LoadAssetAtPath<GameObject>(ZombieModel);
+                var source = authored ? own : AssetDatabase.LoadAssetAtPath<GameObject>(ZombieModel);
                 if (source == null) throw new InvalidOperationException("Import NormalZombie.fbx first.");
+                if (authored) ConfigureArchetypeImport(ownPath);
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(source, enemy.transform);
                 instance.name = "AbilityModel";
                 model = instance.transform;
                 // These were visual markers on the unrigged prototypes, not gameplay roots.
-                foreach (string childName in new[] { "Body", "Maw", "Haunches" })
+                // Snout and Plate were missing from this list, so the brute, boss, runner,
+                // ranged zombie and armored kept a grey cube floating inside the new body.
+                foreach (string childName in new[] { "Body", "Snout", "Maw", "Haunches", "Plate" })
                 {
                     var child = enemy.transform.Find(childName);
                     if (child != null) UnityEngine.Object.DestroyImmediate(child.gameObject);
                 }
+            }
+            else
+            {
+                authored = PrefabUtility.GetCorrespondingObjectFromSource(model.gameObject) == own && own != null;
             }
             var capsule = enemy.GetComponent<CharacterController>();
             float height = capsule != null ? capsule.height : 1.9f;
@@ -149,10 +167,12 @@ namespace ZombieShooter.EditorTools
             // own height while walking around inside a capsule narrower than its shoulders.
             ArenaBuilder.AddLimbHitbox(enemy, height, model.localScale);
 
-            var material = ArchetypeMaterial(enemy.name);
+            // An authored body brings its own palette. Tinting is only for the archetypes
+            // still wearing the shared zombie mesh, which need SOMETHING to tell them apart.
+            var material = authored ? null : ArchetypeMaterial(enemy.name);
             foreach (var skin in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
-                skin.sharedMaterial = material;
+                if (material != null) skin.sharedMaterial = material;
                 skin.quality = SkinQuality.Bone2;
                 skin.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 skin.skinnedMotionVectors = false;
@@ -160,6 +180,22 @@ namespace ZombieShooter.EditorTools
                 // are off-screen; fixed bounds avoid per-frame recalculation for the horde.
                 skin.localBounds = new Bounds(new Vector3(0, 1, 0), new Vector3(4, 5, 5));
             }
+        }
+
+        /// <summary>
+        /// These carry no clips of their own - they borrow the zombie's - so animation import
+        /// is off. Leaving it on produces an empty clip list and a warning per archetype.
+        /// </summary>
+        static void ConfigureArchetypeImport(string path)
+        {
+            if (AssetImporter.GetAtPath(path) is not ModelImporter importer) return;
+            if (!importer.importAnimation && importer.animationType == ModelImporterAnimationType.Generic)
+                return;
+            importer.importAnimation = false;
+            importer.animationType = ModelImporterAnimationType.Generic;
+            importer.importNormals = ModelImporterNormals.Import;
+            importer.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
+            importer.SaveAndReimport();
         }
 
         static Material ArchetypeMaterial(string name)

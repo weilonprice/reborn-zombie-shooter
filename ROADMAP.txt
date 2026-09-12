@@ -805,13 +805,32 @@ main reason content comes first.
     feel identical - that is the failure mode if the zone wins where it should
     not.
 [ ] Meta progression - needs the save system, debt item 4.
-[ ] Enemy models. Only the normal zombie is authored; eleven archetypes and the
-    boss are still primitives. Twelve archetypes that look like three variations
-    of a capsule READ as repetition even when they are not, so this is a Gate 2
-    item rather than a Phase 3 one.
-    Priority is by how load-bearing the silhouette is: Screamer first, since
-    its entire design is "pick it out of a crowd", then Bloater and Armored,
-    whose counterplay the player cannot infer from damage alone.
+[~] Enemy models - twelve authored 2026-09-12, NOT YET SEEN IN UNITY.
+    One shared skeleton, twelve bodies. The clips are authored once against the
+    normal zombie and every archetype borrows them, which is only possible
+    because the rig never changes: Generic rigs bind by transform PATH, and
+    build_zombie.py keyframes LOCATION on every bone, so a skeleton with
+    different proportions would be snapped back the moment a clip played.
+    Hence identical bones, identical rest pose, and an armature still named
+    NormalZombie_Rig in every file. That name is load-bearing, not cosmetic.
+    Separation is by plan-view mass, because the camera sits 61 degrees down and
+    height barely reads: the brute is a slab of shoulders, the bloater a sphere,
+    the armored a set of hard plates among soft bodies, the spitter carries its
+    gland high on the back where the camera looks, the crawler has no legs.
+    About 1,000 verts each against the baseline zombie's 3,588 - they are all
+    rarer than it is.
+    STILL OPEN, and honest about it:
+      Nobody has seen one of these in Unity. They are built, wired and rendered,
+      and that is all. The wiring in particular is unproven: InstallOnEnemy now
+      prefers an archetype's own body, nine builders call it that never did
+      before, and none of that has run.
+      The palette is lighter and more pastel than the baseline zombie's, which
+      is grim and desaturated. Rendered side by side the roster reads more toy
+      than horror. Values were darkened once and it was not enough.
+      Five of the twelve are separated mainly by colour - runner, sapper,
+      crawler aside, ranged zombie and revenant share a silhouette with the
+      baseline. Heads are identical across the roster, and head shape is a
+      strong read at this angle that is currently doing no work.
 [ ] Performance - profile the horde. Debt item 6, deferred to exactly here.
 
 GATE 2: 10+ hours of play without repetition becoming obvious, and no run
