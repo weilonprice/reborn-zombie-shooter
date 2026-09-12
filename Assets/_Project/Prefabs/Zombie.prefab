@@ -155,12 +155,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e4be98987dea4a0c883cc78b27c0e47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.ZombieAnimator
-  animator: {fileID: 570835572634115815}
-  reactionCooldown: 0.12
+  animator: {fileID: 1814435765410118283}
   attackDuration: 1.27
   getShotDuration: 0.57
   staggerDuration: 1.5
   deathPlaybackSpeed: 2.5
+  heavyHealthFraction: 0.4
+  heavyKnockback: 2.5
+  lightReactionInterval: 1.2
+  heavyReactionInterval: 4
+  stopDuringStagger: 1
 --- !u!1001 &6200617798816614067
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -175,7 +179,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0.95
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
       propertyPath: m_LocalPosition.z
@@ -211,7 +215,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
       propertyPath: m_Name
-      value: NormalZombie
+      value: NormalZombie_Model
+      objectReference: {fileID: 0}
+    - target: {fileID: 7930980750030078695, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
+      propertyPath: m_Quality
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7930980750030078695, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7930980750030078695, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
+      propertyPath: m_SkinnedMotionVectors
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -219,7 +235,7 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 570835572634115815}
+      addedObject: {fileID: 1814435765410118283}
   m_SourcePrefab: {fileID: 100100000, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
 --- !u!4 &5874871446820397400 stripped
 Transform:
@@ -231,7 +247,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
   m_PrefabInstance: {fileID: 6200617798816614067}
   m_PrefabAsset: {fileID: 0}
---- !u!95 &570835572634115815
+--- !u!95 &1814435765410118283
 Animator:
   serializedVersion: 7
   m_ObjectHideFlags: 0
@@ -242,7 +258,7 @@ Animator:
   m_Enabled: 1
   m_Avatar: {fileID: 0}
   m_Controller: {fileID: 9100000, guid: a1538386eb82a400eb0fda4aaa589ccd, type: 2}
-  m_CullingMode: 0
+  m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0

@@ -228,6 +228,36 @@ PROGRESS LOG
             ricochet and mark code was deleted rather than left dormant. Third
             and current: a single Gunslinger path, authored, with two columns
             left as placeholders for paths still to be designed.
+2026-09-11  Weapon models wired into the player's hands. Two holders replace
+            the two primitive cubes; WeaponVisuals toggles which of ten models
+            is active inside them and moves the muzzle and eject port onto that
+            model's own sockets. Every weapon's flash, tracers and shells now
+            come out of ITS OWN barrel rather than one fixed point at 1.35m -
+            the pistol's muzzle moves back to about 1.0m and the sniper's out
+            to about 2.0m.
+            All ten models exist from the start and are toggled rather than
+            spawned on swap: weapon switching happens mid-fight, and an
+            Instantiate there would be a hitch for nothing. Each is positioned
+            by its GripSocket rather than its mesh origin, which is what makes
+            ten different lengths line up in the same hand.
+            ONE FRAGILE SEAM, commented at both ends: the muzzle transform now
+            has two owners writing DIFFERENT AXES. WeaponVisuals writes local Y
+            and Z from the socket, Weapon writes local X for the akimbo offset.
+            It works only because they never overlap - if either starts writing
+            a full position the other silently loses.
+            WeaponModelScale is exposed as one constant, currently 1.0. The
+            authored sniper is 2.62m against a 2m player, so its muzzle sits
+            nearly a body length ahead; that is the first thing to judge in
+            scene rather than on paper.
+2026-09-11  Fixed the normal zombie floating at waist height. The model is
+            authored standing on zero, but a CharacterController is centred on
+            its pivot, so parenting at local zero left every zombie hovering
+            0.95m - half its controller height - off the ground. Caught by
+            measuring the authored mesh rather than by playing, and it had been
+            in the build since the model landed.
+            Worth generalising before the player model goes in: any authored
+            character parented to a controller needs a -height/2 offset, and
+            the player will need -1.0.
 2026-09-11  First authored character, and its cost brought down to fit a horde.
             The normal zombie shipped at 19,708 triangles and 10,112 vertices,
             on the BASELINE archetype - spawn weight 10, never falls off, so
@@ -668,6 +698,21 @@ piece of content that has to look consistent exists.
 [ ] Lighting design - committed palette and mood, strong silhouettes,
     high contrast.
 [ ] VFX language - consistent rules for muzzles, impacts, deaths, pickups.
+[ ] Main character integration. Model, rig and nine clips were authored
+    2026-09-11 and are NOT wired - the player is still a capsule.
+    Three things to settle first, recorded while they were fresh:
+    - WeaponSocket_L and WeaponSocket_R are at the SAME position, both at
+      x +0.52. The left is not mirrored, so akimbo would put both pistols in
+      the right hand. Art fix, not a code one.
+    - Those sockets conflict with the GunHolder/OffHandHolder built for the
+      weapon models, which hang off the player root at fixed offsets. Hand
+      sockets are better - weapons would follow the animation - but it means
+      re-parenting the holders and accepting that aim no longer points the gun
+      directly, the ANIMATION does.
+    - Nine clips including Aim, Fire and Reload need a PlayerAnimator driving
+      them from weapon events, the way ZombieAnimator does for the horde.
+      Fire is 0.37s against an SMG firing every 0.067s, so the same
+      self-interruption problem the zombie had is waiting here.
 [ ] Occlusion fade - the player must stay visible behind cover, ARPG style.
     Deferred here from Phase 2 on 2026-09-09, deliberately: it is a rendering
     and art decision, it belongs beside the post-processing and lighting work

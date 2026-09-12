@@ -222,7 +222,7 @@ def make_character():
 
     # Rig-facing attachment points. Unity receives +Z as forward after FBX axis conversion.
     socket("WeaponSocket_R", (0.52, -0.28, 0.92), rig, "primary weapon hand")
-    socket("WeaponSocket_L", (0.52, -0.28, 0.92), rig, "support weapon hand")
+    socket("WeaponSocket_L", (-0.52, -0.28, 0.92), rig, "support weapon hand")
     socket("BackSocket", (0.0, 0.13, 1.25), rig, "holstered weapon or backpack")
     socket("HeadSocket", (0.0, -0.03, 2.10), rig, "head accessory")
 
@@ -276,9 +276,9 @@ def start_clip(rig, name):
 
 def finish_clip(rig, name, frames, loop):
     action = rig.animation_data.action
-    for fcurve in action.fcurves:
-        for key in fcurve.keyframe_points:
-            key.interpolation = "BEZIER"
+    # Blender 5.2 stores action curves behind the layered Action API. The default
+    # keyframe interpolation is already suitable for these broad stylized poses,
+    # so avoid relying on the pre-5.2 fcurves property here.
     action["clip_name"] = name
     action["loop"] = loop
     action["frames"] = frames
@@ -505,26 +505,30 @@ def main():
     bpy.ops.object.select_all(action="DESELECT")
     mesh.select_set(True)
     rig.select_set(True)
+    for obj in bpy.context.scene.objects:
+        if obj.type == "EMPTY" and obj.parent == rig:
+            obj.select_set(True)
     bpy.context.view_layer.objects.active = rig
+    # Export the NLA strips as the authoritative takes. Leaving an active action on the
+    # armature makes Blender 5.2's FBX exporter treat the strips as a conflicting override,
+    # which can result in a model-only FBX even though glTF still contains the clips.
+    rig.animation_data.action = None
     for track in rig.animation_data.nla_tracks:
         track.mute = False
     bpy.ops.export_scene.fbx(
         filepath=os.path.join(UNITY_OUT, "MainCharacter.fbx"),
         use_selection=True,
-        object_types={"ARMATURE", "MESH"},
+        object_types={"ARMATURE", "MESH", "EMPTY"},
         add_leaf_bones=False,
         axis_forward="-Z",
         axis_up="Y",
         bake_anim=True,
-        bake_anim_use_nla_strips=True,
-        bake_anim_use_all_actions=False,
+        bake_anim_use_nla_strips=False,
+        bake_anim_use_all_actions=True,
         bake_anim_simplify_factor=0.0,
         apply_scale_options="FBX_SCALE_UNITS",
         path_mode="COPY",
     )
-    for track in rig.animation_data.nla_tracks:
-        track.mute = True
-    rig.animation_data.action = bpy.data.actions["Idle"]
     bpy.ops.export_scene.gltf(
         filepath=os.path.join(UNITY_OUT, "MainCharacter.glb"),
         export_format="GLB",
@@ -534,6 +538,9 @@ def main():
         export_nla_strips=True,
         export_materials="EXPORT",
     )
+    for track in rig.animation_data.nla_tracks:
+        track.mute = True
+    rig.animation_data.action = bpy.data.actions["Idle"]
     report = {
         "character": "MainCharacter",
         "style": "chunky stylized survival shooter hero",

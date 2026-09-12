@@ -1,0 +1,19 @@
+/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/MainCharacter/build_main_character.py:28: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  m.use_nodes = True
+00:04.372  render           | Saved: '/Users/weilonprice/Documents/zombie shooter/zombie shooter/ArtSource/MainCharacter/MainCharacter_Preview.png'
+Info: Saved as "MainCharacter.blend"
+
+FBX export starting... '/Users/weilonprice/Documents/zombie shooter/zombie shooter/Assets/_Project/Art/Characters/MainCharacter/MainCharacter.fbx'
+(bpy.data.armatures['MainCharacter_Skeleton'], 'POSE')
+export finished in 0.2230 sec.
+INFO Draco is available, use library at /Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/libbf_intern_draco_bridge.dylib
+INFO MeshOptimizer is available, use library at /Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/libbf_intern_meshopt_bridge.dylib
+20:41:41 | INFO: Starting glTF 2.0 export
+20:41:41 | INFO: Extracting primitive: Cube
+20:41:41 | INFO: Primitives created: 13
+20:41:42 | INFO: Finished glTF 2.0 export in 0.23580312728881836 s
+
+MAIN_CHARACTER_BUILD_COMPLETE 18 9
+Blender 5.2.1 LTS (hash 9e2066aef7ef built 2026-08-25 01:35:57)
+
+Blender quit

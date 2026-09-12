@@ -33,6 +33,8 @@ namespace ZombieShooter.EditorTools
         const string CrawlerPrefabPath = Root + "/Prefabs/Crawler.prefab";
         const string NormalZombieModelPath = Root + "/Art/Characters/NormalZombie/NormalZombie.fbx";
         const string NormalZombieControllerPath = Root + "/Art/Characters/NormalZombie/NormalZombie.controller";
+        const string MainCharacterModelPath = Root + "/Art/Characters/MainCharacter/MainCharacter.fbx";
+        const string MainCharacterControllerPath = Root + "/Art/Characters/MainCharacter/MainCharacter.controller";
         const string SpitterPrefabPath = Root + "/Prefabs/Spitter.prefab";
         const string AcidPoolPrefabPath = Root + "/Prefabs/AcidPool.prefab";
         const string AcidProjectilePrefabPath = Root + "/Prefabs/AcidProjectile.prefab";
@@ -127,12 +129,11 @@ namespace ZombieShooter.EditorTools
             var groundMat = LoadMaterial("M_Ground");
             var wallMat = LoadMaterial("M_Wall");
             var playerMat = LoadMaterial("M_Player");
-            var gunMat = LoadMaterial("M_Gun");
             var tracerMat = LoadMaterial("M_Tracer");
             var sparkMat = LoadMaterial("M_Spark");
             var brassMat = LoadMaterial("M_Brass");
             BuildEnvironment(groundMat, wallMat);
-            var player = BuildPlayer(playerMat, gunMat, tracerMat, sparkMat, brassMat);
+            var player = BuildPlayer(playerMat, tracerMat, sparkMat, brassMat);
             BuildCamera(player.transform);
             var waves = BuildManagers(player, sparkMat);
             BuildHud(player, waves);
@@ -222,9 +223,36 @@ namespace ZombieShooter.EditorTools
         /// </summary>
         const int CarryCapacity = 10;
 
+        /// <summary>
+        /// The player's capsule height. Named because the authored model has to be dropped by
+        /// half of it to stand on the floor, and that happens before the controller exists.
+        /// </summary>
+        const float PlayerControllerHeight = 2f;
+
+        /// <summary>Where a weapon's grip sits, relative to the player's centre.</summary>
+        static readonly Vector3 GunHolderOffset = new(0f, 0f, 0.12f);
+
+        /// <summary>
+        /// Uniform scale applied to every weapon model. One knob, because the authored
+        /// lengths run from a 1.1m pistol to a 2.62m sniper against a 2m player - readable
+        /// from above, but the sniper's muzzle ends up nearly a body length ahead.
+        /// </summary>
+        const float WeaponModelScale = 1f;
+
+        /// <summary>
+        /// Art folder per weapon, in the same order as LoadOrCreateWeapons returns them.
+        /// Explicit rather than derived from the asset name: the sniper's definition is
+        /// WPN_Sniper and its art folder is SniperRifle.
+        /// </summary>
+        static readonly string[] WeaponArtNames =
+        {
+            "Pistol", "Shotgun", "AssaultRifle", "SniperRifle", "Flamethrower",
+            "TeslaCoil", "GrenadeLauncher", "SMG", "NailGun", "SiphonRifle",
+        };
+
         // ---------------------------------------------------------------- player
 
-        static GameObject BuildPlayer(Material bodyMat, Material gunMat, Material tracerMat, Material sparkMat, Material brassMat)
+        static GameObject BuildPlayer(Material bodyMat, Material tracerMat, Material sparkMat, Material brassMat)
         {
             var player = new GameObject("Player") { tag = "Player" };
             player.transform.position = new Vector3(0f, 1.1f, 0f);
@@ -236,30 +264,55 @@ namespace ZombieShooter.EditorTools
             // The CharacterController is the physical collider; drop the primitive's own.
             Object.DestroyImmediate(body.GetComponent<CapsuleCollider>());
 
-            // A visible barrel makes facing readable from a top-down camera.
-            var gun = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            gun.name = "Gun";
-            gun.transform.SetParent(player.transform, false);
-            gun.transform.localPosition = new Vector3(0f, 0f, 0.75f);
-            gun.transform.localScale = new Vector3(0.22f, 0.22f, 1.2f);
-            gun.GetComponent<MeshRenderer>().sharedMaterial = gunMat;
-            Object.DestroyImmediate(gun.GetComponent<BoxCollider>());
+            // Replace the greybox capsule with the authored survivor when the model has
+            // imported. Keep the capsule as a fallback so the builder remains usable while
+            // art assets are being iterated on or are temporarily absent.
+            Animator characterAnimator = null;
+            var modelAsset = AssetDatabase.LoadAssetAtPath<GameObject>(MainCharacterModelPath);
+            if (modelAsset != null)
+            {
+                Object.DestroyImmediate(body);
 
-            // Second pistol, hidden until the Akimbo tier is bought. Built here rather than
+                var model = PrefabUtility.InstantiatePrefab(modelAsset) as GameObject;
+                if (model != null)
+                {
+                    model.name = "MainCharacter_Model";
+                    model.transform.SetParent(player.transform, false);
+
+                    // Feet to the floor, not to the pivot - the same offset the zombie needs.
+                    // The model stands on zero but a CharacterController is centred on its
+                    // pivot, so local zero would leave the survivor hovering a metre up.
+                    model.transform.localPosition = new Vector3(0f, -PlayerControllerHeight * 0.5f, 0f);
+                    model.transform.localRotation = Quaternion.identity;
+                    model.transform.localScale = Vector3.one;
+
+                    characterAnimator = model.GetComponent<Animator>();
+                    if (characterAnimator == null) characterAnimator = model.AddComponent<Animator>();
+                    ConfigureMainCharacterImportSettings();
+                    characterAnimator.runtimeAnimatorController = LoadOrCreateMainCharacterController();
+                    characterAnimator.applyRootMotion = false;
+                    characterAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                }
+            }
+
+            // Holders rather than models. WeaponVisuals swaps which model is active inside
+            // them, and Weapon slides the holders for akimbo - so neither has to know what
+            // the other is doing to one transform.
+            var gun = new GameObject("GunHolder");
+            gun.transform.SetParent(player.transform, false);
+            gun.transform.localPosition = GunHolderOffset;
+
+            // Second gun, hidden until a dual-wield tier is bought. Built here rather than
             // instantiated on purchase so nothing has to load a prefab mid-fight.
-            var offHandGun = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            offHandGun.name = "OffHandGun";
+            var offHandGun = new GameObject("OffHandHolder");
             offHandGun.transform.SetParent(player.transform, false);
-            offHandGun.transform.localPosition = new Vector3(-0.30f, 0f, 0.75f);
-            offHandGun.transform.localScale = new Vector3(0.22f, 0.22f, 1.2f);
-            offHandGun.GetComponent<MeshRenderer>().sharedMaterial = gunMat;
-            Object.DestroyImmediate(offHandGun.GetComponent<BoxCollider>());
+            offHandGun.transform.localPosition = new Vector3(-0.30f, 0f, GunHolderOffset.z);
             offHandGun.SetActive(false);
 
             player.AddComponent<AudioListener>();
 
             var controller = player.AddComponent<CharacterController>();
-            controller.height = 2f;
+            controller.height = PlayerControllerHeight;
             controller.radius = 0.45f;
             controller.center = Vector3.zero;
             controller.slopeLimit = 50f;
@@ -362,6 +415,23 @@ namespace ZombieShooter.EditorTools
                  .Obj("offHandMuzzleFlash", offHandMuzzleFlash);
             }
 
+            if (characterAnimator != null)
+            {
+                var characterDriver = player.AddComponent<PlayerAnimator>();
+                using (var f = new Fields(characterDriver))
+                {
+                    f.Obj("animator", characterAnimator)
+                     .Obj("health", health)
+                     .Obj("weapon", weapon)
+                     .F("fireDuration", 0.37f)
+                     .F("reloadDuration", 1.90f)
+                     .F("getShotDuration", 0.77f)
+                     .F("staggerDuration", 1.43f)
+                     .F("heavyHealthFraction", 0.40f)
+                     .F("heavyKnockback", 2.5f);
+                }
+            }
+
             var loadout = player.AddComponent<WeaponLoadout>();
             using (var f = new Fields(loadout))
             {
@@ -374,6 +444,9 @@ namespace ZombieShooter.EditorTools
                 f.Obj("weapon", weapon).F("swapCooldown", 0.25f)
                  .Arr("catalogue", arsenal).Arr("carried", carried);
             }
+
+            BuildWeaponVisuals(player, loadout, arsenal, gun.transform, offHandGun.transform,
+                               muzzle, offHandMuzzle, ejectPort);
 
             var ultimate = player.AddComponent<UltimateAbility>();
             using (var f = new Fields(ultimate))
@@ -443,6 +516,94 @@ namespace ZombieShooter.EditorTools
             }
 
             return rig;
+        }
+
+        static void ConfigureMainCharacterImportSettings()
+        {
+            var importer = AssetImporter.GetAtPath(MainCharacterModelPath) as ModelImporter;
+            if (importer == null) return;
+
+            var clips = importer.clipAnimations;
+            if (clips == null || clips.Length == 0) clips = importer.defaultClipAnimations;
+            if (clips == null || clips.Length == 0) return;
+
+            var looping = new[] { "Idle", "Walk", "Run", "Aim" };
+            bool changed = false;
+            for (int i = 0; i < clips.Length; i++)
+            {
+                bool shouldLoop = false;
+                for (int j = 0; j < looping.Length; j++)
+                    if (ClipNameMatches(clips[i].name, looping[j])) shouldLoop = true;
+
+                if (clips[i].loopTime == shouldLoop) continue;
+                clips[i].loopTime = shouldLoop;
+                changed = true;
+            }
+
+            if (!changed) return;
+            importer.clipAnimations = clips;
+            importer.SaveAndReimport();
+        }
+
+        static RuntimeAnimatorController LoadOrCreateMainCharacterController()
+        {
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(MainCharacterControllerPath);
+            if (controller == null)
+            {
+                EnsureFolder(Root + "/Art");
+                EnsureFolder(Root + "/Art/Characters");
+                EnsureFolder(Root + "/Art/Characters/MainCharacter");
+                controller = AnimatorController.CreateAnimatorControllerAtPath(MainCharacterControllerPath);
+            }
+
+            var clips = AssetDatabase.LoadAllAssetsAtPath(MainCharacterModelPath);
+            var machine = controller.layers[0].stateMachine;
+            var names = new[] { "Idle", "Walk", "Run", "Aim", "Fire", "Reload", "GetShot", "Stagger", "Death" };
+
+            for (int i = 0; i < names.Length; i++)
+            {
+                AnimationClip clip = null;
+                for (int c = 0; c < clips.Length; c++)
+                {
+                    if (clips[c] is AnimationClip candidate && ClipNameMatches(candidate.name, names[i]))
+                    {
+                        clip = candidate;
+                        break;
+                    }
+                }
+                if (clip == null) continue;
+
+                AnimatorState state = null;
+                for (int s = 0; s < machine.states.Length; s++)
+                {
+                    if (machine.states[s].state.name == names[i])
+                    {
+                        state = machine.states[s].state;
+                        break;
+                    }
+                }
+
+                if (state == null) state = machine.AddState(names[i]);
+                state.motion = clip;
+                if (names[i] == "Idle") machine.defaultState = state;
+            }
+
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+            return controller;
+        }
+
+        // Blender's FBX exporter preserves the action and rig names in Unity's
+        // imported clip names (for example, "MainCharacter_Rig|MainCharacter_Rig|Idle").
+        // Match the authored state name at the end so the controller remains stable
+        // if the rig is renamed or the exporter adds another prefix.
+        static bool ClipNameMatches(string importedName, string authoredName)
+        {
+            if (string.IsNullOrEmpty(importedName) || string.IsNullOrEmpty(authoredName)) return false;
+            if (importedName == authoredName) return true;
+            return importedName.EndsWith("|" + authoredName, System.StringComparison.Ordinal)
+                || importedName.EndsWith("/" + authoredName, System.StringComparison.Ordinal)
+                || importedName.EndsWith("_" + authoredName, System.StringComparison.Ordinal);
         }
 
         // ---------------------------------------------------------------- zombie
@@ -525,7 +686,12 @@ namespace ZombieShooter.EditorTools
                 {
                     model.name = "NormalZombie_Model";
                     model.transform.SetParent(zombie.transform, false);
-                    model.transform.localPosition = Vector3.zero;
+
+                    // Feet to the floor, not to the pivot. The model is authored standing on
+                    // zero, but a CharacterController is centred on its pivot, so parenting
+                    // at local zero leaves the zombie hovering at waist height - half its
+                    // controller height off the ground.
+                    model.transform.localPosition = new Vector3(0f, -controller.height * 0.5f, 0f);
                     model.transform.localRotation = Quaternion.identity;
                     model.transform.localScale = Vector3.one;
 
@@ -1840,6 +2006,110 @@ namespace ZombieShooter.EditorTools
             }
 
             BuildArmoryShop(canvasGo.transform, font, uiSprite, player.GetComponent<WeaponLoadout>());
+        }
+
+        /// <summary>
+        /// Instantiates every weapon model into both holders and wires WeaponVisuals.
+        /// <para>
+        /// All ten exist from the start and are simply toggled. Weapon swapping happens
+        /// mid-fight, so instantiating on the swap would be a hitch for no benefit.
+        /// </para>
+        /// </summary>
+        static void BuildWeaponVisuals(GameObject player, WeaponLoadout loadout, Object[] arsenal,
+                                       Transform mainHolder, Transform offHandHolder,
+                                       Transform muzzle, Transform offHandMuzzle, Transform ejectPort)
+        {
+            int count = Mathf.Min(arsenal.Length, WeaponArtNames.Length);
+
+            var definitions = new Object[count];
+            var mainModels = new Object[count];
+            var offHandModels = new Object[count];
+            var muzzleSockets = new Object[count];
+            var ejectSockets = new Object[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                definitions[i] = arsenal[i];
+
+                var main = InstantiateWeaponModel(WeaponArtNames[i], mainHolder);
+                var off = InstantiateWeaponModel(WeaponArtNames[i], offHandHolder);
+
+                mainModels[i] = main;
+                offHandModels[i] = off;
+
+                if (main != null)
+                {
+                    muzzleSockets[i] = FindDeep(main.transform, "MuzzleSocket");
+                    ejectSockets[i] = FindDeep(main.transform, "EjectPortSocket");
+                }
+
+                // Everything starts hidden; WeaponVisuals turns on whatever is carried.
+                if (main != null) main.SetActive(false);
+                if (off != null) off.SetActive(false);
+            }
+
+            var visuals = player.AddComponent<WeaponVisuals>();
+            using (var f = new Fields(visuals))
+            {
+                f.Obj("loadout", loadout)
+                 .Arr("definitions", definitions)
+                 .Arr("mainModels", mainModels)
+                 .Arr("offHandModels", offHandModels)
+                 .Arr("muzzleSockets", muzzleSockets)
+                 .Arr("ejectSockets", ejectSockets)
+                 .Obj("muzzle", muzzle)
+                 .Obj("offHandMuzzle", offHandMuzzle)
+                 .Obj("ejectPort", ejectPort);
+            }
+        }
+
+        static GameObject InstantiateWeaponModel(string artName, Transform holder)
+        {
+            string path = $"{Root}/Art/Weapons/{artName}/{artName}.fbx";
+
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (asset == null)
+            {
+                Debug.LogWarning($"ArenaBuilder: no weapon model at {path}; that weapon will " +
+                                 "be invisible in the player's hands.");
+                return null;
+            }
+
+            var model = PrefabUtility.InstantiatePrefab(asset, holder) as GameObject;
+            if (model == null) return null;
+
+            model.name = artName;
+            model.transform.localRotation = Quaternion.identity;
+            model.transform.localScale = Vector3.one * WeaponModelScale;
+
+            // Sit the model so its grip lands on the holder rather than its mesh origin,
+            // which is what makes ten different weapons line up in the same hand.
+            var grip = FindDeep(model.transform, "GripSocket");
+            model.transform.localPosition = grip != null
+                ? -grip.localPosition * WeaponModelScale
+                : Vector3.zero;
+
+            foreach (var renderer in model.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                // A weapon held at the player's centre would otherwise cast a shadow across
+                // the player's own body from a 61-degree camera.
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+
+            return model;
+        }
+
+        static Transform FindDeep(Transform root, string name)
+        {
+            if (root.name == name) return root;
+
+            for (int i = 0; i < root.childCount; i++)
+            {
+                var found = FindDeep(root.GetChild(i), name);
+                if (found != null) return found;
+            }
+
+            return null;
         }
 
         static GameObject CreatePanel(Transform parent, string name, Sprite sprite, Color color,
