@@ -16,9 +16,7 @@
     "Idle",
     "Inspect",
     "Melee",
-    "Pump",
     "Reload",
-    "SlideCycle",
     "Unequip"
   ],
   "bounds_meters": {

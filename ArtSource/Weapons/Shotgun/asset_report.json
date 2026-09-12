@@ -17,7 +17,6 @@
     "Melee",
     "Pump",
     "Reload",
-    "SlideCycle",
     "Unequip"
   ],
   "bounds_meters": {

@@ -11,17 +11,12 @@
   "animations": [
     "BoltCycle",
     "Charge",
-    "Discharge",
-    "DrumCycle",
     "Equip",
     "Fire",
     "Idle",
-    "Ignite",
     "Inspect",
     "Melee",
-    "Pump",
     "Reload",
-    "SlideCycle",
     "Unequip"
   ],
   "bounds_meters": {

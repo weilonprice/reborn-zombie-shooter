@@ -251,6 +251,13 @@ namespace ZombieShooter.EditorTools
             "TeslaCoil", "GrenadeLauncher", "SMG", "NailGun", "SiphonRifle",
         };
 
+        static readonly string[] WeaponAnimationNames =
+        {
+            "Idle", "Equip", "Unequip", "Fire", "Reload", "Charge", "Inspect", "Melee",
+            "Pump", "BoltCycle", "SlideCycle", "DrumCycle", "Ignite", "Discharge", "Drain",
+            "DriverCycle",
+        };
+
         // ---------------------------------------------------------------- player
 
         static GameObject BuildPlayer(Material bodyMat, Material tracerMat, Material sparkMat, Material brassMat)
@@ -448,6 +455,17 @@ namespace ZombieShooter.EditorTools
 
             BuildWeaponVisuals(player, loadout, arsenal, gun.transform, offHandGun.transform,
                                muzzle, offHandMuzzle, ejectPort);
+
+            var weaponAnimator = player.AddComponent<WeaponAnimator>();
+            using (var f = new Fields(weaponAnimator))
+            {
+                f.Obj("weapon", weapon)
+                 .Obj("loadout", loadout)
+                 .Obj("visuals", player.GetComponent<WeaponVisuals>())
+                 .F("fireDuration", 0.20f)
+                 .F("reloadDuration", 1.90f)
+                 .F("equipDuration", 0.55f);
+            }
 
             var ultimate = player.AddComponent<UltimateAbility>();
             using (var f = new Fields(ultimate))
@@ -743,10 +761,21 @@ namespace ZombieShooter.EditorTools
         static bool ClipNameMatches(string importedName, string authoredName)
         {
             if (string.IsNullOrEmpty(importedName) || string.IsNullOrEmpty(authoredName)) return false;
-            if (importedName == authoredName) return true;
-            return importedName.EndsWith("|" + authoredName, System.StringComparison.Ordinal)
-                || importedName.EndsWith("/" + authoredName, System.StringComparison.Ordinal)
-                || importedName.EndsWith("_" + authoredName, System.StringComparison.Ordinal);
+            string normalized = importedName;
+            // Unity appends .001, .002, ... when an FBX take collides with an existing
+            // imported take. Treat that suffix as an importer detail rather than a clip name.
+            if (normalized.Length > 4 && normalized[normalized.Length - 4] == '.')
+            {
+                bool numeric = true;
+                for (int i = normalized.Length - 3; i < normalized.Length; i++)
+                    numeric &= normalized[i] >= '0' && normalized[i] <= '9';
+                if (numeric) normalized = normalized.Substring(0, normalized.Length - 4);
+            }
+
+            if (normalized == authoredName) return true;
+            return normalized.EndsWith("|" + authoredName, System.StringComparison.Ordinal)
+                || normalized.EndsWith("/" + authoredName, System.StringComparison.Ordinal)
+                || normalized.EndsWith("_" + authoredName, System.StringComparison.Ordinal);
         }
 
         // ---------------------------------------------------------------- zombie
@@ -914,11 +943,31 @@ namespace ZombieShooter.EditorTools
             var importer = AssetImporter.GetAtPath(NormalZombieModelPath) as ModelImporter;
             if (importer == null) return;
 
-            var clips = importer.clipAnimations;
-            if (clips == null || clips.Length == 0) clips = importer.defaultClipAnimations;
+            // Start from the takes Blender currently exports. Keeping a prior custom
+            // clipAnimations array lets removed takes survive in the .meta file, which can
+            // make a fresh checkout import a different controller than the editor cache.
+            var clips = importer.defaultClipAnimations;
             if (clips == null || clips.Length == 0) return;
 
             bool changed = false;
+            var existing = importer.clipAnimations;
+            if (existing == null || existing.Length != clips.Length)
+            {
+                changed = true;
+            }
+            else
+            {
+                for (int i = 0; i < clips.Length; i++)
+                {
+                    if (!string.Equals(existing[i].name, clips[i].name) ||
+                        !string.Equals(existing[i].takeName, clips[i].takeName))
+                    {
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+
             for (int i = 0; i < clips.Length; i++)
             {
                 bool shouldLoop = clips[i].name == "Chase";
@@ -2169,6 +2218,7 @@ namespace ZombieShooter.EditorTools
             var offHandModels = new Object[count];
             var muzzleSockets = new Object[count];
             var ejectSockets = new Object[count];
+            var animators = new Object[count];
 
             for (int i = 0; i < count; i++)
             {
@@ -2184,6 +2234,7 @@ namespace ZombieShooter.EditorTools
                 {
                     muzzleSockets[i] = FindDeep(main.transform, "MuzzleSocket");
                     ejectSockets[i] = FindDeep(main.transform, "EjectPortSocket");
+                    animators[i] = AttachWeaponAnimator(main, WeaponArtNames[i]);
                 }
 
                 // Everything starts hidden; WeaponVisuals turns on whatever is carried.
@@ -2200,16 +2251,105 @@ namespace ZombieShooter.EditorTools
                  .Arr("offHandModels", offHandModels)
                  .Arr("muzzleSockets", muzzleSockets)
                  .Arr("ejectSockets", ejectSockets)
+                 .Arr("animators", animators)
                  .Obj("muzzle", muzzle)
                  .Obj("offHandMuzzle", offHandMuzzle)
                  .Obj("ejectPort", ejectPort);
             }
         }
 
+        /// <summary>
+        /// Clips every weapon has. The per-weapon action clip - a bolt, a pump, a slide - is
+        /// found by name at runtime instead, so a weapon that gains or loses one needs no
+        /// change here.
+        /// </summary>
+        static readonly string[] SharedWeaponClips = { "Idle", "Fire", "Reload", "Equip" };
+
+        static readonly string[] WeaponCycleClips =
+        {
+            "BoltCycle", "SlideCycle", "Pump", "DrumCycle", "DriverCycle",
+            "Discharge", "Drain", "Ignite",
+        };
+
+        static Animator AttachWeaponAnimator(GameObject model, string artName)
+        {
+            var controller = LoadOrCreateWeaponController(artName);
+            if (controller == null) return null;
+
+            var animator = model.GetComponent<Animator>();
+            if (animator == null) animator = model.AddComponent<Animator>();
+
+            animator.runtimeAnimatorController = controller;
+            animator.applyRootMotion = false;
+
+            // The weapon is always in frame and always right next to the camera's subject,
+            // so there is nothing to cull against.
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+
+            return animator;
+        }
+
+        /// <summary>
+        /// One controller per weapon, holding whichever of its clips the game can actually
+        /// drive. Fire and Reload carry speed parameters so the clip can be fitted to the
+        /// weapon's real rate of fire and reload time, both of which upgrades change.
+        /// </summary>
+        static AnimatorController LoadOrCreateWeaponController(string artName)
+        {
+            string modelPath = $"{Root}/Art/Weapons/{artName}/{artName}.fbx";
+            string path = $"{Root}/Art/Weapons/{artName}/{artName}.controller";
+
+            var clips = AssetDatabase.LoadAllAssetsAtPath(modelPath);
+            if (clips == null || clips.Length == 0) return null;
+
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+            if (controller == null)
+                controller = AnimatorController.CreateAnimatorControllerAtPath(path);
+
+            var machine = controller.layers[0].stateMachine;
+
+            var wanted = new List<string>(SharedWeaponClips);
+            foreach (var cycle in WeaponCycleClips)
+                foreach (var asset in clips)
+                    if (asset is AnimationClip c && c.name == cycle) wanted.Add(cycle);
+
+            foreach (var name in wanted)
+            {
+                AnimationClip clip = null;
+                foreach (var asset in clips)
+                    if (asset is AnimationClip candidate && candidate.name == name) { clip = candidate; break; }
+
+                if (clip == null) continue;
+
+                AnimatorState state = null;
+                foreach (var child in machine.states)
+                    if (child.state.name == name) { state = child.state; break; }
+
+                if (state == null) state = machine.AddState(name);
+                state.motion = clip;
+                if (name == "Idle") machine.defaultState = state;
+
+                if (name == "Fire" || name == "Reload")
+                {
+                    string parameter = name == "Fire" ? "FireSpeed" : ReloadSpeedParameter;
+                    EnsureFloatParameter(controller, parameter);
+                    state.speedParameterActive = true;
+                    state.speedParameter = parameter;
+                }
+            }
+
+            ConfigureWeaponImportSettings(modelPath);
+
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+            return controller;
+        }
+
         static GameObject InstantiateWeaponModel(string artName, Transform holder)
         {
             string path = $"{Root}/Art/Weapons/{artName}/{artName}.fbx";
 
+            ConfigureWeaponImportSettings(path);
             var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (asset == null)
             {
@@ -2224,6 +2364,12 @@ namespace ZombieShooter.EditorTools
             model.name = artName;
             model.transform.localRotation = Quaternion.identity;
             model.transform.localScale = Vector3.one * WeaponModelScale;
+
+            var animator = model.GetComponent<Animator>();
+            if (animator == null) animator = model.AddComponent<Animator>();
+            animator.runtimeAnimatorController = LoadOrCreateWeaponController(artName, path);
+            animator.applyRootMotion = false;
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 
             // Sit the model so its grip lands on the holder rather than its mesh origin,
             // which is what makes ten different weapons line up in the same hand.
@@ -2240,6 +2386,104 @@ namespace ZombieShooter.EditorTools
             }
 
             return model;
+        }
+
+        static void ConfigureWeaponImportSettings(string path)
+        {
+            var importer = AssetImporter.GetAtPath(path) as ModelImporter;
+            if (importer == null) return;
+
+            // Start from the takes Blender currently exports. Keeping a prior custom
+            // clipAnimations array lets removed takes survive in the .meta file, which can
+            // make a fresh checkout import a different controller than the editor cache.
+            var clips = importer.defaultClipAnimations;
+            if (clips == null || clips.Length == 0) return;
+
+            bool changed = false;
+            var existing = importer.clipAnimations;
+            if (existing == null || existing.Length != clips.Length)
+            {
+                changed = true;
+            }
+            else
+            {
+                for (int i = 0; i < clips.Length; i++)
+                {
+                    if (!string.Equals(existing[i].name, clips[i].name) ||
+                        !string.Equals(existing[i].takeName, clips[i].takeName))
+                    {
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+
+            for (int i = 0; i < clips.Length; i++)
+            {
+                bool loop = ClipNameMatches(clips[i].name, "Idle") ||
+                            ClipNameMatches(clips[i].name, "Charge");
+                if (clips[i].loopTime == loop) continue;
+                clips[i].loopTime = loop;
+                changed = true;
+            }
+
+            if (!changed) return;
+            importer.clipAnimations = clips;
+            importer.SaveAndReimport();
+        }
+
+        static RuntimeAnimatorController LoadOrCreateWeaponController(string artName, string modelPath)
+        {
+            string controllerPath = $"{Root}/Art/Weapons/{artName}/{artName}.controller";
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
+            if (controller == null)
+            {
+                EnsureFolder($"{Root}/Art/Weapons/{artName}");
+                controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+            }
+
+            var clips = AssetDatabase.LoadAllAssetsAtPath(modelPath);
+            var machine = controller.layers[0].stateMachine;
+
+            // Controllers are regenerated after every art export. Remove prior states so a
+            // renamed or removed take cannot leave a stale motion (or a clip from an older
+            // FBX import) behind in the weapon's graph.
+            var oldStates = machine.states;
+            for (int i = 0; i < oldStates.Length; i++)
+                machine.RemoveState(oldStates[i].state);
+
+            for (int i = 0; i < WeaponAnimationNames.Length; i++)
+            {
+                string name = WeaponAnimationNames[i];
+                AnimationClip clip = null;
+                for (int c = 0; c < clips.Length; c++)
+                {
+                    if (clips[c] is AnimationClip candidate && ClipNameMatches(candidate.name, name))
+                    {
+                        clip = candidate;
+                        break;
+                    }
+                }
+                if (clip == null) continue;
+
+                AnimatorState state = null;
+                for (int s = 0; s < machine.states.Length; s++)
+                {
+                    if (machine.states[s].state.name == name)
+                    {
+                        state = machine.states[s].state;
+                        break;
+                    }
+                }
+
+                if (state == null) state = machine.AddState(name);
+                state.motion = clip;
+                if (name == "Idle") machine.defaultState = state;
+            }
+
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+            return controller;
         }
 
         static Transform FindDeep(Transform root, string name)

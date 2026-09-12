@@ -97,6 +97,9 @@ namespace ZombieShooter
         /// </summary>
         public float ReloadSeconds => stats.ReloadTime;
 
+        /// <summary>Seconds between shots at the current rate, upgrades and fan included.</summary>
+        public float SecondsBetweenShots => 60f / Mathf.Max(1f, CurrentFireRate());
+
         /// <summary>(ammo, magazineSize)</summary>
         public event Action<int, int> AmmoChanged;
 
@@ -659,6 +662,11 @@ namespace ZombieShooter
             Ammo += loaded;
             AmmoChanged?.Invoke(Ammo, MagazineSize);
             reloadRoutine = null;
+
+            // Raised on completion as well as on cancellation. Without this a listener is
+            // told a reload began and never told it ended, which leaves anything animating
+            // it stuck in the clip until the next swap.
+            ReloadFinished?.Invoke();
 
             // Quick Draw. Armed only on a reload that actually loaded something, so dry
             // firing an empty reserve cannot hand out a free crit.

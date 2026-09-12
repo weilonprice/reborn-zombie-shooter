@@ -12,12 +12,24 @@ BEVEL_SEGMENTS = 2 if DETAIL == "hero" else 1
 
 
 def clear_scene():
+    # Strip animation data before deleting objects. NLA strips keep action datablocks alive
+    # through the previous export; clearing the object animation data first makes the action
+    # cleanup below deterministic between weapon builds.
+    for obj in list(bpy.data.objects):
+        if obj.animation_data is not None:
+            obj.animation_data_clear()
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete(use_global=False)
-    for datablocks in (bpy.data.materials, bpy.data.curves, bpy.data.meshes, bpy.data.cameras, bpy.data.lights, bpy.data.actions):
+    for datablocks in (bpy.data.materials, bpy.data.curves, bpy.data.meshes, bpy.data.cameras, bpy.data.lights):
         for datablock in list(datablocks):
             if datablock.users == 0:
                 datablocks.remove(datablock)
+    # Actions are marked with fake users while they are being exported. Clear those fake
+    # users between weapons so bake_anim_use_all_actions cannot leak one weapon's takes into
+    # the next FBX.
+    for action in list(bpy.data.actions):
+        action.use_fake_user = False
+        bpy.data.actions.remove(action)
 
 
 def material(name, color, metallic=0.0, roughness=0.65):
@@ -325,6 +337,8 @@ def export_weapon(root, name, target):
     scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = "PNG"
     scene.render.film_transparent = False
+    if scene.world is None:
+        scene.world = bpy.data.worlds.new("Weapon Preview World")
     scene.world.color = (0.012, 0.016, 0.025)
     scene.render.filepath = os.path.join(source_dir, f"{name}_Preview.png")
     bpy.ops.render.render(write_still=True)

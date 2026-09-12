@@ -228,6 +228,40 @@ PROGRESS LOG
             ricochet and mark code was deleted rather than left dormant. Third
             and current: a single Gunslinger path, authored, with two columns
             left as placeholders for paths still to be designed.
+2026-09-11  Weapon animations wired. Every weapon carries nine to sixteen
+            authored clips; four of them are now driven from the weapon's own
+            events, and the rest are honestly left inert.
+              Fired      -> Fire, restarted from frame 0
+              ReloadStarted / ReloadFinished -> Reload, then Idle
+              weapon swap -> Equip, then settle to Idle
+            WeaponAnimator lives on the PLAYER, not on each model, because what
+            changes on a swap is which animator to talk to rather than what to
+            say to it. WeaponVisuals owns the swap and hands over the new one.
+            Fire is RESTARTED rather than cross-faded - each shot is its own
+            recoil, and blending one into the next is exactly what makes a fast
+            weapon look like it is idling. Both Fire and Reload are speed-fitted
+            to the weapon's real numbers, because upgrades move both: a gun
+            firing every 0.067s would otherwise only ever show the first frames
+            of its clip, and a 1.9s reload clip would outlast a 0.45s reload.
+            Clip lengths are measured off the controller at swap time rather
+            than authored as constants, so a re-exported weapon with different
+            timings needs no code change. The serialized durations remain as
+            fallbacks only.
+            Bolt, pump and slide clips play only when the interval actually
+            fits the recoil AND the cycle. On an SMG the cycle would be cut off
+            every shot and just add noise. The cycle clip is found by name at
+            runtime, so a weapon gaining or losing one needs no change.
+            NOT DRIVEN, because nothing in the game maps to them: Charge,
+            Inspect, Melee and Unequip. Unequip in particular would have to
+            play BEFORE a swap completes, which means holding the swap for its
+            duration - a gameplay change rather than an animation one.
+            Two bugs found doing it. ReloadFinished was raised only when a
+            reload was CANCELLED, never when one completed, so anything
+            listening would start a reload animation and never be told to stop.
+            And ConfigureWeaponImportSettings had been written twice; the
+            surviving version rebuilds from defaultClipAnimations so removed
+            takes cannot survive in the .meta and desync a fresh checkout from
+            the editor cache.
 2026-09-11  Main character integrated, and split onto two animator layers.
             Model, controller and PlayerAnimator replace the greybox capsule.
             Nine clips driven from existing systems - movement from
@@ -738,6 +772,10 @@ piece of content that has to look consistent exists.
 [x] Main character integration - DONE 2026-09-11. Model, controller,
     PlayerAnimator, and a masked upper-body layer so the legs can run while the
     arms shoot. The socket mirroring bug is fixed at source.
+[ ] Weapon clips with no gameplay behind them. Charge, Inspect, Melee and
+    Unequip are authored on all ten weapons and driven by nothing. Either give
+    them a mechanic - a melee shove has obvious value when something is in your
+    face - or accept they are unused and stop exporting them.
 [ ] Decide where the weapon hangs. The holders still sit on the player root at
     fixed offsets, so the gun does not follow the hand through Aim, Fire or
     Reload. WeaponSocket_R exists and would look far better.
