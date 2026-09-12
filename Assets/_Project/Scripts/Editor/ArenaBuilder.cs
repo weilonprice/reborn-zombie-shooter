@@ -382,14 +382,92 @@ namespace ZombieShooter.EditorTools
             wall.GetComponent<MeshRenderer>().sharedMaterial = mat;
         }
 
-        static readonly Dictionary<string, Vector3> BuildingSourceDimensions =
-            new Dictionary<string, Vector3>
+        /// <summary>
+        /// Size of each building's walls, measured off the asset rather than written down.
+        /// <para>
+        /// This used to be a hand-maintained table, and it had drifted: the shack was listed
+        /// 7.13m tall against an actual 6.25m and the warehouse 9.43m against 8.17m, because
+        /// both were regenerated when the peaked roof was fixed and the numbers were not.
+        /// Anything derived from those figures - the scale a footprint is fitted to, and the
+        /// collider - was wrong by however far the table had drifted.
+        /// </para>
+        /// </summary>
+        static readonly Dictionary<string, Bounds> BuildingWallBounds = new();
+
+        /// <summary>
+        /// Only the part of a building that is wall. Above this fraction of its height is
+        /// roof, eaves and awning, which overhang the walls and must not block a player
+        /// walking past underneath.
+        /// </summary>
+        const float BuildingWallFraction = 0.8f;
+
+        /// <summary>
+        /// Local-space bounds of a building's walls, cached per art name. Measured from the
+        /// vertices below <see cref="BuildingWallFraction"/> of the model's height, so the
+        /// box is the thing that can be walked into rather than the thing that casts a
+        /// shadow - and so it is centred where the mesh actually is. The old box assumed a
+        /// centre of zero on both horizontal axes; the apartment block's is 0.55m off, which
+        /// put wall outside the collider on one side and collider outside the wall on the
+        /// other. That is one bug presenting as two.
+        /// </summary>
+        static bool TryGetBuildingWallBounds(string artName, out Bounds bounds)
+        {
+            if (BuildingWallBounds.TryGetValue(artName, out bounds)) return bounds.size.sqrMagnitude > 0f;
+
+            bounds = new Bounds();
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(
+                $"{Root}/Art/Buildings/{artName}/{artName}.fbx");
+
+            if (asset != null)
             {
-                { "Shack", new Vector3(8.95f, 7.13f, 7.27f) },
-                { "Storefront", new Vector3(12.54f, 5.21f, 8.85f) },
-                { "Warehouse", new Vector3(16.55f, 9.43f, 10.36f) },
-                { "ApartmentBlock", new Vector3(10.54f, 9.41f, 9.81f) },
-            };
+                var toRoot = asset.transform.worldToLocalMatrix;
+                var whole = new Bounds();
+                bool any = false;
+
+                foreach (var filter in asset.GetComponentsInChildren<MeshFilter>(true))
+                {
+                    if (filter.sharedMesh == null) continue;
+                    var matrix = toRoot * filter.transform.localToWorldMatrix;
+
+                    foreach (var vertex in filter.sharedMesh.vertices)
+                    {
+                        var local = matrix.MultiplyPoint3x4(vertex);
+                        if (!any) { whole = new Bounds(local, Vector3.zero); any = true; }
+                        else whole.Encapsulate(local);
+                    }
+                }
+
+                if (any)
+                {
+                    float ceiling = whole.min.y + whole.size.y * BuildingWallFraction;
+                    var walls = new Bounds();
+                    bool wallFound = false;
+
+                    foreach (var filter in asset.GetComponentsInChildren<MeshFilter>(true))
+                    {
+                        if (filter.sharedMesh == null) continue;
+                        var matrix = toRoot * filter.transform.localToWorldMatrix;
+
+                        foreach (var vertex in filter.sharedMesh.vertices)
+                        {
+                            var local = matrix.MultiplyPoint3x4(vertex);
+                            if (local.y > ceiling) continue;
+                            if (!wallFound) { walls = new Bounds(local, Vector3.zero); wallFound = true; }
+                            else walls.Encapsulate(local);
+                        }
+                    }
+
+                    // Keep the full height: the walls stop at the eaves but the building is
+                    // still solid up to its roof, and nothing walks over it.
+                    bounds = wallFound ? walls : whole;
+                    bounds.Encapsulate(new Vector3(bounds.center.x, whole.max.y, bounds.center.z));
+                    bounds.Encapsulate(new Vector3(bounds.center.x, whole.min.y, bounds.center.z));
+                }
+            }
+
+            BuildingWallBounds[artName] = bounds;
+            return bounds.size.sqrMagnitude > 0f;
+        }
 
         /// <summary>
         /// Covers one layout block with buildings, tiling along its long axis rather than
@@ -444,12 +522,6 @@ namespace ZombieShooter.EditorTools
         const float BuildingRunPerUnit = 9f;
 
         /// <summary>
-        /// How much of a building's measured footprint is actual wall. Roof overhang and
-        /// debris push the bounds wider than the thing the player can walk into.
-        /// </summary>
-        const float WallInsetFromBounds = 0.88f;
-
-        /// <summary>
         /// Picks a building for a footprint, varying by index so a terrace is not one mesh
         /// repeated down its whole length.
         /// <para>
@@ -468,7 +540,8 @@ namespace ZombieShooter.EditorTools
 
             foreach (var option in options)
             {
-                if (!BuildingSourceDimensions.TryGetValue(option, out var source)) continue;
+                if (!TryGetBuildingWallBounds(option, out var bounds)) continue;
+                var source = bounds.size;
 
                 float sx = Mathf.Max(size.x, 0.8f) / source.x;
                 float sz = Mathf.Max(size.z, 0.8f) / source.z;
@@ -489,9 +562,10 @@ namespace ZombieShooter.EditorTools
 
         static Vector3 BuildingScaleForFootprint(string artName, Vector3 footprint)
         {
-            if (!BuildingSourceDimensions.TryGetValue(artName, out var source))
+            if (!TryGetBuildingWallBounds(artName, out var sourceBounds))
                 return Vector3.one;
 
+            var source = sourceBounds.size;
             float sx = Mathf.Max(footprint.x, 0.8f) / source.x;
             float sz = Mathf.Max(footprint.z, 0.8f) / source.z;
             // Thin corridor buildings stay readable without making tiny Warren props tower
@@ -530,17 +604,21 @@ namespace ZombieShooter.EditorTools
             // One box per building, and it is the only collider. Sized to the walls rather
             // than to the mesh bounds: bounds include the roof overhang, which would block
             // movement in the open air beside the building.
-            if (BuildingSourceDimensions.TryGetValue(artName, out var sourceDimensions))
+            if (TryGetBuildingWallBounds(artName, out var wallBounds))
             {
                 var cover = building.GetComponent<BoxCollider>();
                 if (cover == null) cover = building.AddComponent<BoxCollider>();
 
-                var walls = new Vector3(sourceDimensions.x * WallInsetFromBounds,
-                                        sourceDimensions.y,
-                                        sourceDimensions.z * WallInsetFromBounds);
-
-                cover.center = new Vector3(0f, walls.y * 0.5f, 0f);
-                cover.size = walls;
+                // Measured, and centred where the mesh actually is. Both of those were wrong
+                // before: the size came from a table that had drifted, and the centre was
+                // assumed to be zero when the apartment block's is 0.55m off its own origin.
+                cover.center = wallBounds.center;
+                cover.size = wallBounds.size;
+            }
+            else
+            {
+                Debug.LogWarning($"ArenaBuilder: could not measure '{artName}', so it has no " +
+                                 "collider and everything walks straight through it.");
             }
         }
 
