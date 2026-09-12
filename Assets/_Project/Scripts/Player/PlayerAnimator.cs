@@ -33,6 +33,7 @@ namespace ZombieShooter
         const string GetShot = "GetShot";
         const string Stagger = "Stagger";
         const string Death = "Death";
+        const string Ultimate = "Ultimate";
 
         // Two layers. The base drives the legs full-body; the masked upper layer drives the
         // arms over the top, which is the only way a twin-stick player can run and shoot at
@@ -46,6 +47,7 @@ namespace ZombieShooter
         bool dead;
         string baseState;
         string upperState;
+        bool ultimatePose;
 
         void Awake()
         {
@@ -60,6 +62,7 @@ namespace ZombieShooter
             upperLockedUntil = 0f;
             baseState = null;
             upperState = null;
+            ultimatePose = false;
 
             if (health != null)
             {
@@ -94,6 +97,29 @@ namespace ZombieShooter
         void Update()
         {
             if (dead || animator == null) return;
+
+            // Full-body flourish during the auto-aim magazine. PlayerController supplies
+            // the world spin; the clip supplies the pose and pivot without double rotation.
+            if (weapon != null && weapon.UltimateActive)
+            {
+                if (!ultimatePose)
+                {
+                    ultimatePose = true;
+                    upperLockedUntil = 0f;
+                    if (animator.layerCount > UpperLayer) animator.SetLayerWeight(UpperLayer, 0f);
+                    Play(Ultimate, .06f, BaseLayer, ref baseState);
+                }
+                return;
+            }
+
+            if (ultimatePose)
+            {
+                ultimatePose = false;
+                upperLockedUntil = 0f;
+                upperState = null;
+                if (animator.layerCount > UpperLayer) animator.SetLayerWeight(UpperLayer, 1f);
+                Play(Aim, .08f, UpperLayer, ref upperState);
+            }
 
             DriveLegs();
             DriveArms();
@@ -143,7 +169,7 @@ namespace ZombieShooter
 
         void OnDamaged(DamageInfo info)
         {
-            if (dead || animator == null || health == null) return;
+            if (dead || animator == null || health == null || (weapon != null && weapon.UltimateActive)) return;
 
             float fraction = health.Max > 0f ? info.Amount / health.Max : 0f;
             bool heavy = fraction >= heavyHealthFraction || info.KnockbackMultiplier >= heavyKnockback;

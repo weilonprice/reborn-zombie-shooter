@@ -1,0 +1,37 @@
+PASS: Scream imported duration matches gameplay
+PASS: Scream loop setting
+PASS: Scream bone curves bind to the existing rig
+PASS: GetUp imported duration matches gameplay
+PASS: GetUp loop setting
+PASS: GetUp bone curves bind to the existing rig
+PASS: Leap imported duration matches gameplay
+PASS: Leap loop setting
+PASS: Leap bone curves bind to the existing rig
+PASS: Screamer enters Scream on aura activation
+PASS: Aura still respects its 12m radius
+PASS: 0.25s aura refreshes do not restart the howl
+PASS: Scream returns to Chase
+PASS: Howl repeats at a readable three-second cadence
+PASS: Death interrupts Scream
+PASS: Dead Screamer immediately releases its buff
+PASS: First lethal hit restores 45% health without a death payout
+PASS: GetUp wins over the lethal hit reaction
+PASS: Recovery blocks attacks and survives ordinary hit reactions
+PASS: GetUp returns to Chase after 2.2 seconds
+PASS: Second lethal hit kills exactly once
+PASS: Ordinary healing cannot revive a dead object
+PASS: Pool reuse resets health
+PASS: Pool reuse resets the revive allowance and animation
+PASS: A second killing hit can interrupt GetUp
+PASS: Leap clip plays during the scripted vault arc
+PASS: Leaper does not attack while airborne
+PASS: 0.65-second Leap lands beyond the barricade and returns to Chase
+PASS: Ultimate imported duration matches gameplay
+PASS: Ultimate loop setting
+PASS: Ultimate bone curves bind to the existing rig
+PASS: Capstone activation selects full-body Ultimate
+PASS: Ultimate suppresses Aim/Fire layer while retaining the 540 degree gameplay spin
+PASS: Damage reactions cannot erase an active Ultimate
+PASS: Ending the ultimate restores normal aim and animation layers
+PASS: Player death interrupts Ultimate and releases spin control
+PASS: all ability animation checks completed in Unity Play mode.

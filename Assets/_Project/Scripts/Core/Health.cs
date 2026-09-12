@@ -31,6 +31,7 @@ namespace ZombieShooter
 
         IDamageModifier modifier;
         IDeathInterceptor interceptor;
+        bool interceptingDeath;
 
         void Awake()
         {
@@ -61,7 +62,7 @@ namespace ZombieShooter
             // Asked before anything is told about it. A revenant standing back up, or a
             // player refusing a killing blow, should never have produced a Died at all -
             // handling it afterwards means unpicking payouts, colliders and queued despawns.
-            if (Current <= 0f && interceptor != null && interceptor.TryPreventDeath())
+            if (Current <= 0f && TryInterceptDeath())
             {
                 Damaged?.Invoke(info);
                 Changed?.Invoke(Current, maxHealth);
@@ -77,10 +78,20 @@ namespace ZombieShooter
 
         public void Heal(float amount)
         {
-            if (!IsAlive || amount <= 0f) return;
+            // A death interceptor runs after the lethal subtraction, at zero HP. Allow its
+            // recovery while that call is in progress; ordinary healing cannot revive corpses.
+            if ((!IsAlive && !interceptingDeath) || amount <= 0f) return;
 
             Current = Mathf.Min(maxHealth, Current + amount);
             Changed?.Invoke(Current, maxHealth);
+        }
+
+        bool TryInterceptDeath()
+        {
+            if (interceptor == null) return false;
+            interceptingDeath = true;
+            try { return interceptor.TryPreventDeath() && IsAlive; }
+            finally { interceptingDeath = false; }
         }
     }
 }

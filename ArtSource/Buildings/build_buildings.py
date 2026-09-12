@@ -44,6 +44,14 @@ def root_object(name):
     return root
 
 
+def select_tree(root):
+    bpy.ops.object.select_all(action="DESELECT")
+    root.select_set(True)
+    for child in root.children_recursive:
+        child.select_set(True)
+    bpy.context.view_layer.objects.active = root
+
+
 def finish(obj, name, mat, parent, bevel=0.0):
     obj.name = name
     obj.parent = parent
@@ -111,8 +119,11 @@ def add_roof(parent, width, depth, z, roof_mat, trim_mat, peak=False):
         run = depth * 0.56
         rise = run * math.tan(slope)
         length = math.sqrt(run * run + rise * rise)
-        box("RoofLeft", (0.0, -depth * 0.24, z + rise * 0.35), (width + 0.45, 0.28, length), roof_mat, parent, rotation=(slope, 0.0, 0.0), bevel=0.035)
-        box("RoofRight", (0.0, depth * 0.24, z + rise * 0.35), (width + 0.45, 0.28, length), roof_mat, parent, rotation=(-slope, 0.0, 0.0), bevel=0.035)
+        # Size is (width, depth, height) - the same order the flat roof below uses. The
+        # panel runs LENGTH along depth and is 0.28 thick; swapping those makes each panel a
+        # length-tall fin standing on its edge, which is what this used to produce.
+        box("RoofLeft", (0.0, -depth * 0.24, z + rise * 0.35), (width + 0.45, length, 0.28), roof_mat, parent, rotation=(slope, 0.0, 0.0), bevel=0.035)
+        box("RoofRight", (0.0, depth * 0.24, z + rise * 0.35), (width + 0.45, length, 0.28), roof_mat, parent, rotation=(-slope, 0.0, 0.0), bevel=0.035)
         box("RoofRidge", (0.0, 0.0, z + rise * 0.75), (width + 0.55, depth * 0.16, 0.18), trim_mat, parent, bevel=0.03)
     else:
         box("FlatRoof", (0.0, 0.0, z), (width + 0.5, depth + 0.5, 0.32), roof_mat, parent, bevel=0.04)
@@ -299,9 +310,9 @@ def export_one(name, builder):
     preview.hide_render = True
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(source_dir, f"{name}.blend"))
 
-    bpy.ops.object.select_all(action="DESELECT")
-    root.select_set(True)
-    bpy.context.view_layer.objects.active = root
+    # FBX/glTF selection is strict: selecting only the empty root exports an empty building.
+    # Select the complete hierarchy so the authored meshes and their materials travel with it.
+    select_tree(root)
     bpy.ops.export_scene.fbx(
         filepath=os.path.join(output_dir, f"{name}.fbx"),
         use_selection=True,

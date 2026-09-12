@@ -833,6 +833,13 @@ piece of content that has to look consistent exists.
     longer visually leave the barrel, or driving the arm procedurally to face
     the cursor. The second is the real answer and it is IK work, not parenting.
 [ ] Occlusion fade - the player must stay visible behind cover, ARPG style.
+    ESCALATED 2026-09-12: filed when cover was 2.5m boxes, and cover is now
+    4.5m buildings, 14 to 18 of them per arena. At the 61-degree camera a
+    building hides roughly 0.55 of its height in ground behind it, so this went
+    from a nicety to something the player will hit every run. Building height
+    is already capped at 0.72 of life size FOR THIS REASON, which is a
+    compromise that costs the buildings their proportions - the fade is what
+    buys them back.
     Deferred here from Phase 2 on 2026-09-09, deliberately: it is a rendering
     and art decision, it belongs beside the post-processing and lighting work
     above, and the shader wants writing against the final materials rather
@@ -1224,45 +1231,42 @@ ZOMBIE STEERING VS DEPLOYABLE BARRICADES - resolved 2026-09-08.
 START HERE - THIS WEEK
 ===============================================================================
 
-1. Play all four upgrade paths, and answer one question with them.
-   Nothing here has been played: the panel, the tiers, the ultimate, the
-   second pistol, the ten-slot loadout, the repriced shop. A full path is 3360
-   gold, so reaching T5 once is itself the first real test of the economy.
-   The question worth answering before six more weapons exist: DOES ONE PATH
-   PER WEAPON FEEL LIKE ENOUGH? Cheaper to learn now with four built than
-   with ten.
-   Specific numbers to watch: the 0.2s tap-versus-hold threshold on pistol T3,
-   the ultimate's 2.0-second duration on pistol T5, sniper overpenetration
-   compounding to ~9x on the twelfth body, and the sniper execute taking the
-   boss's last 600 HP for free.
+1. PLAY IT. Seventeen commits have landed since anything was verified in play,
+   and the pattern is no longer arguable: a floating zombie, a floating player,
+   an unmirrored weapon socket, a roof standing on its edge, a revenant that
+   could hang a wave. Every one was found by reading, days late, and every one
+   would have been obvious in the first minute of a run.
+   Nothing on this list is worth more than one playthrough.
+   Watch, in rough order of how likely they are to be wrong:
+     The Sapper - a 4x barricade multiplier could make walls pointless, and a
+     26m search radius could send it across the map past a defenceless player.
+     The Leaper - arc bugs, landing inside geometry, vaulting nothing.
+     Screamer and Crawler together, which could simply be unfair.
+     Buildings as cover - they are 4.5m tall and there is no occlusion fade
+     until Phase 3, so losing the player behind one is expected. The question
+     is how often.
+     The Corridors - does a barricade across a lane really close it? That is
+     the whole design bet of the arena.
+     Frame rate at wave 12-15 with a screamer and crawlers on screen. Debt 6
+     has been deferred on assumption since the beginning and has never once
+     been measured.
 
-2. Play six new weapons and eight new archetypes.
-   Easily the largest untested batch so far, and now the whole roster. The weapons are the first things
-   to run cone, chain and projectile, so expect MODE bugs rather than balance
-   problems: flame ignoring walls, an arc that picks nothing, a grenade
-   arming at your feet.
-   Archetypes to watch hardest: the Sapper (a 4x barricade multiplier could
-   make walls pointless, and a 26m search radius could have it crossing the
-   map past a defenceless player), the Leaper (arc bugs - landing inside
-   geometry, or vaulting nothing), and Screamer plus Crawler together, which
-   could be genuinely unfair.
+2. Fix whatever that turns up.
 
-3. The last three weapons.
-   SMG and Siphon Rifle are plain hitscan. The Nail Gun needs pinning, which
-   is upgrade-path code rather than delivery infrastructure. The Siphon Rifle
-   is the only healing in the entire game and the Nail Gun the only weapon
-   that touches the barricade pillar, so neither is just another gun.
+3. Enemy models, 11 archetypes and the boss. The only remaining Gate 2 content:
+   twelve enemies that look like three variations of a capsule read as
+   repetition even when they are not. Priority by how load-bearing the
+   silhouette is - Screamer first, then Bloater and Armored, whose counterplay
+   the player cannot infer from damage alone.
 
 4. Meta progression and the horde performance pass.
+   Meta progression needs the save system (debt 4). Performance is debt 6, and
+   the horde is now twelve archetypes rather than four, several of which run
+   their own per-frame searches. Profile before optimising - the honest answer
+   today is that nobody knows whether CPU steering or GPU skinning dominates.
 
-5. Then: meta progression and the horde performance pass.
-   Meta progression needs the save system (debt 4). Performance is debt 6,
-   deliberately deferred to exactly this point - and the horde is now twelve
-   archetypes rather than four, several of which run their own per-frame
-   searches, so this is the moment the O(n^2) separation stops being free.
-
-6. GATE 2 after that: 10+ hours without repetition becoming obvious, and no
-   run feeling like a strictly worse version of another.
+5. GATE 2: 10+ hours without repetition becoming obvious, and no run feeling
+   like a strictly worse version of another.
 
 STILL OPEN, kept for the specifics:
    The arena and deployables have not been played either. Two things to watch:

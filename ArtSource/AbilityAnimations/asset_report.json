@@ -1,0 +1,48 @@
+[
+  {
+    "pack": "ZombieAbilities",
+    "rig": "NormalZombie_Rig",
+    "bones": 18,
+    "clips": [
+      {
+        "name": "Scream",
+        "seconds": 1.5,
+        "frames": 91,
+        "fps": 60,
+        "loop": false,
+        "root_motion": false
+      },
+      {
+        "name": "GetUp",
+        "seconds": 2.2,
+        "frames": 133,
+        "fps": 60,
+        "loop": false,
+        "root_motion": false
+      },
+      {
+        "name": "Leap",
+        "seconds": 0.65,
+        "frames": 40,
+        "fps": 60,
+        "loop": false,
+        "root_motion": false
+      }
+    ]
+  },
+  {
+    "pack": "SurvivorAbilities",
+    "rig": "MainCharacter_Rig",
+    "bones": 18,
+    "clips": [
+      {
+        "name": "Ultimate",
+        "seconds": 0.6666666666666666,
+        "frames": 41,
+        "fps": 60,
+        "loop": true,
+        "root_motion": false
+      }
+    ]
+  }
+]

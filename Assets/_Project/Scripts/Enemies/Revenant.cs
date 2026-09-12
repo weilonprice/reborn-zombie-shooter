@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace ZombieShooter
@@ -18,15 +19,20 @@ namespace ZombieShooter
         [Tooltip("How many times per spawn. One is the readable number.")]
         [SerializeField] int revivesPerLife = 1;
         [SerializeField] Color revivedTint = new(0.85f, 0.25f, 0.75f);
+        [SerializeField] float getUpSeconds = 2.2f;
+
+        public event Action<float> Reviving;
 
         Health health;
         HitFlash flash;
+        ZombieAI ai;
         int used;
 
         void Awake()
         {
             health = GetComponent<Health>();
             flash = GetComponent<HitFlash>();
+            ai = GetComponent<ZombieAI>();
         }
 
         // Pooled: it has to be able to come back again next time it spawns.
@@ -38,6 +44,10 @@ namespace ZombieShooter
             used++;
 
             health.Heal(health.Max * reviveFraction);
+            ai?.SuspendActions(getUpSeconds);
+            // Raised before Health.Damaged: the lethal hit's normal flinch must not replace
+            // the recovery. It remains vulnerable to a second killing hit throughout.
+            Reviving?.Invoke(getUpSeconds);
 
             // Marked for the rest of its life, so the player can tell which bodies in a pack
             // are still owed a second kill.

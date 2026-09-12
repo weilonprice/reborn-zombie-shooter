@@ -155,7 +155,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e4be98987dea4a0c883cc78b27c0e47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.ZombieAnimator
-  animator: {fileID: 1814435765410118283}
+  animator: {fileID: 9174534786851186658}
   attackDuration: 1.27
   getShotDuration: 0.57
   staggerDuration: 1.5
@@ -179,7 +179,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.95
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
       propertyPath: m_LocalPosition.z
@@ -215,7 +215,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
       propertyPath: m_Name
-      value: NormalZombie_Model
+      value: NormalZombie
       objectReference: {fileID: 0}
     - target: {fileID: 7930980750030078695, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
       propertyPath: m_Quality
@@ -235,7 +235,7 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1814435765410118283}
+      addedObject: {fileID: 9174534786851186658}
   m_SourcePrefab: {fileID: 100100000, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
 --- !u!4 &5874871446820397400 stripped
 Transform:
@@ -247,7 +247,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 534dd31f975f44a3e8d67495e5de509f, type: 3}
   m_PrefabInstance: {fileID: 6200617798816614067}
   m_PrefabAsset: {fileID: 0}
---- !u!95 &1814435765410118283
+--- !u!95 &9174534786851186658
 Animator:
   serializedVersion: 7
   m_ObjectHideFlags: 0
