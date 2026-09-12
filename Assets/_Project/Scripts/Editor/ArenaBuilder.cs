@@ -48,6 +48,18 @@ namespace ZombieShooter.EditorTools
 
         // 90x90. Enlarged 2026-09-08 to give killbox construction room to breathe -
         // barricade funnels need space to be a choice rather than a formality.
+        /// <summary>
+        /// SET THIS BACK TO 0 BEFORE JUDGING BALANCE.
+        /// <para>
+        /// Gold the run starts with, so the Armory can be reached without playing fifteen
+        /// waves. A maxed upgrade path costs 3,360 against roughly 6,580 of run income, and
+        /// the whole design of one-weapon-per-run rests on that ratio - a seeded run can tell
+        /// you how a weapon FEELS, and nothing at all about whether the economy works.
+        /// GameManager logs a warning every time this is non-zero.
+        /// </para>
+        /// </summary>
+        const int TestStartingGold = 10000;
+
         const float ArenaHalfSize = 45f;
         /// <summary>Deployables stay this far inside the walls.</summary>
         const float PlacementMargin = 3f;
@@ -2459,7 +2471,8 @@ namespace ZombieShooter.EditorTools
             var go = new GameObject("--- Systems ---");
 
             var gm = go.AddComponent<GameManager>();
-            using (var f = new Fields(gm)) f.Obj("playerHealth", player.GetComponent<Health>());
+            using (var f = new Fields(gm))
+                f.Obj("playerHealth", player.GetComponent<Health>()).I("startingGold", TestStartingGold);
 
             var armory = go.AddComponent<ArmoryManager>();
             using (var f = new Fields(armory))
