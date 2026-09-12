@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEditor.SceneManagement;
@@ -289,7 +290,7 @@ namespace ZombieShooter.EditorTools
                     characterAnimator = model.GetComponent<Animator>();
                     if (characterAnimator == null) characterAnimator = model.AddComponent<Animator>();
                     ConfigureMainCharacterImportSettings();
-                    characterAnimator.runtimeAnimatorController = LoadOrCreateMainCharacterController();
+                    characterAnimator.runtimeAnimatorController = LoadOrCreateMainCharacterController(model);
                     characterAnimator.applyRootMotion = false;
                     characterAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
                 }
@@ -545,27 +546,105 @@ namespace ZombieShooter.EditorTools
             importer.SaveAndReimport();
         }
 
-        static RuntimeAnimatorController LoadOrCreateMainCharacterController()
+        /// <summary>Clips that play on the legs, full body. The base layer.</summary>
+        static readonly string[] LocomotionClips = { "Idle", "Walk", "Run", "Death" };
+
+        /// <summary>Clips that play on the arms only, over whatever the legs are doing.</summary>
+        static readonly string[] UpperBodyClips = { "Aim", "Fire", "Reload", "GetShot", "Stagger" };
+
+        /// <summary>
+        /// Two layers, because a twin-stick player moves and shoots at the same time almost
+        /// constantly. On one layer the firing clip wins and the survivor is never seen to
+        /// walk; masked to the arms, the legs keep running underneath.
+        /// </summary>
+        static RuntimeAnimatorController LoadOrCreateMainCharacterController(GameObject model)
         {
+            EnsureFolder(Root + "/Art");
+            EnsureFolder(Root + "/Art/Characters");
+            EnsureFolder(Root + "/Art/Characters/MainCharacter");
+
             var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(MainCharacterControllerPath);
             if (controller == null)
-            {
-                EnsureFolder(Root + "/Art");
-                EnsureFolder(Root + "/Art/Characters");
-                EnsureFolder(Root + "/Art/Characters/MainCharacter");
                 controller = AnimatorController.CreateAnimatorControllerAtPath(MainCharacterControllerPath);
-            }
 
             var clips = AssetDatabase.LoadAllAssetsAtPath(MainCharacterModelPath);
-            var machine = controller.layers[0].stateMachine;
-            var names = new[] { "Idle", "Walk", "Run", "Aim", "Fire", "Reload", "GetShot", "Stagger", "Death" };
 
-            for (int i = 0; i < names.Length; i++)
+            FillLayer(controller, 0, "Base Layer", LocomotionClips, "Idle", clips, null);
+
+            var mask = LoadOrCreateUpperBodyMask(model);
+            int upper = IndexOfLayer(controller, "UpperBody");
+            if (upper < 0)
+            {
+                upper = controller.layers.Length;
+                AddLayer(controller, "UpperBody", mask);
+            }
+
+            FillLayer(controller, upper, "UpperBody", UpperBodyClips, "Aim", clips, mask);
+
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+            return controller;
+        }
+
+        public const string ReloadSpeedParameter = "ReloadSpeed";
+
+        static void EnsureFloatParameter(AnimatorController controller, string name)
+        {
+            foreach (var parameter in controller.parameters)
+                if (parameter.name == name) return;
+
+            controller.AddParameter(name, AnimatorControllerParameterType.Float);
+        }
+
+        static int IndexOfLayer(AnimatorController controller, string name)
+        {
+            for (int i = 0; i < controller.layers.Length; i++)
+                if (controller.layers[i].name == name) return i;
+            return -1;
+        }
+
+        static void AddLayer(AnimatorController controller, string name, AvatarMask mask)
+        {
+            // The state machine has to live inside the controller asset, or the layer
+            // serializes with a dangling reference and the whole controller comes back empty.
+            var machine = new AnimatorStateMachine
+            {
+                name = name,
+                hideFlags = HideFlags.HideInHierarchy,
+            };
+            AssetDatabase.AddObjectToAsset(machine, controller);
+
+            controller.AddLayer(new AnimatorControllerLayer
+            {
+                name = name,
+                stateMachine = machine,
+                defaultWeight = 1f,
+                avatarMask = mask,
+                blendingMode = AnimatorLayerBlendingMode.Override,
+            });
+        }
+
+        static void FillLayer(AnimatorController controller, int index, string name,
+                              string[] wanted, string defaultState, Object[] clips, AvatarMask mask)
+        {
+            if (index < 0 || index >= controller.layers.Length) return;
+
+            // Layers are returned by value, so weight and mask have to be written back
+            // through the array rather than onto the copy.
+            var layers = controller.layers;
+            layers[index].name = name;
+            layers[index].defaultWeight = 1f;
+            if (mask != null) layers[index].avatarMask = mask;
+            controller.layers = layers;
+
+            var machine = controller.layers[index].stateMachine;
+
+            for (int i = 0; i < wanted.Length; i++)
             {
                 AnimationClip clip = null;
                 for (int c = 0; c < clips.Length; c++)
                 {
-                    if (clips[c] is AnimationClip candidate && ClipNameMatches(candidate.name, names[i]))
+                    if (clips[c] is AnimationClip candidate && ClipNameMatches(candidate.name, wanted[i]))
                     {
                         clip = candidate;
                         break;
@@ -574,24 +653,88 @@ namespace ZombieShooter.EditorTools
                 if (clip == null) continue;
 
                 AnimatorState state = null;
-                for (int s = 0; s < machine.states.Length; s++)
+                for (int st = 0; st < machine.states.Length; st++)
                 {
-                    if (machine.states[s].state.name == names[i])
+                    if (machine.states[st].state.name == wanted[i])
                     {
-                        state = machine.states[s].state;
+                        state = machine.states[st].state;
                         break;
                     }
                 }
 
-                if (state == null) state = machine.AddState(names[i]);
+                if (state == null) state = machine.AddState(wanted[i]);
                 state.motion = clip;
-                if (names[i] == "Idle") machine.defaultState = state;
+                if (wanted[i] == defaultState) machine.defaultState = state;
+
+                // Reload is fitted to the weapon's actual reload time, which upgrades cut to
+                // as little as 0.45s against a 1.9s clip. Driven by a parameter rather than
+                // Animator.speed, which is global and would sprint the legs at the same rate.
+                if (wanted[i] == "Reload")
+                {
+                    EnsureFloatParameter(controller, ReloadSpeedParameter);
+                    state.speedParameterActive = true;
+                    state.speedParameter = ReloadSpeedParameter;
+                }
             }
 
-            EditorUtility.SetDirty(controller);
-            AssetDatabase.SaveAssets();
-            return controller;
+            // A state left over from the single-layer version would still be reachable by
+            // name and would play on the wrong half of the body. Collected before removing,
+            // rather than removed while walking an array that reindexes underneath.
+            var stale = new List<AnimatorState>();
+            foreach (var child in machine.states)
+            {
+                bool belongs = false;
+                for (int i = 0; i < wanted.Length; i++)
+                    if (child.state.name == wanted[i]) belongs = true;
+
+                if (!belongs) stale.Add(child.state);
+            }
+
+            foreach (var state in stale) machine.RemoveState(state);
         }
+
+        /// <summary>
+        /// Everything from the spine up. Pelvis and Root stay with locomotion so the walk
+        /// keeps its hip motion - masking those away makes the legs swing under a body that
+        /// never shifts its weight.
+        /// </summary>
+        static AvatarMask LoadOrCreateUpperBodyMask(GameObject model)
+        {
+            const string path = Root + "/Art/Characters/MainCharacter/UpperBody.mask";
+
+            var mask = AssetDatabase.LoadAssetAtPath<AvatarMask>(path);
+            if (mask == null)
+            {
+                mask = new AvatarMask();
+                AssetDatabase.CreateAsset(mask, path);
+            }
+
+            if (model != null)
+            {
+                mask.transformCount = 0;
+
+                mask.AddTransformPath(model.transform, true);
+
+                for (int i = 0; i < mask.transformCount; i++)
+                    mask.SetTransformActive(i, IsUpperBodyPath(mask.GetTransformPath(i)));
+            }
+
+            EditorUtility.SetDirty(mask);
+            return mask;
+        }
+
+        /// <summary>Matches the Spine segment exactly, so a bone merely named "Spine2" elsewhere
+        /// in a future rig cannot quietly opt itself in.</summary>
+        static bool IsUpperBodyPath(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return false;
+
+            foreach (var segment in path.Split('/'))
+                if (segment == "Spine") return true;
+
+            return false;
+        }
+
 
         // Blender's FBX exporter preserves the action and rig names in Unity's
         // imported clip names (for example, "MainCharacter_Rig|MainCharacter_Rig|Idle").

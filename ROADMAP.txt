@@ -228,6 +228,43 @@ PROGRESS LOG
             ricochet and mark code was deleted rather than left dormant. Third
             and current: a single Gunslinger path, authored, with two columns
             left as placeholders for paths still to be designed.
+2026-09-11  Main character integrated, and split onto two animator layers.
+            Model, controller and PlayerAnimator replace the greybox capsule.
+            Nine clips driven from existing systems - movement from
+            InputReader, fire and reload from Weapon, reactions from Health -
+            with root motion off so the rig never fights the collider.
+            THE TWO LAYERS ARE THE POINT. On one layer the firing clip wins and
+            a twin-stick player, who moves and shoots simultaneously almost
+            constantly, is never seen to walk. Base layer carries Idle, Walk,
+            Run and Death full-body; a mask from the spine up carries Aim,
+            Fire, Reload, GetShot and Stagger over the top. The legs answer to
+            movement and are never locked.
+            Pelvis and Root deliberately stay with locomotion. Masking those
+            into the upper body leaves the legs swinging under a body that
+            never shifts its weight.
+            The mask is generated from the model's real bone paths and matches
+            the Spine segment exactly, so a future rig with a Spine2 somewhere
+            unrelated cannot quietly opt itself in.
+            Three bugs the integration surfaced, all fixed:
+              The player model floated a metre up - same cause as the zombie,
+              parented at local zero while a CharacterController is centred on
+              its pivot. The height is a named constant now, because the model
+              has to be dropped by half of it BEFORE the controller exists, and
+              having to read it back is what made this easy to get wrong twice.
+              WeaponSocket_L was never mirrored. Both hand sockets sat at
+              x +0.52, copy-pasted without flipping the sign, so akimbo would
+              have put both pistols in the right hand. Fixed at source.
+              The reload clip is 1.9s and was held at full length against
+              reloads that upgrades cut to 0.45s, so the survivor kept fumbling
+              for over a second after the weapon was loaded.
+            And a flaw in that last fix, found only once there were two layers:
+            it used Animator.speed, which is GLOBAL, so a 4x reload would have
+            sprinted the legs too. Now a ReloadSpeed parameter bound to the
+            Reload state alone. Worth remembering as a shape - a fix that is
+            correct on one layer can be wrong the moment there are two.
+            NOT PLAY-TESTED, and this is the first change whose correctness can
+            only be judged by looking at it. The mask boundary at the spine is
+            the thing most likely to need moving.
 2026-09-11  Weapon models wired into the player's hands. Two holders replace
             the two primitive cubes; WeaponVisuals toggles which of ten models
             is active inside them and moves the muzzle and eject port onto that
@@ -698,21 +735,18 @@ piece of content that has to look consistent exists.
 [ ] Lighting design - committed palette and mood, strong silhouettes,
     high contrast.
 [ ] VFX language - consistent rules for muzzles, impacts, deaths, pickups.
-[ ] Main character integration. Model, rig and nine clips were authored
-    2026-09-11 and are NOT wired - the player is still a capsule.
-    Three things to settle first, recorded while they were fresh:
-    - WeaponSocket_L and WeaponSocket_R are at the SAME position, both at
-      x +0.52. The left is not mirrored, so akimbo would put both pistols in
-      the right hand. Art fix, not a code one.
-    - Those sockets conflict with the GunHolder/OffHandHolder built for the
-      weapon models, which hang off the player root at fixed offsets. Hand
-      sockets are better - weapons would follow the animation - but it means
-      re-parenting the holders and accepting that aim no longer points the gun
-      directly, the ANIMATION does.
-    - Nine clips including Aim, Fire and Reload need a PlayerAnimator driving
-      them from weapon events, the way ZombieAnimator does for the horde.
-      Fire is 0.37s against an SMG firing every 0.067s, so the same
-      self-interruption problem the zombie had is waiting here.
+[x] Main character integration - DONE 2026-09-11. Model, controller,
+    PlayerAnimator, and a masked upper-body layer so the legs can run while the
+    arms shoot. The socket mirroring bug is fixed at source.
+[ ] Decide where the weapon hangs. The holders still sit on the player root at
+    fixed offsets, so the gun does not follow the hand through Aim, Fire or
+    Reload. WeaponSocket_R exists and would look far better.
+    The reason this is a DECISION rather than a task: parented to the hand, the
+    ANIMATION points the barrel rather than the aim. In a twin-stick the gun
+    direction IS the aim, and Weapon casts from the player's centre along the
+    muzzle's forward - so hand-parenting means either accepting that shots no
+    longer visually leave the barrel, or driving the arm procedurally to face
+    the cursor. The second is the real answer and it is IK work, not parenting.
 [ ] Occlusion fade - the player must stay visible behind cover, ARPG style.
     Deferred here from Phase 2 on 2026-09-09, deliberately: it is a rendering
     and art decision, it belongs beside the post-processing and lighting work

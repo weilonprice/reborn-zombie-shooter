@@ -34,9 +34,18 @@ namespace ZombieShooter
         const string Stagger = "Stagger";
         const string Death = "Death";
 
-        float lockedUntil;
+        // Two layers. The base drives the legs full-body; the masked upper layer drives the
+        // arms over the top, which is the only way a twin-stick player can run and shoot at
+        // once - on one layer the firing clip wins and the survivor is never seen to move.
+        const int BaseLayer = 0;
+        const int UpperLayer = 1;
+
+        static readonly int ReloadSpeed = Animator.StringToHash("ReloadSpeed");
+
+        float upperLockedUntil;
         bool dead;
-        string currentState;
+        string baseState;
+        string upperState;
 
         void Awake()
         {
@@ -48,8 +57,9 @@ namespace ZombieShooter
         void OnEnable()
         {
             dead = false;
-            lockedUntil = 0f;
-            currentState = null;
+            upperLockedUntil = 0f;
+            baseState = null;
+            upperState = null;
 
             if (health != null)
             {
@@ -61,7 +71,12 @@ namespace ZombieShooter
             {
                 animator.applyRootMotion = false;
                 animator.speed = 1f;
-                Play(Idle, 0.05f);
+                // Guarded: if the mask or the layer failed to build, the controller has one
+                // layer and this would be an index error every time the player spawns.
+                if (animator.layerCount > UpperLayer) animator.SetLayerWeight(UpperLayer, 1f);
+
+                Play(Idle, 0.05f, BaseLayer, ref baseState);
+                Play(Aim, 0.05f, UpperLayer, ref upperState);
             }
         }
 
@@ -80,57 +95,50 @@ namespace ZombieShooter
         {
             if (dead || animator == null) return;
 
-            // Weapon owns the actual reload coroutine. Polling it keeps the animation in
-            // sync even when an empty magazine starts reloading automatically after a shot.
+            DriveLegs();
+            DriveArms();
+        }
+
+        /// <summary>Never locked. The legs answer to movement and nothing else.</summary>
+        void DriveLegs()
+        {
+            float speed = InputReader.Move.sqrMagnitude;
+
+            string wanted = speed > 0.55f ? Run
+                          : speed > 0.02f ? Walk
+                          : Idle;
+
+            Play(wanted, 0.10f, BaseLayer, ref baseState);
+        }
+
+        void DriveArms()
+        {
+            // Weapon owns the reload coroutine. Polling it keeps the animation in step even
+            // when an empty magazine starts reloading on its own after a shot.
             if (weapon != null && weapon.IsReloading)
             {
-                if (currentState != Reload) Play(Reload, 0.05f);
-
-                // Fit the clip to the actual reload rather than holding a 1.9s animation over
-                // a reload that upgrades have cut to 0.45s. Without this the survivor keeps
-                // fumbling with the magazine for over a second after the weapon is loaded.
                 float actual = Mathf.Max(0.1f, weapon.ReloadSeconds);
-                animator.speed = Mathf.Clamp(reloadDuration / actual, 0.5f, 4f);
+                animator.SetFloat(ReloadSpeed, Mathf.Clamp(reloadDuration / actual, 0.5f, 4f));
 
-                lockedUntil = Mathf.Max(lockedUntil, Time.time + actual);
+                if (upperState != Reload) Play(Reload, 0.05f, UpperLayer, ref upperState);
+                upperLockedUntil = Mathf.Max(upperLockedUntil, Time.time + actual);
                 return;
             }
 
-            if (!Mathf.Approximately(animator.speed, 1f)) animator.speed = 1f;
+            if (Time.time < upperLockedUntil) return;
 
-            if (Time.time < lockedUntil) return;
-
-            if (InputReader.ReloadPressed)
-            {
-                Play(Reload, 0.05f);
-                lockedUntil = Time.time + reloadDuration;
-                return;
-            }
-
-            // FirePressed catches semi-automatic weapons; FireHeld keeps the visual punch
-            // alive for full-auto weapons without requiring a second event in Weapon.cs.
+            // FirePressed catches semi-automatic weapons; FireHeld keeps the punch alive for
+            // full-auto without needing a second event out of Weapon.
             if (InputReader.FirePressed || (InputReader.FireHeld && weapon != null && !weapon.IsReloading))
             {
-                Play(Fire, 0.025f);
-                lockedUntil = Time.time + fireDuration;
+                Play(Fire, 0.025f, UpperLayer, ref upperState);
+                upperLockedUntil = Time.time + fireDuration;
                 return;
             }
 
-            Vector2 move = InputReader.Move;
-            if (move.sqrMagnitude > 0.55f)
-            {
-                Play(Run, 0.10f);
-            }
-            else if (move.sqrMagnitude > 0.02f)
-            {
-                Play(Walk, 0.10f);
-            }
-            else
-            {
-                // Aim is the survivor's relaxed ready stance. It keeps both hands up for
-                // the weapon model while still giving Idle a readable fallback state.
-                Play(Aim, 0.12f);
-            }
+            // Aim is the ready stance, and the reason the upper layer has a resting pose at
+            // all: without one the arms would snap back to whatever the legs are doing.
+            Play(Aim, 0.12f, UpperLayer, ref upperState);
         }
 
         void OnDamaged(DamageInfo info)
@@ -140,31 +148,35 @@ namespace ZombieShooter
             float fraction = health.Max > 0f ? info.Amount / health.Max : 0f;
             bool heavy = fraction >= heavyHealthFraction || info.KnockbackMultiplier >= heavyKnockback;
 
-            Play(heavy ? Stagger : GetShot, 0.05f);
-            lockedUntil = Time.time + (heavy ? staggerDuration : getShotDuration);
+            Play(heavy ? Stagger : GetShot, 0.05f, UpperLayer, ref upperState);
+            upperLockedUntil = Time.time + (heavy ? staggerDuration : getShotDuration);
         }
 
         void OnDied(Health _)
         {
             if (dead) return;
             dead = true;
-            lockedUntil = 0f;
+            upperLockedUntil = 0f;
 
             if (animator != null)
             {
                 animator.speed = 1f;
-                animator.Play(Death, 0, 0f);
-                currentState = Death;
+
+                // Death is the one clip that has to own the whole body, so the arms stop
+                // being driven separately for it.
+                if (animator.layerCount > UpperLayer) animator.SetLayerWeight(UpperLayer, 0f);
+
+                animator.Play(Death, BaseLayer, 0f);
+                baseState = Death;
             }
         }
 
-        void Play(string state, float fade)
+        void Play(string state, float fade, int layer, ref string current)
         {
-            if (animator == null || dead || currentState == state) return;
+            if (animator == null || dead || current == state) return;
 
-            animator.speed = 1f;
-            animator.CrossFadeInFixedTime(state, fade, 0, 0f);
-            currentState = state;
+            animator.CrossFadeInFixedTime(state, fade, layer, 0f);
+            current = state;
         }
     }
 }

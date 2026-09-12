@@ -103,6 +103,12 @@ namespace ZombieShooter
         /// <summary>Raised whenever a shot from this weapon kills something.</summary>
         public event Action Killed;
         public event Action UltimateEnded;
+        /// <summary>Raised after a round is accepted and the weapon begins its shot effects.</summary>
+        public event Action Fired;
+        /// <summary>Raised when a reload coroutine starts.</summary>
+        public event Action ReloadStarted;
+        /// <summary>Raised after the reload coroutine fills the magazine.</summary>
+        public event Action ReloadFinished;
 
         /// <summary>
         /// Whether the reserve is currently bottomless. Read by the HUD: infinite reserve
@@ -416,6 +422,7 @@ namespace ZombieShooter
             nextFireTime = Time.time + (60f / Mathf.Max(1f, CurrentFireRate()));
             Ammo--;
             AmmoChanged?.Invoke(Ammo, MagazineSize);
+            Fired?.Invoke();
 
             // Akimbo alternates hands. Until Split Focus is bought the off-hand is only a
             // second origin - the shot still goes wherever you are aiming.
@@ -627,6 +634,7 @@ namespace ZombieShooter
                 !stats.InfiniteReserve && loadout.CurrentReserveAmmo <= 0) return;
 
             reloadRoutine = StartCoroutine(ReloadRoutine());
+            ReloadStarted?.Invoke();
         }
 
         void CancelReload()
@@ -635,6 +643,7 @@ namespace ZombieShooter
 
             StopCoroutine(reloadRoutine);
             reloadRoutine = null;
+            ReloadFinished?.Invoke();
         }
 
         IEnumerator ReloadRoutine()

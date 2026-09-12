@@ -14,7 +14,7 @@ BEVEL_SEGMENTS = 2 if DETAIL == "hero" else 1
 def clear_scene():
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete(use_global=False)
-    for datablocks in (bpy.data.materials, bpy.data.curves, bpy.data.meshes, bpy.data.cameras, bpy.data.lights):
+    for datablocks in (bpy.data.materials, bpy.data.curves, bpy.data.meshes, bpy.data.cameras, bpy.data.lights, bpy.data.actions):
         for datablock in list(datablocks):
             if datablock.users == 0:
                 datablocks.remove(datablock)
@@ -179,6 +179,137 @@ def select_tree(root):
         child.select_set(True)
 
 
+def _weapon_pose(root, frame, location=(0.0, 0.0, 0.0), rotation=(0.0, 0.0, 0.0)):
+    """Key a whole weapon pose on the exported root.
+
+    Weapon meshes are intentionally modular props rather than skinned characters. A root
+    transform animation keeps every mesh, socket, and muzzle point together while still
+    importing as normal Unity AnimationClips.
+    """
+    bpy.context.scene.frame_set(frame)
+    root.location = location
+    root.rotation_mode = "XYZ"
+    root.rotation_euler = rotation
+    root.keyframe_insert(data_path="location", frame=frame, group=root.name)
+    root.keyframe_insert(data_path="rotation_euler", frame=frame, group=root.name)
+
+
+def _weapon_action(root, name, poses, frames, loop=False):
+    root.animation_data_create()
+    action = bpy.data.actions.new(name)
+    action.use_fake_user = True
+    root.animation_data.action = action
+
+    for frame, location, rotation in poses:
+        _weapon_pose(root, frame, location, rotation)
+
+    # Use the layered/NLA representation Blender 5.2 expects. The FBX export below uses
+    # all actions as takes, which preserves these names for Unity's ModelImporter.
+    action["clip_name"] = name
+    action["loop"] = loop
+    action["frames"] = frames
+    track = root.animation_data.nla_tracks.new()
+    track.name = name
+    strip = track.strips.new(name, 1, action)
+    strip.mute = True
+    root.animation_data.action = None
+
+
+def build_weapon_animations(root, name):
+    """Create the shared prop animation vocabulary for every weapon.
+
+    Shared clips let the runtime stay data driven while the pose language still covers the
+    weapon classes: equip/holster, recoil, reload, energy charge, inspection, and a melee
+    bash. The class-specific clips are useful when a definition grows a unique secondary
+    attack later, and cost little because they are transform-only takes.
+    """
+    d = math.radians
+    rest = (0.0, 0.0, 0.0)
+
+    _weapon_action(root, "Idle", [
+        (1, (0.0, 0.0, 0.0), rest),
+        (16, (0.0, 0.002, 0.003), (d(-0.55), d(0.35), d(0.45))),
+        (31, (0.0, 0.0, 0.0), rest),
+        (46, (0.0, -0.002, -0.003), (d(0.55), d(-0.35), d(-0.45))),
+        (61, (0.0, 0.0, 0.0), rest),
+    ], 61, True)
+
+    _weapon_action(root, "Equip", [
+        (1, (0.0, -0.10, -0.18), (d(-20), d(5), d(-8))),
+        (8, (0.0, -0.045, -0.07), (d(-9), d(2), d(-3))),
+        (16, (0.0, 0.0, 0.0), rest),
+    ], 16, False)
+
+    _weapon_action(root, "Unequip", [
+        (1, (0.0, 0.0, 0.0), rest),
+        (8, (0.0, -0.045, -0.07), (d(-9), d(2), d(-3))),
+        (16, (0.0, -0.10, -0.18), (d(-20), d(5), d(-8))),
+    ], 16, False)
+
+    _weapon_action(root, "Fire", [
+        (1, (0.0, 0.0, 0.0), rest),
+        (3, (0.0, -0.055, -0.010), (d(-7.5), d(0.0), d(0.0))),
+        (6, (0.0, -0.020, 0.0), (d(-2.0), d(0.0), d(0.0))),
+        (12, (0.0, 0.0, 0.0), rest),
+    ], 12, False)
+
+    _weapon_action(root, "Reload", [
+        (1, (0.0, 0.0, 0.0), rest),
+        (8, (0.0, -0.045, -0.055), (d(-10), d(0), d(-4))),
+        (20, (0.055, -0.065, -0.10), (d(-24), d(-10), d(-12))),
+        (34, (-0.045, -0.045, -0.08), (d(-15), d(9), d(10))),
+        (46, (0.0, -0.020, -0.025), (d(-5), d(0), d(0))),
+        (58, (0.0, 0.0, 0.0), rest),
+    ], 58, False)
+
+    _weapon_action(root, "Charge", [
+        (1, (0.0, 0.0, 0.0), rest),
+        (10, (0.0, 0.0, 0.008), (d(-2), d(0), d(0))),
+        (20, (0.0, 0.0, 0.016), (d(-4), d(0), d(0))),
+        (30, (0.0, 0.0, 0.008), (d(-2), d(0), d(0))),
+        (40, (0.0, 0.0, 0.0), rest),
+    ], 40, True)
+
+    _weapon_action(root, "Inspect", [
+        (1, (0.0, 0.0, 0.0), rest),
+        (18, (0.0, -0.015, 0.015), (d(0), d(22), d(9))),
+        (36, (0.0, 0.0, 0.0), rest),
+    ], 36, False)
+
+    _weapon_action(root, "Melee", [
+        (1, (0.0, 0.0, 0.0), rest),
+        (8, (0.0, -0.02, 0.02), (d(-16), d(-8), d(-5))),
+        (14, (0.0, 0.075, 0.025), (d(27), d(4), d(6))),
+        (24, (0.0, 0.0, 0.0), rest),
+    ], 24, False)
+
+    # The named class clips keep a readable hook for future weapon-specific animator states.
+    class_clip = {
+        "Shotgun": "Pump",
+        "SniperRifle": "BoltCycle",
+        "AssaultRifle": "BoltCycle",
+        "SMG": "BoltCycle",
+        "Pistol": "SlideCycle",
+        "GrenadeLauncher": "DrumCycle",
+        "Flamethrower": "Ignite",
+        "TeslaCoil": "Discharge",
+        "SiphonRifle": "Drain",
+        "NailGun": "DriverCycle",
+    }.get(name)
+    if class_clip:
+        _weapon_action(root, class_clip, [
+            (1, (0.0, 0.0, 0.0), rest),
+            (5, (0.0, -0.035, 0.0), (d(-4), d(0), d(0))),
+            (12, (0.0, 0.020, 0.0), (d(3), d(0), d(0))),
+            (20, (0.0, 0.0, 0.0), rest),
+        ], 20, False)
+
+    # Leave the source in a neutral pose and leave all takes available for the exporter.
+    root.animation_data.action = None
+    root.location = (0.0, 0.0, 0.0)
+    root.rotation_euler = rest
+
+
 def export_weapon(root, name, target):
     out_dir = os.path.join(UNITY_OUT, name)
     os.makedirs(out_dir, exist_ok=True)
@@ -203,6 +334,8 @@ def export_weapon(root, name, target):
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(source_dir, f"{name}.blend"))
 
     select_tree(root)
+    for track in root.animation_data.nla_tracks:
+        track.mute = False
     bpy.ops.export_scene.fbx(
         filepath=os.path.join(out_dir, f"{name}.fbx"),
         use_selection=True,
@@ -210,7 +343,10 @@ def export_weapon(root, name, target):
         add_leaf_bones=False,
         axis_forward="-Z",
         axis_up="Y",
-        bake_anim=False,
+        bake_anim=True,
+        bake_anim_use_nla_strips=False,
+        bake_anim_use_all_actions=True,
+        bake_anim_simplify_factor=0.0,
         apply_scale_options="FBX_SCALE_UNITS",
         path_mode="COPY",
     )
@@ -220,7 +356,9 @@ def export_weapon(root, name, target):
         export_format="GLB",
         use_selection=True,
         export_apply=True,
-        export_animations=False,
+        export_animations=True,
+        export_animation_mode="NLA_TRACKS",
+        export_nla_strips=True,
         export_materials="EXPORT",
     )
 
@@ -230,6 +368,11 @@ def export_weapon(root, name, target):
         "forward_axis": "+Y in Blender, +Z after Unity FBX import",
         "parts": len([o for o in root.children_recursive if o.type == "MESH"]),
         "attachments": ["GripSocket", "MuzzleSocket", "EjectPortSocket"],
+        "animations": [a.name for a in bpy.data.actions if a.name in {
+            "Idle", "Equip", "Unequip", "Fire", "Reload", "Charge", "Inspect", "Melee",
+            "Pump", "BoltCycle", "SlideCycle", "DrumCycle", "Ignite", "Discharge", "Drain",
+            "DriverCycle",
+        }],
         "bounds_meters": bbox_for(root),
     }
     with open(os.path.join(source_dir, "asset_report.json"), "w") as handle:
@@ -245,9 +388,13 @@ def export_weapon(root, name, target):
             f"- `{name}.blend` — editable Blender source in ArtSource.\n\n"
             "## Attachment points\n\n"
             "The exported hierarchy includes `GripSocket`, `MuzzleSocket`, and `EjectPortSocket` "
-            "for later prefab wiring. Root motion and animation are intentionally absent: the "
-            "current weapon runtime owns aim, firing, muzzle flash, and shell effects.\n"
+            "for prefab wiring. Animation clips are authored on the root so the sockets follow "
+            "recoil and reload motion: `Idle`, `Equip`, `Unequip`, `Fire`, `Reload`, `Charge`, "
+            "`Inspect`, `Melee`, plus a class-specific mechanical cycle.\n"
         )
+
+    for track in root.animation_data.nla_tracks:
+        track.mute = True
 
 
 def build_pistol():
@@ -564,6 +711,7 @@ def build_one(name, builder):
     scene.unit_settings.system = "METRIC"
     scene.render.fps = 30
     root, target = builder()
+    build_weapon_animations(root, name)
     export_weapon(root, name, target)
 
 
