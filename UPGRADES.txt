@@ -3,13 +3,24 @@ Snapshot of what is actually IN the build. Not a design document - if it is
 written here, it exists in code and has been compiled. Ideas that have been
 discussed but not built are listed at the bottom, clearly separated.
 
-Last updated: 2026-09-10. Weapon roster complete at ten, one path each.
+Last updated: 2026-09-12. Weapon roster complete at ten, one path each. The
+paths themselves are unchanged since 2026-09-10; what changed underneath them
+is how damage lands.
 
-EVERYTHING HERE IS SUBJECT TO CHANGE, AND NONE OF IT HAS BEEN PLAY-TESTED.
-Numbers in particular are first drafts. The tiers were designed against the
-arithmetic (shots to kill, DPS, run income) rather than against how any of it
-feels, and the arithmetic is the weaker of the two. Expect the play-test to
-move things.
+EVERYTHING HERE IS SUBJECT TO CHANGE, AND ALMOST NONE OF IT HAS BEEN PLAY-TESTED.
+One partial run has been played, which was enough to find that a quarter of every
+zombie was unhittable - so treat the numbers below as arithmetic that has barely
+met the game. The tiers were designed against shots-to-kill, DPS and run income
+rather than against how any of it feels, and the arithmetic is the weaker of the
+two. Expect a real play-test to move things.
+
+SHOTS-TO-KILL FIGURES IN THIS FILE ASSUME EVERY SHOT IS A BODY HIT.
+Since 2026-09-12 each enemy carries a hit zone matching its silhouette, worth
+0.6x damage, over a walking capsule that is still worth full damage. A shot
+through centre mass is unchanged - the delivery pays out the better of the two -
+but a shot that catches only an arm now does 60% rather than nothing. That
+makes every figure here a floor rather than an average, and it has not been
+re-derived against how often a real player clips a limb.
 
 Where a number is a known risk it says so in the tier that owns it, rather
 than in a list here - the warning belongs next to the thing it is about.

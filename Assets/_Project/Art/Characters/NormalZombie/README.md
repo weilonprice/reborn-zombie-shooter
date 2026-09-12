@@ -42,6 +42,14 @@ shadow-casting one pays both twice.
 
 ## Rig and clips
 
+**This rig is shared by the whole roster, and its clips are the only clips in the
+game.** Eleven other archetypes plus the boss borrow everything below, so the bone
+names, the rest pose and the armature name `NormalZombie_Rig` are fixed. Generic
+rigs bind curves by transform path, and `frame()` keyframes bone LOCATION as well
+as rotation — so renaming the armature breaks every archetype at once, and moving
+a bone's rest position would snap every archetype back to these proportions.
+See [`ArtSource/Enemies/README.md`](../../../../../ArtSource/Enemies/README.md).
+
 The rig is `NormalZombie_Rig` with 18 bones. The mesh is one skinned object, so the character can be imported as one prefab and remains inexpensive to render in a horde.
 
 | Clip | Frames | Length | Loop |
@@ -61,3 +69,13 @@ The rig is `NormalZombie_Rig` with 18 bones. The mesh is one skinned object, so 
 The prefab keeps its existing `Health`, `ZombieAI`, `DeathPop`, and `HitFlash` gameplay components. The imported model is a child visual, with the gameplay root remaining at the existing 1.9 m controller height.
 
 The GLB is included for tools and future pipelines; it has one skin with 18 joints and all five animation names embedded.
+
+## Palette UVs
+
+The character bakes its colours into `NormalZombie_Palette.png` — sixteen cells,
+one per material — and ships a single material that samples it. The bake removes
+the smart-project UV layer rather than deselecting it: `active_render` does not
+survive an FBX round trip, and for most of this character's life both layers
+shipped, so Unity sampled the sixteen-cell palette with a 6,382-point unwrap and
+scattered every colour on the model. Every render of this zombie before
+2026-09-12 was of that artifact. See debt 12 in `ROADMAP.txt`.
