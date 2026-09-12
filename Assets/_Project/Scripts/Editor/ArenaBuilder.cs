@@ -33,6 +33,8 @@ namespace ZombieShooter.EditorTools
         const string CrawlerPrefabPath = Root + "/Prefabs/Crawler.prefab";
         const string NormalZombieModelPath = Root + "/Art/Characters/NormalZombie/NormalZombie.fbx";
         const string NormalZombieControllerPath = Root + "/Art/Characters/NormalZombie/NormalZombie.controller";
+        const string MainCharacterModelPath = Root + "/Art/Characters/MainCharacter/MainCharacter.fbx";
+        const string MainCharacterControllerPath = Root + "/Art/Characters/MainCharacter/MainCharacter.controller";
         const string SpitterPrefabPath = Root + "/Prefabs/Spitter.prefab";
         const string AcidPoolPrefabPath = Root + "/Prefabs/AcidPool.prefab";
         const string AcidProjectilePrefabPath = Root + "/Prefabs/AcidProjectile.prefab";
@@ -221,6 +223,12 @@ namespace ZombieShooter.EditorTools
         /// </summary>
         const int CarryCapacity = 10;
 
+        /// <summary>
+        /// The player's capsule height. Named because the authored model has to be dropped by
+        /// half of it to stand on the floor, and that happens before the controller exists.
+        /// </summary>
+        const float PlayerControllerHeight = 2f;
+
         /// <summary>Where a weapon's grip sits, relative to the player's centre.</summary>
         static readonly Vector3 GunHolderOffset = new(0f, 0f, 0.12f);
 
@@ -256,6 +264,37 @@ namespace ZombieShooter.EditorTools
             // The CharacterController is the physical collider; drop the primitive's own.
             Object.DestroyImmediate(body.GetComponent<CapsuleCollider>());
 
+            // Replace the greybox capsule with the authored survivor when the model has
+            // imported. Keep the capsule as a fallback so the builder remains usable while
+            // art assets are being iterated on or are temporarily absent.
+            Animator characterAnimator = null;
+            var modelAsset = AssetDatabase.LoadAssetAtPath<GameObject>(MainCharacterModelPath);
+            if (modelAsset != null)
+            {
+                Object.DestroyImmediate(body);
+
+                var model = PrefabUtility.InstantiatePrefab(modelAsset) as GameObject;
+                if (model != null)
+                {
+                    model.name = "MainCharacter_Model";
+                    model.transform.SetParent(player.transform, false);
+
+                    // Feet to the floor, not to the pivot - the same offset the zombie needs.
+                    // The model stands on zero but a CharacterController is centred on its
+                    // pivot, so local zero would leave the survivor hovering a metre up.
+                    model.transform.localPosition = new Vector3(0f, -PlayerControllerHeight * 0.5f, 0f);
+                    model.transform.localRotation = Quaternion.identity;
+                    model.transform.localScale = Vector3.one;
+
+                    characterAnimator = model.GetComponent<Animator>();
+                    if (characterAnimator == null) characterAnimator = model.AddComponent<Animator>();
+                    ConfigureMainCharacterImportSettings();
+                    characterAnimator.runtimeAnimatorController = LoadOrCreateMainCharacterController();
+                    characterAnimator.applyRootMotion = false;
+                    characterAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                }
+            }
+
             // Holders rather than models. WeaponVisuals swaps which model is active inside
             // them, and Weapon slides the holders for akimbo - so neither has to know what
             // the other is doing to one transform.
@@ -273,7 +312,7 @@ namespace ZombieShooter.EditorTools
             player.AddComponent<AudioListener>();
 
             var controller = player.AddComponent<CharacterController>();
-            controller.height = 2f;
+            controller.height = PlayerControllerHeight;
             controller.radius = 0.45f;
             controller.center = Vector3.zero;
             controller.slopeLimit = 50f;
@@ -376,6 +415,23 @@ namespace ZombieShooter.EditorTools
                  .Obj("offHandMuzzleFlash", offHandMuzzleFlash);
             }
 
+            if (characterAnimator != null)
+            {
+                var characterDriver = player.AddComponent<PlayerAnimator>();
+                using (var f = new Fields(characterDriver))
+                {
+                    f.Obj("animator", characterAnimator)
+                     .Obj("health", health)
+                     .Obj("weapon", weapon)
+                     .F("fireDuration", 0.37f)
+                     .F("reloadDuration", 1.90f)
+                     .F("getShotDuration", 0.77f)
+                     .F("staggerDuration", 1.43f)
+                     .F("heavyHealthFraction", 0.40f)
+                     .F("heavyKnockback", 2.5f);
+                }
+            }
+
             var loadout = player.AddComponent<WeaponLoadout>();
             using (var f = new Fields(loadout))
             {
@@ -460,6 +516,94 @@ namespace ZombieShooter.EditorTools
             }
 
             return rig;
+        }
+
+        static void ConfigureMainCharacterImportSettings()
+        {
+            var importer = AssetImporter.GetAtPath(MainCharacterModelPath) as ModelImporter;
+            if (importer == null) return;
+
+            var clips = importer.clipAnimations;
+            if (clips == null || clips.Length == 0) clips = importer.defaultClipAnimations;
+            if (clips == null || clips.Length == 0) return;
+
+            var looping = new[] { "Idle", "Walk", "Run", "Aim" };
+            bool changed = false;
+            for (int i = 0; i < clips.Length; i++)
+            {
+                bool shouldLoop = false;
+                for (int j = 0; j < looping.Length; j++)
+                    if (ClipNameMatches(clips[i].name, looping[j])) shouldLoop = true;
+
+                if (clips[i].loopTime == shouldLoop) continue;
+                clips[i].loopTime = shouldLoop;
+                changed = true;
+            }
+
+            if (!changed) return;
+            importer.clipAnimations = clips;
+            importer.SaveAndReimport();
+        }
+
+        static RuntimeAnimatorController LoadOrCreateMainCharacterController()
+        {
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(MainCharacterControllerPath);
+            if (controller == null)
+            {
+                EnsureFolder(Root + "/Art");
+                EnsureFolder(Root + "/Art/Characters");
+                EnsureFolder(Root + "/Art/Characters/MainCharacter");
+                controller = AnimatorController.CreateAnimatorControllerAtPath(MainCharacterControllerPath);
+            }
+
+            var clips = AssetDatabase.LoadAllAssetsAtPath(MainCharacterModelPath);
+            var machine = controller.layers[0].stateMachine;
+            var names = new[] { "Idle", "Walk", "Run", "Aim", "Fire", "Reload", "GetShot", "Stagger", "Death" };
+
+            for (int i = 0; i < names.Length; i++)
+            {
+                AnimationClip clip = null;
+                for (int c = 0; c < clips.Length; c++)
+                {
+                    if (clips[c] is AnimationClip candidate && ClipNameMatches(candidate.name, names[i]))
+                    {
+                        clip = candidate;
+                        break;
+                    }
+                }
+                if (clip == null) continue;
+
+                AnimatorState state = null;
+                for (int s = 0; s < machine.states.Length; s++)
+                {
+                    if (machine.states[s].state.name == names[i])
+                    {
+                        state = machine.states[s].state;
+                        break;
+                    }
+                }
+
+                if (state == null) state = machine.AddState(names[i]);
+                state.motion = clip;
+                if (names[i] == "Idle") machine.defaultState = state;
+            }
+
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+            return controller;
+        }
+
+        // Blender's FBX exporter preserves the action and rig names in Unity's
+        // imported clip names (for example, "MainCharacter_Rig|MainCharacter_Rig|Idle").
+        // Match the authored state name at the end so the controller remains stable
+        // if the rig is renamed or the exporter adds another prefix.
+        static bool ClipNameMatches(string importedName, string authoredName)
+        {
+            if (string.IsNullOrEmpty(importedName) || string.IsNullOrEmpty(authoredName)) return false;
+            if (importedName == authoredName) return true;
+            return importedName.EndsWith("|" + authoredName, System.StringComparison.Ordinal)
+                || importedName.EndsWith("/" + authoredName, System.StringComparison.Ordinal)
+                || importedName.EndsWith("_" + authoredName, System.StringComparison.Ordinal);
         }
 
         // ---------------------------------------------------------------- zombie

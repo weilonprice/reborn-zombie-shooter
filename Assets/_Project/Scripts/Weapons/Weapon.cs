@@ -90,6 +90,13 @@ namespace ZombieShooter
         public int Ammo { get; private set; }
         public bool IsReloading => reloadRoutine != null;
 
+        /// <summary>
+        /// How long this weapon's reload actually takes, upgrades applied. Exposed so the
+        /// player's reload animation can be fitted to it - upgraded reloads run as short as
+        /// 0.45s against a 1.9s clip.
+        /// </summary>
+        public float ReloadSeconds => stats.ReloadTime;
+
         /// <summary>(ammo, magazineSize)</summary>
         public event Action<int, int> AmmoChanged;
 
