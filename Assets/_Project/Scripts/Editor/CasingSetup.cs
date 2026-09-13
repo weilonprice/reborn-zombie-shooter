@@ -196,9 +196,8 @@ namespace ZombieShooter.EditorTools
                         profile.impactVolume = name == "GrenadeLauncher" ? .34f : name == "Shotgun" ? .28f : .24f;
                         AssetDatabase.CreateAsset(profile, $"{Data}/CASE_{name}.asset");
                     }
-                    profile.materials = new[] { single };
                     profile.mesh = baked;
-                    profile.materials = mats.ToArray();
+                    profile.materials = new[] { single };
                     profile.diameter = Diameters[i];
                     profile.floorImpacts = new AudioClip[3];
                     for (int v = 0; v < 3; v++)
