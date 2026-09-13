@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace ZombieShooter
@@ -89,9 +90,12 @@ namespace ZombieShooter
                 pending.Enqueue(new Pending { profile = profile, socket = socket, offHand = offHand });
         }
 
+        static readonly ProfilerMarker CasingMarker = new("CasingEjector.Simulate");
+
         void LateUpdate()
         {
             if (Time.timeScale <= 0f) return;
+            using var _ = CasingMarker.Auto();
             while (pending.Count > 0) Emit(pending.Dequeue());
             // Substeps keep bouncing stable during a slow frame or kill slow-motion.
             float elapsed = Mathf.Min(Time.deltaTime, .1f);
