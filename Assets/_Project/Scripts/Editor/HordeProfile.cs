@@ -131,7 +131,8 @@ namespace ZombieShooter.EditorTools
             // does not end the run halfway through the ramp.
             waves.StopAllCoroutines();
             waves.enabled = false;
-            var playerHealth = GameObject.FindGameObjectWithTag("Player")?.GetComponent<Health>();
+            var playerObject = GameObject.FindGameObjectWithTag("Player");
+            var playerHealth = playerObject != null ? playerObject.GetComponent<Health>() : null;
 
             // Marker probes for the paths debt 6 names, plus the two systems added since.
             var timings = new[]
@@ -169,7 +170,7 @@ namespace ZombieShooter.EditorTools
 
             foreach (int target in Steps)
             {
-                yield return Populate(waves, target);
+                yield return Populate(waves, target, playerObject != null ? playerObject.transform : null);
                 yield return .5f;   // let pooling, spawning and the flow field settle
 
                 var frames = new List<double>(SamplesPerStep);
@@ -185,7 +186,9 @@ namespace ZombieShooter.EditorTools
                 }
 
                 double frame = Median(frames);
-                int live = ZombieAI.ActiveZombies?.Count ?? 0;
+                int live = Live;
+                if (live < target * 0.8)
+                    lines.Add($"  WARNING: step {target} held only {live} enemies - row below is not that population");
                 var cells = timings.Concat(counters)
                                    .Select(p => Median(samples[p.Name]))
                                    .ToArray();
@@ -230,24 +233,55 @@ namespace ZombieShooter.EditorTools
             index < timings.Length ? timings[index].Name : counters[index - timings.Length].Name;
 
         /// <summary>
-        /// Holds the live count at a target by spawning through WaveManager's own pool, so
-        /// what is measured is the real prefab with its real components - not a stand-in.
+        /// Holds the live count at a target by instantiating the real enemy prefabs.
+        /// <para>
+        /// The first version reflected into WaveManager.Spawn, and produced a report where
+        /// every step measured one enemy: the population never moved, and because the report
+        /// still printed five tidy rows it looked like a result rather than a failure. The
+        /// spawner depends on state the disabled wave loop owns. Instantiating the prefab
+        /// directly needs none of it and measures the same object - the real prefab with its
+        /// real components, which is the only part that mattered.
+        /// </para>
         /// </summary>
-        static IEnumerator Populate(WaveManager waves, int target)
+        static IEnumerator Populate(WaveManager waves, int target, Transform player)
         {
-            var spawn = typeof(WaveManager).GetMethod("Spawn",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            if (spawn == null) throw new InvalidOperationException(
-                "WaveManager.Spawn not found - the profiler needs it to build a population.");
-
-            int guard = 0;
-            while ((ZombieAI.ActiveZombies?.Count ?? 0) < target && guard++ < 400)
+            if (prefabs.Count == 0)
             {
-                spawn.Invoke(waves, new object[] { 1 });
-                if (guard % 10 == 0) yield return 0f;
+                foreach (string path in Directory.GetFiles("Assets/_Project/Prefabs", "*.prefab"))
+                {
+                    var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path.Replace('\\', '/'));
+                    if (asset != null && asset.GetComponent<ZombieAI>() != null) prefabs.Add(asset);
+                }
+                if (prefabs.Count == 0) throw new InvalidOperationException(
+                    "No enemy prefabs with a ZombieAI found in Assets/_Project/Prefabs.");
             }
+
+            var centre = player != null ? player.position : Vector3.zero;
+            int guard = 0;
+
+            while (Live < target && guard++ < target * 4)
+            {
+                // A ring well clear of the player, so the population is not instantly
+                // grinding against the character controller before it has settled.
+                float angle = guard * 2.39996f;            // golden angle, so they spread
+                float radius = 6f + (guard % 7);
+                var at = centre + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
+                at.y = 1f;
+
+                var prefab = prefabs[guard % prefabs.Count];
+                UnityEngine.Object.Instantiate(prefab, at, Quaternion.identity);
+
+                if (guard % 8 == 0) yield return 0f;
+            }
+
+            if (Live < target)
+                lines.Add($"  note: asked for {target}, reached {Live} - prefabs may be dying on spawn");
+
             yield return 0f;
         }
+
+        static readonly List<GameObject> prefabs = new();
+        static int Live => ZombieAI.ActiveZombies?.Count ?? 0;
 
         static double Median(List<double> values)
         {

@@ -38,6 +38,44 @@ namespace ZombieShooter.EditorTools
             Debug.Log("CASINGS_INSTALLED: seven case profiles, 21 floor sounds, current player updated.");
         }
 
+        /// <summary>Cells per side of the casing palette. Three colours need one row.</summary>
+        const int PaletteCells = 4;
+        const int PaletteCellPixels = 16;
+
+        /// <summary>
+        /// One flat cell per source material, sampled point-filtered from the centre. No
+        /// mipmaps: the cells are flat, so there is nothing to lose by minifying, and a
+        /// mipchain would blend neighbouring cells into each other at distance - which is
+        /// exactly the range these are seen at.
+        /// </summary>
+        static Texture2D PaletteTexture(string name, List<Color> colours)
+        {
+            int size = PaletteCells * PaletteCellPixels;
+            string path = $"{Art}/Baked/{name}_Palette.asset";
+
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            bool created = texture == null;
+            if (created) texture = new Texture2D(size, size, TextureFormat.RGBA32, false, false);
+
+            var pixels = new Color[size * size];
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    int cell = (y / PaletteCellPixels) * PaletteCells + x / PaletteCellPixels;
+                    pixels[y * size + x] = cell < colours.Count ? colours[cell] : Color.black;
+                }
+
+            texture.name = name + " casing palette";
+            texture.filterMode = FilterMode.Point;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            texture.SetPixels(pixels);
+            texture.Apply(false, false);
+
+            if (created) AssetDatabase.CreateAsset(texture, path);
+            else EditorUtility.SetDirty(texture);
+            return texture;
+        }
+
         public static void ConfigurePlayer(GameObject player)
         {
             if (ProfileFor(Names[0]) == null) BuildAssets();
@@ -84,7 +122,7 @@ namespace ZombieShooter.EditorTools
                 {
                     clone.transform.position = Vector3.zero;
                     var parts = new List<CombineInstance>();
-                    var mats = new List<Material>();
+                    var palette = new List<Color>();
                     foreach (var filter in clone.GetComponentsInChildren<MeshFilter>())
                     {
                         var materials = filter.GetComponent<MeshRenderer>().sharedMaterials;
@@ -95,26 +133,56 @@ namespace ZombieShooter.EditorTools
                             string sourceName = s < materials.Length && materials[s] != null ? materials[s].name : "Body";
                             bool interior = sourceName.Contains("Interior");
                             bool rim = sourceName.Contains("Rim");
-                            Color colour = interior ? new Color(.055f,.043f,.029f)
+                            palette.Add(interior ? new Color(.055f,.043f,.029f)
                                 : rim ? (name == "SiphonRifle" ? new Color(.7f,.73f,.75f) : new Color(.62f,.42f,.15f))
-                                : Colours[i];
-                            string matPath = $"{Art}/Baked/{name}_{s}.mat";
-                            var mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
-                            if (mat == null)
-                            {
-                                mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                                AssetDatabase.CreateAsset(mat, matPath);
-                            }
-                            mat.SetColor("_BaseColor", colour);
-                            mat.SetFloat("_Metallic", interior ? .2f : name == "Shotgun" && !rim ? .05f : .78f);
-                            mat.SetFloat("_Smoothness", interior ? .1f : .42f);
-                            EditorUtility.SetDirty(mat);
-                            mats.Add(mat);
+                                : Colours[i]);
                         }
                     }
+
                     var baked = new Mesh { name = name + " spent case" };
                     baked.CombineMeshes(parts.ToArray(), false, true);
+
+                    // Body, rim and interior become one palette texture and one material.
+                    //
+                    // Three submeshes is three draw calls on every case, and ninety-six of
+                    // them in flight out-draws the entire sixty-strong horde, which costs one
+                    // apiece because every character already bakes its colours this way. What
+                    // is given up is the per-part metallic value - and at 23 metres a 2cm case
+                    // is a handful of pixels, so the difference between brass at 0.78 and a
+                    // dark interior at 0.2 was never visible.
+                    var cells = new Vector2[baked.subMeshCount];
+                    for (int c = 0; c < cells.Length; c++)
+                        cells[c] = new Vector2((c % PaletteCells + .5f) / PaletteCells,
+                                               (c / PaletteCells + .5f) / PaletteCells);
+
+                    var uv = new Vector2[baked.vertexCount];
+                    var merged = new List<int>();
+                    for (int s = 0; s < baked.subMeshCount; s++)
+                    {
+                        var triangles = baked.GetTriangles(s);
+                        foreach (int vertex in triangles) uv[vertex] = cells[s];
+                        merged.AddRange(triangles);
+                    }
+                    baked.uv = uv;
+                    baked.subMeshCount = 1;
+                    baked.SetTriangles(merged, 0);
                     baked.RecalculateBounds();
+
+                    var atlas = PaletteTexture(name, palette);
+                    string singlePath = $"{Art}/Baked/{name}.mat";
+                    var single = AssetDatabase.LoadAssetAtPath<Material>(singlePath);
+                    if (single == null)
+                    {
+                        single = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                        AssetDatabase.CreateAsset(single, singlePath);
+                    }
+                    single.SetTexture("_BaseMap", atlas);
+                    single.SetColor("_BaseColor", Color.white);
+                    // Brass everywhere except the shotgun, whose hull is plastic.
+                    single.SetFloat("_Metallic", name == "Shotgun" ? .2f : .78f);
+                    single.SetFloat("_Smoothness", .42f);
+                    EditorUtility.SetDirty(single);
+
                     string meshPath = $"{Art}/Baked/{name}.asset";
                     var existing = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
                     if (existing == null) AssetDatabase.CreateAsset(baked, meshPath);
@@ -128,6 +196,7 @@ namespace ZombieShooter.EditorTools
                         profile.impactVolume = name == "GrenadeLauncher" ? .34f : name == "Shotgun" ? .28f : .24f;
                         AssetDatabase.CreateAsset(profile, $"{Data}/CASE_{name}.asset");
                     }
+                    profile.materials = new[] { single };
                     profile.mesh = baked;
                     profile.materials = mats.ToArray();
                     profile.diameter = Diameters[i];

@@ -101,6 +101,12 @@ namespace ZombieShooter.EditorTools
                 Check(profile.mesh.bounds.size.y > .015f && profile.mesh.bounds.size.y < .08f,
                     name + " imported in metres with its long axis upright");
                 Check(profile.floorImpacts.Length == 3 && profile.floorImpacts.All(c => c != null && c.length > .15f), name + " has three impact clips");
+                // One material is one draw call. Three of them, times ninety-six cases in
+                // flight, out-draws the whole sixty-strong horde - which costs one apiece.
+                Check(profile.materials != null && profile.materials.Length == 1,
+                    name + " ships a single palette material, so one case is one draw call");
+                Check(profile.mesh.subMeshCount == 1,
+                    name + " ships a single submesh, which is what makes that one draw call");
                 foreach (var clip in profile.floorImpacts) Check(clips.Add(clip), clip.name + " is not shared with another casing");
                 var definition = CasingSetup.WeaponFor(name);
                 if (!loadout.Owns(definition)) loadout.TryCarry(definition);
