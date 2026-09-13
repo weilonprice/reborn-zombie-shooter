@@ -6,19 +6,24 @@ O(n^2) by construction; skinning and draw calls should stay flat per enemy.
 unavailable on this platform: Physics step
   pop |  frame ms |    fps | Separation (O(n^2)) | Barricade spherecast | Casing simulate | Animator update | Physics step | Draw calls | SetPass calls | Batches
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
-    1 |      1.41 |  709.2 |               0.000 |                0.011 |           0.001 |           0.024 |          n/a |          0 |             0 |       0
-    1 |      1.42 |  705.3 |               0.000 |                0.011 |           0.001 |           0.024 |          n/a |          0 |             0 |       0
-    1 |      1.40 |  712.3 |               0.000 |                0.011 |           0.001 |           0.024 |          n/a |          0 |             0 |       0
-    1 |      1.39 |  719.3 |               0.000 |                0.011 |           0.001 |           0.024 |          n/a |          0 |             0 |       0
-    1 |      1.39 |  720.9 |               0.000 |                0.011 |           0.001 |           0.024 |          n/a |          0 |             0 |       0
+  WARNING: step 15 held only 1 enemies - row below is not that population
+    1 |      1.46 |  682.7 |               0.000 |                0.009 |           0.001 |           0.029 |          n/a |          0 |             0 |       0
+  WARNING: step 30 held only 1 enemies - row below is not that population
+    1 |      1.39 |  717.0 |               0.000 |                0.009 |           0.001 |           0.029 |          n/a |          0 |             0 |       0
+  WARNING: step 45 held only 1 enemies - row below is not that population
+    1 |      1.30 |  767.8 |               0.000 |                0.009 |           0.001 |           0.029 |          n/a |          0 |             0 |       0
+  WARNING: step 60 held only 1 enemies - row below is not that population
+    1 |      1.41 |  709.6 |               0.000 |                0.009 |           0.001 |           0.029 |          n/a |          0 |             0 |       0
+  WARNING: step 90 held only 1 enemies - row below is not that population
+    1 |      1.26 |  792.2 |               0.000 |                0.009 |           0.001 |           0.029 |          n/a |          0 |             0 |       0
 
 COST PER ENEMY - this is the part that answers debt 6
   pop | frame ms/enemy | separation ms/enemy | animator ms/enemy
-    1 |         1.4100 |             0.00029 | 0.02446
-    1 |         1.4178 |             0.00029 | 0.02446
-    1 |         1.4040 |             0.00029 | 0.02446
-    1 |         1.3902 |             0.00029 | 0.02446
-    1 |         1.3871 |             0.00029 | 0.02446
+    1 |         1.4647 |             0.00017 | 0.02892
+    1 |         1.3948 |             0.00017 | 0.02892
+    1 |         1.3024 |             0.00017 | 0.02892
+    1 |         1.4093 |             0.00017 | 0.02892
+    1 |         1.2623 |             0.00017 | 0.02892
 
 Rising separation-per-enemy confirms the O(n^2) walk is the ceiling and a
 spatial hash is the fix. Flat separation with a rising frame time means the
@@ -27,7 +32,7 @@ rewriting before anyone optimises the wrong loop.
 
 SCENE AT THE LARGEST POPULATION
   live enemies ............ 1
-  colliders in scene ...... 18
+  colliders in scene ...... 20
   skinned meshes .......... 2
   animators ............... 3
   audio sources ........... 23

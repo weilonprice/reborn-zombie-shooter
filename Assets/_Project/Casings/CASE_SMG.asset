@@ -14,9 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.CasingDefinition
   mesh: {fileID: 4300000, guid: 153c7664e206e48fe8007600602a55ef, type: 2}
   materials:
-  - {fileID: 2100000, guid: 39ffb42ebd2424d04b7145d24df15d9d, type: 2}
-  - {fileID: 2100000, guid: 7f7e472f7a361442bbfcfa0f9169e8ca, type: 2}
-  - {fileID: 2100000, guid: a1bda8adf4f5d4f0a98d82bc801ef205, type: 2}
+  - {fileID: 2100000, guid: 2a463d4b77c474493b01fa36b978cbb9, type: 2}
   floorImpacts:
   - {fileID: 8300000, guid: 204e1c1453a9e47b8a9b153be9c7142d, type: 3}
   - {fileID: 8300000, guid: b5f83c178b72f410c859954ef9d2b7a5, type: 3}

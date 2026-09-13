@@ -76,6 +76,14 @@ namespace ZombieShooter.EditorTools
             {
                 if (work.MoveNext())
                 {
+                    // This driver does not nest. Yielding an IEnumerator here used to be
+                    // discarded silently, which is how two profile runs reported a
+                    // population of one and looked like results.
+                    if (work.Current is IEnumerator)
+                        throw new InvalidOperationException(
+                            "HordeProfile yielded a nested coroutine, which this driver " +
+                            "cannot run. Call the method directly instead of yielding it.");
+
                     resumeAt = EditorApplication.timeSinceStartup + (work.Current is float d ? d : 0f);
                     return;
                 }
@@ -170,7 +178,7 @@ namespace ZombieShooter.EditorTools
 
             foreach (int target in Steps)
             {
-                yield return Populate(waves, target, playerObject != null ? playerObject.transform : null);
+                Populate(target, playerObject != null ? playerObject.transform : null);
                 yield return .5f;   // let pooling, spawning and the flow field settle
 
                 var frames = new List<double>(SamplesPerStep);
@@ -235,15 +243,19 @@ namespace ZombieShooter.EditorTools
         /// <summary>
         /// Holds the live count at a target by instantiating the real enemy prefabs.
         /// <para>
-        /// The first version reflected into WaveManager.Spawn, and produced a report where
-        /// every step measured one enemy: the population never moved, and because the report
-        /// still printed five tidy rows it looked like a result rather than a failure. The
-        /// spawner depends on state the disabled wave loop owns. Instantiating the prefab
-        /// directly needs none of it and measures the same object - the real prefab with its
-        /// real components, which is the only part that mattered.
+        /// Synchronous on purpose, and this is the whole reason the first two profile runs
+        /// reported a population of one. This harness drives its work with a hand-rolled
+        /// Tick that reads Current as a float delay: a yielded IEnumerator is not a float,
+        /// so it is silently discarded and the nested coroutine NEVER RUNS. Unity's own
+        /// StartCoroutine nests; this does not, and nothing says so.
+        /// </para>
+        /// <para>
+        /// Spawning a hundred prefabs inside one editor frame is cheap, so the fix is to
+        /// stop being a coroutine rather than to teach the driver to nest - the version that
+        /// cannot be got wrong again.
         /// </para>
         /// </summary>
-        static IEnumerator Populate(WaveManager waves, int target, Transform player)
+        static void Populate(int target, Transform player)
         {
             if (prefabs.Count == 0)
             {
@@ -271,13 +283,10 @@ namespace ZombieShooter.EditorTools
                 var prefab = prefabs[guard % prefabs.Count];
                 UnityEngine.Object.Instantiate(prefab, at, Quaternion.identity);
 
-                if (guard % 8 == 0) yield return 0f;
             }
 
             if (Live < target)
                 lines.Add($"  note: asked for {target}, reached {Live} - prefabs may be dying on spawn");
-
-            yield return 0f;
         }
 
         static readonly List<GameObject> prefabs = new();
