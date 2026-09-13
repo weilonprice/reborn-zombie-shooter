@@ -46,6 +46,10 @@ namespace ZombieShooter
         Animator shownOffHandAnimator;
         PlayerWeaponGrip grip;
         Transform[] offMuzzleSockets;
+        Transform[] offEjectSockets;
+
+        public Transform EjectionSocket(bool offHand) =>
+            offHand ? At(offEjectSockets, shown) : At(ejectSockets, shown);
 
         /// <summary>Animator on the currently visible weapon model, if its FBX has one.</summary>
         public Animator CurrentAnimator => shownAnimator;
@@ -56,9 +60,13 @@ namespace ZombieShooter
         {
             if (loadout == null) loadout = GetComponent<WeaponLoadout>();
             offMuzzleSockets = new Transform[offHandModels?.Length ?? 0];
+            offEjectSockets = new Transform[offMuzzleSockets.Length];
             for (int i = 0; i < offMuzzleSockets.Length; i++)
                 if (offHandModels[i] != null)
+                {
                     offMuzzleSockets[i] = PlayerWeaponGrip.Find(offHandModels[i].transform, "MuzzleSocket");
+                    offEjectSockets[i] = PlayerWeaponGrip.Find(offHandModels[i].transform, "EjectPortSocket");
+                }
             if (GetComponent<PlayerAnimator>() != null)
                 grip = new PlayerWeaponGrip(transform, mainModels, offHandModels);
 

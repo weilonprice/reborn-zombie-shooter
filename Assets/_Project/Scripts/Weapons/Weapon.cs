@@ -57,6 +57,7 @@ namespace ZombieShooter
         float nextFireTime;
         Coroutine reloadRoutine;
         Health ownerHealth;
+        CasingEjector casingEjector;
         WeaponStats stats;
         WeaponLoadout loadout;
 
@@ -127,6 +128,7 @@ namespace ZombieShooter
 
         void Awake()
         {
+            casingEjector = GetComponent<CasingEjector>();
             if (muzzle == null) muzzle = transform;
             ownerHealth = GetComponentInParent<Health>();
             loadout = GetComponent<WeaponLoadout>();
@@ -442,7 +444,8 @@ namespace ZombieShooter
             CameraShake.Instance?.AddTrauma(definition.FireTrauma + (crit ? 0.09f : 0f));
             CameraShake.Instance?.AddRecoil(-firingMuzzle.forward, definition.RecoilKick);
 
-            if (shellEject != null && definition.ShellsPerShot > 0)
+            if (casingEjector != null) casingEjector.Queue(definition, offHand);
+            else if (shellEject != null && definition.ShellsPerShot > 0)
                 shellEject.Emit(definition.ShellsPerShot);
 
             var origin = rayOrigin != null ? rayOrigin.position : transform.position;

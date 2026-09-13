@@ -1,0 +1,51 @@
+[
+  {
+    "weapon": "Pistol",
+    "length_m": 0.023,
+    "diameter_m": 0.012,
+    "triangles": 428,
+    "materials": 3
+  },
+  {
+    "weapon": "SMG",
+    "length_m": 0.019,
+    "diameter_m": 0.01,
+    "triangles": 428,
+    "materials": 3
+  },
+  {
+    "weapon": "AssaultRifle",
+    "length_m": 0.045,
+    "diameter_m": 0.01,
+    "triangles": 428,
+    "materials": 3
+  },
+  {
+    "weapon": "SniperRifle",
+    "length_m": 0.067,
+    "diameter_m": 0.013,
+    "triangles": 428,
+    "materials": 3
+  },
+  {
+    "weapon": "Shotgun",
+    "length_m": 0.07,
+    "diameter_m": 0.02,
+    "triangles": 428,
+    "materials": 3
+  },
+  {
+    "weapon": "GrenadeLauncher",
+    "length_m": 0.048,
+    "diameter_m": 0.042,
+    "triangles": 428,
+    "materials": 3
+  },
+  {
+    "weapon": "SiphonRifle",
+    "length_m": 0.051,
+    "diameter_m": 0.012,
+    "triangles": 428,
+    "materials": 3
+  }
+]

@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5031362e005314dc79e3310860ee2b29, type: 3}
+  m_Name: CASE_Shotgun
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.CasingDefinition
+  mesh: {fileID: 4300000, guid: 9079f5a74db7f432c931bf8a1e49f72c, type: 2}
+  materials:
+  - {fileID: 2100000, guid: b46342d03c59c494a9bd3488da4294f0, type: 2}
+  - {fileID: 2100000, guid: a62b3921631604ce49764799689f65ff, type: 2}
+  - {fileID: 2100000, guid: 65f26726f4fc74fb9bc31e9153002027, type: 2}
+  floorImpacts:
+  - {fileID: 8300000, guid: b0b04cbb4fa114055ad54dcde9ad5e31, type: 3}
+  - {fileID: 8300000, guid: 8ff5e1c6caeb04d63a36c97152da44ba, type: 3}
+  - {fileID: 8300000, guid: 7cd69cd5b0c614c97a08089e43265d7b, type: 3}
+  displayScale: 3.2
+  diameter: 0.02
+  bounce: 0.23
+  impactVolume: 0.28

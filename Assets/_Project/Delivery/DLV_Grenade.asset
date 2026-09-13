@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cc0bc5c0f0cf94c859d590b2e8a94734, type: 3}
   m_Name: DLV_Grenade
   m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.ProjectileDelivery
-  projectilePrefab: {fileID: 957904137921843612, guid: f6bc569280f4945aabf2bc084334bc98, type: 3}
+  projectilePrefab: {fileID: 7162715031585438150, guid: f6bc569280f4945aabf2bc084334bc98, type: 3}
   blastRadius: 4.5
   spawnOffset: 0.6

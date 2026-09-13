@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5031362e005314dc79e3310860ee2b29, type: 3}
+  m_Name: CASE_SniperRifle
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.CasingDefinition
+  mesh: {fileID: 4300000, guid: 5b2200bbf1efd4f76badda91cd61c1ca, type: 2}
+  materials:
+  - {fileID: 2100000, guid: acbe9c41cdfde49109046dfd4d0dd024, type: 2}
+  - {fileID: 2100000, guid: 466205dad7d754040be7bcb150e999be, type: 2}
+  - {fileID: 2100000, guid: 05e13033dd7f044dc8d31f3913bde4c7, type: 2}
+  floorImpacts:
+  - {fileID: 8300000, guid: 7c0ba8cc61c9947568f49806de41a79b, type: 3}
+  - {fileID: 8300000, guid: 394a5db8db66948e8a1c189108de329e, type: 3}
+  - {fileID: 8300000, guid: 1d822f7fa85614032a6717e9710cfc9a, type: 3}
+  displayScale: 3.2
+  diameter: 0.013
+  bounce: 0.38
+  impactVolume: 0.24

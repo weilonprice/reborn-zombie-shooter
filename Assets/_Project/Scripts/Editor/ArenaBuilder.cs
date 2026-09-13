@@ -886,6 +886,7 @@ namespace ZombieShooter.EditorTools
 
             BuildWeaponVisuals(player, loadout, arsenal, gun.transform, offHandGun.transform,
                                muzzle, offHandMuzzle, ejectPort);
+            CasingSetup.ConfigurePlayer(player);
 
             var weaponAnimator = player.AddComponent<WeaponAnimator>();
             using (var f = new Fields(weaponAnimator))
@@ -4334,6 +4335,25 @@ namespace ZombieShooter.EditorTools
             LoadOrCreateDelivery<ChainDelivery>("DLV_Tesla", f => f
                 .I("bounces", 3).F("hopRange", 8f).F("damagePerHop", 0.8f));
 
+            RepairGrenadeProjectileReference();
+        }
+
+        [MenuItem("Tools/Zombie Shooter/Repair Grenade Projectile Reference")]
+        public static void RepairGrenadeProjectileReference()
+        {
+            // Rebuilding the prefab can change its component file ID while the delivery
+            // asset survives. Repair that broken link without overwriting delivery tuning.
+            var delivery = LoadDelivery("DLV_Grenade") as ProjectileDelivery;
+            if (delivery == null) return;
+            var fields = new SerializedObject(delivery);
+            var reference = fields.FindProperty("projectilePrefab");
+            if (reference.objectReferenceValue != null) return;
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(WeaponProjectilePrefabPath);
+            var projectile = prefab != null ? prefab.GetComponent<WeaponProjectile>() : null;
+            if (projectile == null) throw new System.InvalidOperationException("Missing weapon projectile prefab.");
+            reference.objectReferenceValue = projectile;
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.SaveAssets();
         }
 
         static WeaponDefinition LoadOrCreateWeapon(string fileName, System.Action<Fields> configure)
