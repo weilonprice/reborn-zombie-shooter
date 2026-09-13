@@ -24,6 +24,10 @@ namespace ZombieShooter
         {
             firstImpact = Vector3.zero;
 
+            // Hit zones ride on animated bones, and with autoSyncTransforms off PhysX still
+            // has them where they were at the last physics step. Once per shot, not per pellet.
+            PhysicsSync.EnsureThisFrame();
+
             bool anyHit = false;
             int pellets = shot.PelletCount;
 
@@ -67,6 +71,15 @@ namespace ZombieShooter
                 for (int i = 0; i < count; i++)
                 {
                     var hit = HitBuffer[i];
+
+                    // A CharacterController is sized for walking, not for being shot: the
+                    // zombie's is 0.42m across where its torso is barely 0.30m. Leaving it in
+                    // the mask is what made shots register beside the body.
+                    // Only skipped when the body has zones to be hit through instead -
+                    // skipping it unconditionally made anything without them bulletproof.
+                    if (hit.collider is CharacterController && HitZoneSet.Covers(hit.collider))
+                        continue;
+
                     var target = hit.collider.GetComponentInParent<IDamageable>();
 
                     if (target == null)

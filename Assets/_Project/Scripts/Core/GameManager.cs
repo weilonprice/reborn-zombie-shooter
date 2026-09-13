@@ -21,6 +21,11 @@ namespace ZombieShooter
 
         [SerializeField] Health playerHealth;
 
+        [Tooltip("Gold the run starts with. Zero is the real game. Anything above it is a " +
+                 "test harness for reaching the Armory without playing fifteen waves, and " +
+                 "it short-circuits the economy the upgrade paths are priced against.")]
+        [SerializeField] int startingGold;
+
         public GameState State { get; private set; } = GameState.Playing;
         public int Score { get; private set; }
         public int Kills { get; private set; }
@@ -52,6 +57,18 @@ namespace ZombieShooter
                 playerHealth.Died += OnPlayerDied;
             else
                 Debug.LogWarning($"{nameof(GameManager)}: no player Health found; game over will never trigger.", this);
+
+            if (startingGold <= 0) return;
+
+            Gold = startingGold;
+            GoldChanged?.Invoke(Gold);
+
+            // Loud on purpose. A run seeded with gold cannot tell you anything about whether
+            // the economy works, and this is exactly the setting that gets left on and then
+            // quietly invalidates a balance pass.
+            Debug.LogWarning($"{nameof(GameManager)}: TEST BUILD - starting with {startingGold} " +
+                             "gold. Set GameManager.startingGold to 0 in ArenaBuilder before " +
+                             "judging pricing, income or which weapon a run can afford.", this);
         }
 
         void OnDestroy()

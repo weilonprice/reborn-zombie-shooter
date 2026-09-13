@@ -8,6 +8,7 @@ namespace ZombieShooter
     /// visual clips and keeps root motion disabled so the collider never fights the rig.
     /// </summary>
     [RequireComponent(typeof(Health))]
+    [DefaultExecutionOrder(-10)]
     public class PlayerAnimator : MonoBehaviour
     {
         [SerializeField] Animator animator;
@@ -19,6 +20,29 @@ namespace ZombieShooter
         [SerializeField] float reloadDuration = 1.90f;
         [SerializeField] float getShotDuration = 0.77f;
         [SerializeField] float staggerDuration = 1.43f;
+
+        [Header("Stride")]
+        [Tooltip("Metres per second the Walk clip was authored to cover. Measured off the " +
+                 "source: 0.790m of foot travel over a 1.133s cycle, two steps per cycle.")]
+        [SerializeField] float walkClipSpeed = 1.39f;
+        [Tooltip("Metres per second the Run clip was authored to cover: 1.052m of foot " +
+                 "travel over a 0.767s cycle. The survivor actually moves at 7.")]
+        [SerializeField] float runClipSpeed = 2.74f;
+        [SerializeField] Vector2 strideRange = new(0.6f, 3.2f);
+
+        [Header("Lower body")]
+        [Tooltip("How far the hips may turn away from the aim to follow the direction of " +
+                 "travel. Zero restores the old behaviour: legs always point where the gun " +
+                 "points, and the survivor slides sideways.")]
+        [SerializeField, Range(0f, 90f)] float maxHipTurn = 90f;
+        [Tooltip("Degrees per second the hips turn. Low values read as the survivor " +
+                 "planting a foot; high values snap.")]
+        [SerializeField] float hipTurnSpeed = 720f;
+
+        [Tooltip("Logs every base-layer state change with a timestamp. Turn on for one run " +
+                 "if the legs ever stop: the console then says exactly what they went to " +
+                 "and when.")]
+        [SerializeField] bool logLegStates;
 
         [Header("Reactions")]
         [SerializeField, Range(0.05f, 1f)] float heavyHealthFraction = 0.40f;
@@ -42,6 +66,12 @@ namespace ZombieShooter
         const int UpperLayer = 1;
 
         static readonly int ReloadSpeed = Animator.StringToHash("ReloadSpeed");
+        static readonly int LocomotionSpeed = Animator.StringToHash("LocomotionSpeed");
+
+        [SerializeField] PlayerController movement;
+        Transform pelvis;
+        Transform spine;
+        float hipTurn;
 
         float upperLockedUntil;
         bool dead;
@@ -54,6 +84,58 @@ namespace ZombieShooter
             if (health == null) health = GetComponent<Health>();
             if (weapon == null) weapon = GetComponent<Weapon>();
             if (animator == null) animator = GetComponentInChildren<Animator>(true);
+            if (movement == null) movement = GetComponent<PlayerController>();
+
+            if (animator != null)
+            {
+                pelvis = PlayerWeaponGrip.Find(animator.transform, "Pelvis");
+                spine = PlayerWeaponGrip.Find(animator.transform, "Spine");
+            }
+        }
+
+        /// <summary>
+        /// Turns the hips toward the direction the survivor is actually travelling, and
+        /// unwinds the same angle at the spine so the torso keeps facing the aim.
+        /// <para>
+        /// Facing and movement are independent in a twin-stick game, but there are only
+        /// three locomotion clips and all three run FORWARD. Aim left while walking north
+        /// and the survivor played a forward run pointed left while sliding north - which
+        /// reads exactly as reported from play: the legs stop meaning anything and the
+        /// character floats. Strafe clips would be the other fix; this one needs no new art
+        /// and stays correct at every angle rather than at four of them.
+        /// </para>
+        /// <para>
+        /// Legs hang off Pelvis and everything else hangs off Spine, so two bones is the
+        /// whole correction. It has to happen in LateUpdate, after the Animator has written
+        /// the authored pose, and before WeaponVisuals solves the grip - hence the execution
+        /// order on both.
+        /// </para>
+        /// </summary>
+        void LateUpdate()
+        {
+            if (pelvis == null || spine == null) return;
+
+            float wanted = 0f;
+
+            // Dead, mid-ultimate, or standing still: unwind to neutral rather than holding
+            // a twist. A corpse with its hips cocked ninety degrees is worse than no fix.
+            if (!dead && !ultimatePose && movement != null)
+            {
+                var travel = movement.Velocity;
+                travel.y = 0f;
+
+                if (travel.sqrMagnitude > 0.04f)
+                    wanted = Mathf.Clamp(
+                        Vector3.SignedAngle(transform.forward, travel.normalized, Vector3.up),
+                        -maxHipTurn, maxHipTurn);
+            }
+
+            hipTurn = Mathf.MoveTowardsAngle(hipTurn, wanted, hipTurnSpeed * Time.deltaTime);
+            if (Mathf.Abs(hipTurn) < 0.01f) return;
+
+            var turn = Quaternion.AngleAxis(hipTurn, Vector3.up);
+            pelvis.rotation = turn * pelvis.rotation;
+            spine.rotation = Quaternion.AngleAxis(-hipTurn, Vector3.up) * spine.rotation;
         }
 
         void OnEnable()
@@ -125,16 +207,37 @@ namespace ZombieShooter
             DriveArms();
         }
 
-        /// <summary>Never locked. The legs answer to movement and nothing else.</summary>
+        /// <summary>
+        /// Never locked. The legs answer to movement and nothing else.
+        /// <para>
+        /// The clip is also fitted to the distance actually being covered. Walk and Run are
+        /// authored at a fixed stride - 1.39 and 2.74 m/s, measured off the source rather
+        /// than estimated - and the survivor moves at 7. Played at their authored rate the
+        /// feet plant and the body glides past them, which is the walk-then-float that came
+        /// back from play: the legs were animating the whole time, just far too slowly for
+        /// the ground being covered.
+        /// </para>
+        /// </summary>
         void DriveLegs()
         {
-            float speed = InputReader.Move.sqrMagnitude;
+            float input = InputReader.Move.sqrMagnitude;
 
-            string wanted = speed > 0.55f ? Run
-                          : speed > 0.02f ? Walk
+            string wanted = input > 0.55f ? Run
+                          : input > 0.02f ? Walk
                           : Idle;
 
             Play(wanted, 0.10f, BaseLayer, ref baseState);
+
+            float travelled = movement != null
+                ? new Vector2(movement.Velocity.x, movement.Velocity.z).magnitude
+                : 0f;
+
+            float authored = wanted == Run ? runClipSpeed : walkClipSpeed;
+            float stride = wanted == Idle || authored <= 0.01f
+                ? 1f
+                : Mathf.Clamp(travelled / authored, strideRange.x, strideRange.y);
+
+            animator.SetFloat(LocomotionSpeed, stride);
         }
 
         void DriveArms()
@@ -197,12 +300,45 @@ namespace ZombieShooter
             }
         }
 
+        /// <summary>
+        /// Asks the animator what it is actually playing rather than trusting a cached name.
+        /// <para>
+        /// The cache alone is why the legs could stop for good. `current` recorded what was
+        /// last REQUESTED, so once anything knocked the layer off that state - an interrupted
+        /// crossfade, a clip that ended, a stray Play - every later frame compared equal,
+        /// returned early, and never asked again. The layer stayed wrong until the next time
+        /// the player changed speed, and standing in one state is exactly when that does not
+        /// happen. Verifying against the animator makes it self-healing within a frame.
+        /// </para>
+        /// </summary>
         void Play(string state, float fade, int layer, ref string current)
         {
-            if (animator == null || dead || current == state) return;
+            if (animator == null || dead) return;
+            if (current == state && IsPlaying(state, layer)) return;
 
             animator.CrossFadeInFixedTime(state, fade, layer, 0f);
             current = state;
+
+            if (logLegStates && layer == BaseLayer)
+                Debug.Log($"PlayerAnimator: base layer -> {state} at {Time.time:F2}s");
+        }
+
+        bool IsPlaying(string state, int layer)
+        {
+            if (layer >= animator.layerCount) return true;
+
+            // Mid-transition the destination is what matters; arriving there is not a reason
+            // to restart the crossfade.
+            if (animator.IsInTransition(layer))
+                return animator.GetNextAnimatorStateInfo(layer).IsName(state);
+
+            var info = animator.GetCurrentAnimatorStateInfo(layer);
+            if (!info.IsName(state)) return false;
+
+            // A looping clip that has been left to run is fine. A one-shot that has played
+            // out is holding its last frame, which on the legs is indistinguishable from
+            // the character sliding with no animation at all.
+            return info.loop || info.normalizedTime < 1f;
         }
     }
 }

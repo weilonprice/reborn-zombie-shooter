@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace ZombieShooter
@@ -225,6 +226,8 @@ namespace ZombieShooter
 
         Barricade CheckForBlockingBarricade()
         {
+            using var _ = BarricadeSenseMarker.Auto();
+
             var origin = transform.position + Vector3.up * 0.5f;
             var dir = transform.forward;
             int count = Physics.SphereCastNonAlloc(origin, 0.35f, dir, ObstacleHits, attackRange, ~0, QueryTriggerInteraction.Ignore);
@@ -305,8 +308,15 @@ namespace ZombieShooter
             }
         }
 
+        // Named so a profile can attribute cost rather than guess at it. ProfilerMarker
+        // compiles out of release players, so this is free where it is not being measured.
+        static readonly ProfilerMarker SeparationMarker = new("ZombieAI.Separation");
+        static readonly ProfilerMarker BarricadeSenseMarker = new("ZombieAI.BarricadeSense");
+
         Vector3 Separation()
         {
+            using var _ = SeparationMarker.Auto();
+
             var push = Vector3.zero;
             float radiusSqr = separationRadius * separationRadius;
 

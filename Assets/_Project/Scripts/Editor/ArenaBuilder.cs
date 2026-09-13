@@ -48,6 +48,18 @@ namespace ZombieShooter.EditorTools
 
         // 90x90. Enlarged 2026-09-08 to give killbox construction room to breathe -
         // barricade funnels need space to be a choice rather than a formality.
+        /// <summary>
+        /// SET THIS BACK TO 0 BEFORE JUDGING BALANCE.
+        /// <para>
+        /// Gold the run starts with, so the Armory can be reached without playing fifteen
+        /// waves. A maxed upgrade path costs 3,360 against roughly 6,580 of run income, and
+        /// the whole design of one-weapon-per-run rests on that ratio - a seeded run can tell
+        /// you how a weapon FEELS, and nothing at all about whether the economy works.
+        /// GameManager logs a warning every time this is non-zero.
+        /// </para>
+        /// </summary>
+        const int TestStartingGold = 10000;
+
         const float ArenaHalfSize = 45f;
         /// <summary>Deployables stay this far inside the walls.</summary>
         const float PlacementMargin = 3f;
@@ -75,7 +87,7 @@ namespace ZombieShooter.EditorTools
             // path only after the scene exists.
 
             // Pass 1 - generate assets.
-            CreateMaterial("M_Ground", new Color(0.20f, 0.21f, 0.23f));
+            CreateGroundMaterial();
             CreateMaterial("M_Wall", new Color(0.32f, 0.33f, 0.36f));
             CreateMaterial("M_Player", new Color(0.25f, 0.65f, 1.00f));
             CreateMaterial("M_Gun", new Color(0.90f, 0.90f, 0.95f));
@@ -370,14 +382,92 @@ namespace ZombieShooter.EditorTools
             wall.GetComponent<MeshRenderer>().sharedMaterial = mat;
         }
 
-        static readonly Dictionary<string, Vector3> BuildingSourceDimensions =
-            new Dictionary<string, Vector3>
+        /// <summary>
+        /// Size of each building's walls, measured off the asset rather than written down.
+        /// <para>
+        /// This used to be a hand-maintained table, and it had drifted: the shack was listed
+        /// 7.13m tall against an actual 6.25m and the warehouse 9.43m against 8.17m, because
+        /// both were regenerated when the peaked roof was fixed and the numbers were not.
+        /// Anything derived from those figures - the scale a footprint is fitted to, and the
+        /// collider - was wrong by however far the table had drifted.
+        /// </para>
+        /// </summary>
+        static readonly Dictionary<string, Bounds> BuildingWallBounds = new();
+
+        /// <summary>
+        /// Only the part of a building that is wall. Above this fraction of its height is
+        /// roof, eaves and awning, which overhang the walls and must not block a player
+        /// walking past underneath.
+        /// </summary>
+        const float BuildingWallFraction = 0.8f;
+
+        /// <summary>
+        /// Local-space bounds of a building's walls, cached per art name. Measured from the
+        /// vertices below <see cref="BuildingWallFraction"/> of the model's height, so the
+        /// box is the thing that can be walked into rather than the thing that casts a
+        /// shadow - and so it is centred where the mesh actually is. The old box assumed a
+        /// centre of zero on both horizontal axes; the apartment block's is 0.55m off, which
+        /// put wall outside the collider on one side and collider outside the wall on the
+        /// other. That is one bug presenting as two.
+        /// </summary>
+        static bool TryGetBuildingWallBounds(string artName, out Bounds bounds)
+        {
+            if (BuildingWallBounds.TryGetValue(artName, out bounds)) return bounds.size.sqrMagnitude > 0f;
+
+            bounds = new Bounds();
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(
+                $"{Root}/Art/Buildings/{artName}/{artName}.fbx");
+
+            if (asset != null)
             {
-                { "Shack", new Vector3(8.95f, 7.13f, 7.27f) },
-                { "Storefront", new Vector3(12.54f, 5.21f, 8.85f) },
-                { "Warehouse", new Vector3(16.55f, 9.43f, 10.36f) },
-                { "ApartmentBlock", new Vector3(10.54f, 9.41f, 9.81f) },
-            };
+                var toRoot = asset.transform.worldToLocalMatrix;
+                var whole = new Bounds();
+                bool any = false;
+
+                foreach (var filter in asset.GetComponentsInChildren<MeshFilter>(true))
+                {
+                    if (filter.sharedMesh == null) continue;
+                    var matrix = toRoot * filter.transform.localToWorldMatrix;
+
+                    foreach (var vertex in filter.sharedMesh.vertices)
+                    {
+                        var local = matrix.MultiplyPoint3x4(vertex);
+                        if (!any) { whole = new Bounds(local, Vector3.zero); any = true; }
+                        else whole.Encapsulate(local);
+                    }
+                }
+
+                if (any)
+                {
+                    float ceiling = whole.min.y + whole.size.y * BuildingWallFraction;
+                    var walls = new Bounds();
+                    bool wallFound = false;
+
+                    foreach (var filter in asset.GetComponentsInChildren<MeshFilter>(true))
+                    {
+                        if (filter.sharedMesh == null) continue;
+                        var matrix = toRoot * filter.transform.localToWorldMatrix;
+
+                        foreach (var vertex in filter.sharedMesh.vertices)
+                        {
+                            var local = matrix.MultiplyPoint3x4(vertex);
+                            if (local.y > ceiling) continue;
+                            if (!wallFound) { walls = new Bounds(local, Vector3.zero); wallFound = true; }
+                            else walls.Encapsulate(local);
+                        }
+                    }
+
+                    // Keep the full height: the walls stop at the eaves but the building is
+                    // still solid up to its roof, and nothing walks over it.
+                    bounds = wallFound ? walls : whole;
+                    bounds.Encapsulate(new Vector3(bounds.center.x, whole.max.y, bounds.center.z));
+                    bounds.Encapsulate(new Vector3(bounds.center.x, whole.min.y, bounds.center.z));
+                }
+            }
+
+            BuildingWallBounds[artName] = bounds;
+            return bounds.size.sqrMagnitude > 0f;
+        }
 
         /// <summary>
         /// Covers one layout block with buildings, tiling along its long axis rather than
@@ -432,12 +522,6 @@ namespace ZombieShooter.EditorTools
         const float BuildingRunPerUnit = 9f;
 
         /// <summary>
-        /// How much of a building's measured footprint is actual wall. Roof overhang and
-        /// debris push the bounds wider than the thing the player can walk into.
-        /// </summary>
-        const float WallInsetFromBounds = 0.88f;
-
-        /// <summary>
         /// Picks a building for a footprint, varying by index so a terrace is not one mesh
         /// repeated down its whole length.
         /// <para>
@@ -456,7 +540,8 @@ namespace ZombieShooter.EditorTools
 
             foreach (var option in options)
             {
-                if (!BuildingSourceDimensions.TryGetValue(option, out var source)) continue;
+                if (!TryGetBuildingWallBounds(option, out var bounds)) continue;
+                var source = bounds.size;
 
                 float sx = Mathf.Max(size.x, 0.8f) / source.x;
                 float sz = Mathf.Max(size.z, 0.8f) / source.z;
@@ -477,9 +562,10 @@ namespace ZombieShooter.EditorTools
 
         static Vector3 BuildingScaleForFootprint(string artName, Vector3 footprint)
         {
-            if (!BuildingSourceDimensions.TryGetValue(artName, out var source))
+            if (!TryGetBuildingWallBounds(artName, out var sourceBounds))
                 return Vector3.one;
 
+            var source = sourceBounds.size;
             float sx = Mathf.Max(footprint.x, 0.8f) / source.x;
             float sz = Mathf.Max(footprint.z, 0.8f) / source.z;
             // Thin corridor buildings stay readable without making tiny Warren props tower
@@ -518,17 +604,21 @@ namespace ZombieShooter.EditorTools
             // One box per building, and it is the only collider. Sized to the walls rather
             // than to the mesh bounds: bounds include the roof overhang, which would block
             // movement in the open air beside the building.
-            if (BuildingSourceDimensions.TryGetValue(artName, out var sourceDimensions))
+            if (TryGetBuildingWallBounds(artName, out var wallBounds))
             {
                 var cover = building.GetComponent<BoxCollider>();
                 if (cover == null) cover = building.AddComponent<BoxCollider>();
 
-                var walls = new Vector3(sourceDimensions.x * WallInsetFromBounds,
-                                        sourceDimensions.y,
-                                        sourceDimensions.z * WallInsetFromBounds);
-
-                cover.center = new Vector3(0f, walls.y * 0.5f, 0f);
-                cover.size = walls;
+                // Measured, and centred where the mesh actually is. Both of those were wrong
+                // before: the size came from a table that had drifted, and the centre was
+                // assumed to be zero when the apartment block's is 0.55m off its own origin.
+                cover.center = wallBounds.center;
+                cover.size = wallBounds.size;
+            }
+            else
+            {
+                Debug.LogWarning($"ArenaBuilder: could not measure '{artName}', so it has no " +
+                                 "collider and everything walks straight through it.");
             }
         }
 
@@ -767,6 +857,11 @@ namespace ZombieShooter.EditorTools
                     f.Obj("animator", characterAnimator)
                      .Obj("health", health)
                      .Obj("weapon", weapon)
+                     .Obj("movement", move)
+                     // Legs follow travel rather than aim. Zero this to see the bug it
+                     // fixes: aim across your direction of travel and the survivor floats.
+                     .F("maxHipTurn", 90f)
+                     .F("hipTurnSpeed", 720f)
                      .F("fireDuration", 0.37f)
                      .F("reloadDuration", 1.90f)
                      .F("getShotDuration", 0.77f)
@@ -791,6 +886,14 @@ namespace ZombieShooter.EditorTools
 
             BuildWeaponVisuals(player, loadout, arsenal, gun.transform, offHandGun.transform,
                                muzzle, offHandMuzzle, ejectPort);
+            CasingSetup.ConfigurePlayer(player);
+
+            // Authored into the player here rather than added by WeaponVisuals at runtime.
+            // ArenaBuilder owns the scene, so a component that only appears once the game is
+            // running is one the prefab cannot show and nobody can tune - and it put a
+            // generic visuals component in the business of knowing about one weapon.
+            if (player.GetComponent<FlamethrowerEffects>() == null)
+                player.AddComponent<FlamethrowerEffects>();
 
             var weaponAnimator = player.AddComponent<WeaponAnimator>();
             using (var f = new Fields(weaponAnimator))
@@ -941,6 +1044,7 @@ namespace ZombieShooter.EditorTools
         }
 
         public const string ReloadSpeedParameter = "ReloadSpeed";
+        public const string LocomotionSpeedParameter = "LocomotionSpeed";
 
         static void EnsureFloatParameter(AnimatorController controller, string name)
         {
@@ -1028,6 +1132,16 @@ namespace ZombieShooter.EditorTools
                     EnsureFloatParameter(controller, ReloadSpeedParameter);
                     state.speedParameterActive = true;
                     state.speedParameter = ReloadSpeedParameter;
+                }
+
+                // Walk and Run are authored at a fixed stride and the survivor moves at 7m/s,
+                // which is 2.6x the run clip's own 2.74m/s. Left alone the feet plant and the
+                // body glides straight past them - measured, not guessed: see PlayerAnimator.
+                if (wanted[i] == "Walk" || wanted[i] == "Run")
+                {
+                    EnsureFloatParameter(controller, LocomotionSpeedParameter);
+                    state.speedParameterActive = true;
+                    state.speedParameter = LocomotionSpeedParameter;
                 }
             }
 
@@ -1209,6 +1323,11 @@ namespace ZombieShooter.EditorTools
                     animator.runtimeAnimatorController = LoadOrCreateNormalZombieController();
                     animator.applyRootMotion = false;
 
+                    // Reimporting the FBX above can restore the connected instance's root
+                    // transform. Apply and record the placement after that refresh.
+                    model.transform.localPosition = new Vector3(0f, -controller.height * 0.5f, 0f);
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(model.transform);
+
                     TuneForHorde(model);
 
                     var driver = zombie.AddComponent<ZombieAnimator>();
@@ -1229,7 +1348,7 @@ namespace ZombieShooter.EditorTools
                     using (var f = new Fields(ai)) f.F("deathLinger", 0.75f);
 
                     // The authored mesh is far wider than the capsule that walks it around.
-                    AddLimbHitbox(zombie, controller.height, model.transform.localScale);
+                    AddHitZones(zombie, model.transform);
                 }
             }
             else
@@ -1784,33 +1903,173 @@ namespace ZombieShooter.EditorTools
         /// reaches both and the delivery pays out the better of the two.
         /// </para>
         /// </summary>
-        internal static void AddLimbHitbox(GameObject root, float controllerHeight,
-                                           Vector3 modelScale)
+        /// <summary>
+        /// Hit zones on the actual bones, so a shot connects with the body the player can see
+        /// rather than with a shape drawn near it.
+        /// <para>
+        /// The first version was one fat capsule around the whole torso. It fixed the arms
+        /// being unhittable and introduced the opposite complaint from play: a 0.60m radius
+        /// is round, the zombie's torso is barely 0.30m across, and the difference is air
+        /// that registered as a hit. Bone-mounted spheres follow the animation instead, so
+        /// reach forward and the reach is what gets shot.
+        /// </para>
+        /// <para>
+        /// Spheres rather than capsules on purpose. A capsule needs its direction to match
+        /// the bone's length axis, which differs per rig and per exporter, and a wrong guess
+        /// leaves every limb wearing a collider across it instead of along it. A sphere has
+        /// no orientation to get wrong.
+        /// </para>
+        /// <para>
+        /// Only the chest band is covered, because that is the only band a shot can be in:
+        /// the hit ray leaves the player's centre at PlayerRayHeight and travels flat.
+        /// </para>
+        /// </summary>
+        /// <summary>
+        /// Hit zones along the actual bones, so a shot connects with the body the player can
+        /// see rather than with a shape drawn near it.
+        /// <para>
+        /// Three versions of this now. One fat capsule around the torso fixed the arms being
+        /// unhittable and made shots register in mid-air. Spheres pinned to each bone's head
+        /// fixed that and left the arms 40% covered - a 0.14m ball on a 0.35m upper arm,
+        /// nothing at all on the hand - so bullets went through the limb between the joints.
+        /// This covers each SEGMENT, joint to joint.
+        /// </para>
+        /// <para>
+        /// A capsule needs its direction to match the bone's length axis, which is why the
+        /// last version avoided them. It is not a guess though: the child joint's position
+        /// measured in the parent's local space IS the axis, so the builder reads it off the
+        /// rig and only falls back to a string of spheres when no axis is dominant enough to
+        /// trust. Rigs that behave cost one collider per limb; strange ones still get covered.
+        /// </para>
+        /// </summary>
+        internal static void AddHitZones(GameObject root, Transform model)
         {
-            // InstallOnEnemy runs again over prefabs that already exist, and its own menu
-            // item re-runs it on demand. Authoring a second capsule each time would stack
-            // damage zones on one body.
             if (root.transform.Find(LimbHitboxName) != null) return;
 
-            var zone = new GameObject(LimbHitboxName);
-            zone.transform.SetParent(root.transform, false);
+            var zones = new GameObject(LimbHitboxName);
+            zones.transform.SetParent(root.transform, false);
 
-            var capsule = zone.AddComponent<CapsuleCollider>();
-            capsule.isTrigger = true;
-            capsule.direction = 1;
+            // joint, next joint along, radius, damage.
+            var segments = new (string from, string to, float radius, float multiplier)[]
+            {
+                ("Spine",      "Chest",     0.25f, 1f),
+                ("Chest",      "Neck",      0.26f, 1f),
+                ("Head",       null,        0.19f, 1f),
+                ("UpperArm.L", "Forearm.L", 0.13f, LimbDamageScale),
+                ("UpperArm.R", "Forearm.R", 0.13f, LimbDamageScale),
+                ("Forearm.L",  "Hand.L",    0.11f, LimbDamageScale),
+                ("Forearm.R",  "Hand.R",    0.11f, LimbDamageScale),
+                ("Hand.L",     null,        0.10f, LimbDamageScale),
+                ("Hand.R",     null,        0.10f, LimbDamageScale),
+            };
 
-            // Widest of the two horizontal axes, because the capsule is round and the player
-            // aims across it. The Screamer is the only archetype squeezed on one axis.
-            float lateral = Mathf.Max(modelScale.x, modelScale.z);
-            capsule.radius = ZombieLimbRadius * lateral;
-            capsule.height = 1.3f * modelScale.y;
+            int made = 0, colliders = 0;
+            foreach (var (from, to, radius, multiplier) in segments)
+            {
+                var joint = model != null ? FindDeep(model, from) : null;
+                if (joint == null) continue;
 
-            // Chest height in model space, against a pivot that sits at the controller's
-            // centre rather than at the feet.
-            capsule.center = new Vector3(0f, 1.2f * modelScale.y - controllerHeight * 0.5f, 0f);
+                var next = to != null ? FindDeep(model, to) : null;
+                int added = MountHitZone(joint, next, radius, multiplier, from);
+                if (added <= 0) continue;
 
-            using (var f = new Fields(zone.AddComponent<Hitbox>()))
-                f.F("damageMultiplier", LimbDamageScale);
+                made++;
+                colliders += added;
+            }
+
+            // Worth saying out loud. Nine zones is the capsule path; a much larger number
+            // means the rig's bones do not run along a local axis and every limb fell back
+            // to beads, which is correct but multiplies collider count across a sixty-strong
+            // horde. That is debt 6 territory and should be measured, not assumed.
+            if (colliders > made * 2)
+                Debug.LogWarning($"ArenaBuilder: '{root.name}' needed {colliders} colliders for " +
+                                 $"{made} hit zones - its bones are not axis-aligned, so each " +
+                                 "limb is a string of spheres. Correct, but costly in a horde.");
+
+            if (made == 0)
+            {
+                Debug.LogError($"ArenaBuilder: '{root.name}' has no rig bones to hang hit zones " +
+                               "on. It stays hittable through its movement capsule, but at " +
+                               "capsule accuracy - check the model was installed first.");
+                Object.DestroyImmediate(zones);
+                return;
+            }
+
+            // Only now is it safe for weapon fire to ignore this body's movement capsule.
+            if (root.GetComponent<HitZoneSet>() == null) root.AddComponent<HitZoneSet>();
+        }
+
+        /// <summary>
+        /// Covers one bone, out to <paramref name="next"/> when there is one.
+        /// Returns how many colliders it took.
+        /// </summary>
+        static int MountHitZone(Transform joint, Transform next, float radius,
+                                float multiplier, string label)
+        {
+            var zone = new GameObject($"Hit_{label}");
+            zone.transform.SetParent(joint, false);
+            zone.transform.localPosition = Vector3.zero;
+            zone.transform.localRotation = Quaternion.identity;
+            zone.transform.localScale = Vector3.one;
+
+            int colliders = Shape(zone, joint, next, radius);
+
+            // Hitbox goes on AFTER the colliders, and that ordering is not cosmetic. Hitbox
+            // declares RequireComponent(typeof(Collider)); Collider is abstract, so Unity
+            // cannot manufacture one to satisfy it and AddComponent simply returns null.
+            // Adding it first threw inside Fields on a null target, which is a confusing way
+            // to be told the component was never created.
+            var hitbox = zone.AddComponent<Hitbox>();
+            using (var f = new Fields(hitbox)) f.F("damageMultiplier", multiplier);
+
+            return colliders;
+        }
+
+        /// <summary>Puts collider volume on a zone and says how many it took.</summary>
+        static int Shape(GameObject zone, Transform joint, Transform next, float radius)
+        {
+            // A tip joint - head, hand - has nothing past it, so one ball is the whole zone.
+            var tip = next != null ? joint.InverseTransformPoint(next.position) : Vector3.zero;
+            float length = next != null ? tip.magnitude : 0f;
+
+            if (next == null || length < 0.01f)
+            {
+                var ball = zone.AddComponent<SphereCollider>();
+                ball.isTrigger = true;
+                ball.radius = radius;
+                return 1;
+            }
+
+            var direction = tip / length;
+            int axis = 0;
+            for (int i = 1; i < 3; i++)
+                if (Mathf.Abs(direction[i]) > Mathf.Abs(direction[axis])) axis = i;
+
+            // Clearly along one local axis: one capsule covers the segment end to end.
+            if (Mathf.Abs(direction[axis]) > 0.9f)
+            {
+                var capsule = zone.AddComponent<CapsuleCollider>();
+                capsule.isTrigger = true;
+                capsule.direction = axis;
+                capsule.radius = radius;
+                capsule.height = length + radius * 2f;
+                capsule.center = tip * 0.5f;
+                return 1;
+            }
+
+            // Otherwise the bone runs diagonally through its own local space and a capsule
+            // would lie across the limb. Beads on a string instead - more colliders, but they
+            // cannot be oriented wrongly because they have no orientation.
+            int beads = Mathf.Max(2, Mathf.CeilToInt(length / Mathf.Max(0.01f, radius)));
+            for (int i = 0; i <= beads; i++)
+            {
+                var bead = zone.AddComponent<SphereCollider>();
+                bead.isTrigger = true;
+                bead.radius = radius;
+                bead.center = tip * (i / (float)beads);
+            }
+
+            return beads + 1;
         }
 
         static (GameObject go, Health health, ZombieAI ai) BuildMeleeArchetype(
@@ -2399,7 +2658,8 @@ namespace ZombieShooter.EditorTools
             var go = new GameObject("--- Systems ---");
 
             var gm = go.AddComponent<GameManager>();
-            using (var f = new Fields(gm)) f.Obj("playerHealth", player.GetComponent<Health>());
+            using (var f = new Fields(gm))
+                f.Obj("playerHealth", player.GetComponent<Health>()).I("startingGold", TestStartingGold);
 
             var armory = go.AddComponent<ArmoryManager>();
             using (var f = new Fields(armory))
@@ -3225,6 +3485,68 @@ namespace ZombieShooter.EditorTools
 
         // ---------------------------------------------------------------- assets
 
+        const string GroundAlbedoPath = Root + "/Art/Ground/Ground_Albedo.png";
+
+        /// <summary>Metres of arena each repeat of the ground texture covers.</summary>
+        const float GroundTileMetres = 24f;
+
+        /// <summary>
+        /// Warm dirt, muted grass and rocky patches, tiled every twenty-four metres.
+        /// Source artwork and restoration script live in ArtSource/Ground.
+        /// </summary>
+        static Material CreateGroundMaterial()
+        {
+            var flat = new Color(0.55f, 0.40f, 0.24f);
+            var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            var mat = new Material(shader) { name = "M_Ground" };
+            mat.SetFloat("_Smoothness", 0.04f);
+
+            ConfigureGroundTextureImport();
+            var albedo = AssetDatabase.LoadAssetAtPath<Texture2D>(GroundAlbedoPath);
+
+            if (albedo != null)
+            {
+                // White tint: the texture carries the value, and multiplying it by the old
+                // grey would darken the floor by the same amount twice.
+                mat.SetColor("_BaseColor", Color.white);
+                mat.SetColor("_Color", Color.white);
+                mat.SetTexture("_BaseMap", albedo);
+                mat.SetTexture("_MainTex", albedo);
+
+                var tiling = Vector2.one * (ArenaHalfSize * 2f / GroundTileMetres);
+                mat.SetTextureScale("_BaseMap", tiling);
+                mat.SetTextureScale("_MainTex", tiling);
+            }
+            else
+            {
+                mat.SetColor("_BaseColor", flat);
+                mat.SetColor("_Color", flat);
+                Debug.LogWarning($"ArenaBuilder: no ground texture at {GroundAlbedoPath}; " +
+                                 "falling back to tan dirt. Run ArtSource/Ground/build_ground.py.");
+            }
+
+            return SaveMaterial(mat, "M_Ground");
+        }
+
+        /// <summary>
+        /// Repeat wrapping and anisotropy, both of which matter here and nowhere else: the
+        /// floor is tiled three and three-quarter times across the arena and is viewed at a shallow
+        /// enough angle that without anisotropic filtering the far half turns to mush.
+        /// </summary>
+        static void ConfigureGroundTextureImport()
+        {
+            if (AssetImporter.GetAtPath(GroundAlbedoPath) is not TextureImporter importer) return;
+
+            bool changed = false;
+            if (importer.wrapMode != TextureWrapMode.Repeat) { importer.wrapMode = TextureWrapMode.Repeat; changed = true; }
+            if (importer.filterMode != FilterMode.Bilinear) { importer.filterMode = FilterMode.Bilinear; changed = true; }
+            if (importer.anisoLevel != 8) { importer.anisoLevel = 8; changed = true; }
+            if (!importer.mipmapEnabled) { importer.mipmapEnabled = true; changed = true; }
+            if (!importer.sRGBTexture) { importer.sRGBTexture = true; changed = true; }
+
+            if (changed) importer.SaveAndReimport();
+        }
+
         static Material CreateMaterial(string name, Color color)
         {
             var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
@@ -4013,6 +4335,25 @@ namespace ZombieShooter.EditorTools
             LoadOrCreateDelivery<ChainDelivery>("DLV_Tesla", f => f
                 .I("bounces", 3).F("hopRange", 8f).F("damagePerHop", 0.8f));
 
+            RepairGrenadeProjectileReference();
+        }
+
+        [MenuItem("Tools/Zombie Shooter/Repair Grenade Projectile Reference")]
+        public static void RepairGrenadeProjectileReference()
+        {
+            // Rebuilding the prefab can change its component file ID while the delivery
+            // asset survives. Repair that broken link without overwriting delivery tuning.
+            var delivery = LoadDelivery("DLV_Grenade") as ProjectileDelivery;
+            if (delivery == null) return;
+            var fields = new SerializedObject(delivery);
+            var reference = fields.FindProperty("projectilePrefab");
+            if (reference.objectReferenceValue != null) return;
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(WeaponProjectilePrefabPath);
+            var projectile = prefab != null ? prefab.GetComponent<WeaponProjectile>() : null;
+            if (projectile == null) throw new System.InvalidOperationException("Missing weapon projectile prefab.");
+            reference.objectReferenceValue = projectile;
+            fields.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.SaveAssets();
         }
 
         static WeaponDefinition LoadOrCreateWeapon(string fileName, System.Action<Fields> configure)
@@ -4172,6 +4513,18 @@ namespace ZombieShooter.EditorTools
 
             public Fields(Object target)
             {
+                // SerializedObject's own message for a null target is "Object at index 0 is
+                // null", which names neither the caller nor the reason. The usual reason is
+                // an AddComponent that quietly failed - most often a RequireComponent naming
+                // an abstract type, which Unity cannot satisfy and so refuses.
+                if (target == null)
+                    throw new System.ArgumentNullException(
+                        nameof(target),
+                        "Fields was handed a null target. If this came straight from " +
+                        "AddComponent, that call returned null - check the component for a " +
+                        "[RequireComponent] naming a type Unity cannot create, such as the " +
+                        "abstract Collider.");
+
                 owner = target;
                 so = new SerializedObject(target);
             }

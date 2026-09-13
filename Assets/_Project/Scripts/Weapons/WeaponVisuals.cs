@@ -12,6 +12,10 @@ namespace ZombieShooter
     /// until the model is shown.
     /// </para>
     /// </summary>
+    // Runs after PlayerAnimator, which turns the hips toward travel in its own LateUpdate.
+    // The grip solves arm IK from where the shoulders ended up, so it has to see the final
+    // pose - reverse the order and the arms are solved against last frame's body.
+    [DefaultExecutionOrder(50)]
     public class WeaponVisuals : MonoBehaviour
     {
         [SerializeField] WeaponLoadout loadout;
@@ -42,6 +46,11 @@ namespace ZombieShooter
         Animator shownOffHandAnimator;
         PlayerWeaponGrip grip;
         Transform[] offMuzzleSockets;
+        Transform[] offEjectSockets;
+
+        public Transform EjectionSocket(bool offHand) =>
+            offHand ? At(offEjectSockets, shown) : At(ejectSockets, shown);
+        public Transform MainMuzzleSocket => At(muzzleSockets, shown);
 
         /// <summary>Animator on the currently visible weapon model, if its FBX has one.</summary>
         public Animator CurrentAnimator => shownAnimator;
@@ -52,9 +61,13 @@ namespace ZombieShooter
         {
             if (loadout == null) loadout = GetComponent<WeaponLoadout>();
             offMuzzleSockets = new Transform[offHandModels?.Length ?? 0];
+            offEjectSockets = new Transform[offMuzzleSockets.Length];
             for (int i = 0; i < offMuzzleSockets.Length; i++)
                 if (offHandModels[i] != null)
+                {
                     offMuzzleSockets[i] = PlayerWeaponGrip.Find(offHandModels[i].transform, "MuzzleSocket");
+                    offEjectSockets[i] = PlayerWeaponGrip.Find(offHandModels[i].transform, "EjectPortSocket");
+                }
             if (GetComponent<PlayerAnimator>() != null)
                 grip = new PlayerWeaponGrip(transform, mainModels, offHandModels);
 

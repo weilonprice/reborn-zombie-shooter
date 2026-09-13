@@ -1,0 +1,81 @@
+PASS: Pistol has an imported 3D spent case
+PASS: Pistol imported in metres with its long axis upright
+PASS: Pistol has three impact clips
+PASS: Pistol_Floor_1 is not shared with another casing
+PASS: Pistol_Floor_2 is not shared with another casing
+PASS: Pistol_Floor_3 is not shared with another casing
+PASS: Pistol ejects one spent case per ammunition round
+PASS: Pistol uses the actual main-hand ejection port
+PASS: Pistol strikes the floor and plays impact audio
+PASS: Pistol plays its own casing sound family
+PASS: SMG has an imported 3D spent case
+PASS: SMG imported in metres with its long axis upright
+PASS: SMG has three impact clips
+PASS: SMG_Floor_1 is not shared with another casing
+PASS: SMG_Floor_2 is not shared with another casing
+PASS: SMG_Floor_3 is not shared with another casing
+PASS: SMG ejects one spent case per ammunition round
+PASS: SMG uses the actual main-hand ejection port
+PASS: SMG strikes the floor and plays impact audio
+PASS: SMG plays its own casing sound family
+PASS: AssaultRifle has an imported 3D spent case
+PASS: AssaultRifle imported in metres with its long axis upright
+PASS: AssaultRifle has three impact clips
+PASS: AssaultRifle_Floor_1 is not shared with another casing
+PASS: AssaultRifle_Floor_2 is not shared with another casing
+PASS: AssaultRifle_Floor_3 is not shared with another casing
+PASS: AssaultRifle ejects one spent case per ammunition round
+PASS: AssaultRifle uses the actual main-hand ejection port
+PASS: AssaultRifle strikes the floor and plays impact audio
+PASS: AssaultRifle plays its own casing sound family
+PASS: SniperRifle has an imported 3D spent case
+PASS: SniperRifle imported in metres with its long axis upright
+PASS: SniperRifle has three impact clips
+PASS: SniperRifle_Floor_1 is not shared with another casing
+PASS: SniperRifle_Floor_2 is not shared with another casing
+PASS: SniperRifle_Floor_3 is not shared with another casing
+PASS: SniperRifle ejects one spent case per ammunition round
+PASS: SniperRifle uses the actual main-hand ejection port
+PASS: SniperRifle strikes the floor and plays impact audio
+PASS: SniperRifle plays its own casing sound family
+PASS: Shotgun has an imported 3D spent case
+PASS: Shotgun imported in metres with its long axis upright
+PASS: Shotgun has three impact clips
+PASS: Shotgun_Floor_1 is not shared with another casing
+PASS: Shotgun_Floor_2 is not shared with another casing
+PASS: Shotgun_Floor_3 is not shared with another casing
+PASS: Shotgun ejects one spent case per ammunition round
+PASS: Shotgun uses the actual main-hand ejection port
+PASS: Shotgun strikes the floor and plays impact audio
+PASS: Shotgun plays its own casing sound family
+PASS: GrenadeLauncher has an imported 3D spent case
+PASS: GrenadeLauncher imported in metres with its long axis upright
+PASS: GrenadeLauncher has three impact clips
+PASS: GrenadeLauncher_Floor_1 is not shared with another casing
+PASS: GrenadeLauncher_Floor_2 is not shared with another casing
+PASS: GrenadeLauncher_Floor_3 is not shared with another casing
+PASS: GrenadeLauncher ejects one spent case per ammunition round
+PASS: GrenadeLauncher uses the actual main-hand ejection port
+PASS: Grenade launcher launches a live projectile as it ejects its case
+PASS: GrenadeLauncher strikes the floor and plays impact audio
+PASS: GrenadeLauncher plays its own casing sound family
+PASS: SiphonRifle has an imported 3D spent case
+PASS: SiphonRifle imported in metres with its long axis upright
+PASS: SiphonRifle has three impact clips
+PASS: SiphonRifle_Floor_1 is not shared with another casing
+PASS: SiphonRifle_Floor_2 is not shared with another casing
+PASS: SiphonRifle_Floor_3 is not shared with another casing
+PASS: SiphonRifle ejects one spent case per ammunition round
+PASS: SiphonRifle uses the actual main-hand ejection port
+PASS: SiphonRifle strikes the floor and plays impact audio
+PASS: SiphonRifle plays its own casing sound family
+PASS: Flamethrower does not eject a cartridge case
+PASS: TeslaCoil does not eject a cartridge case
+PASS: NailGun does not eject a cartridge case
+PASS: Akimbo ejects the second case from the off-hand gun
+PASS: Pause suspends casing emission and simulation
+PASS: Queued casing resumes after pause
+PASS: Rapid-fire stress remains capped at 96 reusable meshes
+PASS: Casing audio uses eight dedicated voices
+PASS: All spent cases expire and return to the pool
+PASS: No runtime errors during casing checks: 

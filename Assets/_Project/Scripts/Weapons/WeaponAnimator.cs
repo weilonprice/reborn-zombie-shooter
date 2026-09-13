@@ -87,6 +87,14 @@ namespace ZombieShooter
         void Update()
         {
             if (current == null || reloading) return;
+            if (state == Fire && weapon != null && weapon.Definition != null &&
+                weapon.Definition.Delivery is ConeDelivery && Time.time < settleAt)
+            {
+                var pose = current.GetCurrentAnimatorStateInfo(0);
+                if (pose.IsName(Fire) && pose.normalizedTime >= 1f)
+                    current.Play(Fire, 0, pose.normalizedTime % 1f);
+                return;
+            }
             if (settleAt <= 0f || Time.time < settleAt) return;
 
             settleAt = 0f;
@@ -126,6 +134,14 @@ namespace ZombieShooter
         void OnFired()
         {
             if (current == null) return;
+            if (weapon != null && weapon.Definition != null && weapon.Definition.Delivery is ConeDelivery)
+            {
+                CancelInvoke(nameof(PlayCycle));
+                current.SetFloat(FireSpeed, 1f);
+                Play(Fire, .06f);
+                settleAt = Time.time + Mathf.Max(.12f, weapon.SecondsBetweenShots * 1.5f);
+                return;
+            }
 
             float interval = weapon != null ? weapon.SecondsBetweenShots : 1f;
 

@@ -804,6 +804,18 @@ main reason content comes first.
     Unverified: whether 0.6x is the right number, and whether body shots still
     feel identical - that is the failure mode if the zone wins where it should
     not.
+[x] Ground, casings and flame - DONE 2026-09-13. The floor carries authored dirt,
+    grass and stone rather than one flat colour; spent cases are real pooled
+    meshes with their own audio voices and no physics bodies; the flamethrower
+    throws a continuous stream driven by accepted fuel ticks. All three are
+    cosmetic, and all three were reported from play as missing before they were
+    built.
+    Unverified: the new floor's internal contrast is a spread of 58 against the
+    23 the generated one was tuned to. That is a busier surface to pick a crawler
+    out of, and nobody has yet played a wave of crawlers on it.
+    Also open: each spent case ships three materials against a horde that costs
+    one apiece, so ninety-six cases can out-draw sixty enemies. The palette bake
+    in enemy_kit is the fix and has not been applied here.
 [ ] Meta progression - needs the save system, debt item 4.
 [~] Enemy models - twelve authored, palette and skulls fixed 2026-09-12.
     STILL NOT SEEN IN UNITY.
@@ -1281,8 +1293,50 @@ ZOMBIE STEERING VS DEPLOYABLE BARRICADES - resolved 2026-09-08.
 START HERE - THIS WEEK
 ===============================================================================
 
-0. RE-RUN THE ARENA BUILDER BEFORE PLAYING. Hit zones are authored into the
-   prefabs, so the hitbox fix does not exist in a scene built before it.
+0. RE-RUN THE ARENA BUILDER BEFORE PLAYING. Hit zones, the ground material, the
+   locomotion speed parameter and the flamethrower effects are all authored into
+   prefabs and the scene, so none of them exist in a build made before them.
+
+WHAT PLAY FOUND, 2026-09-12 and 13. Eleven defects in two sessions, and the
+   pattern is worth reading before the next stretch of work: not one of them was
+   a wrong value that reading could have caught. Every one was two individually
+   correct things combining badly, or an asset pipeline lying quietly.
+     A quarter of every zombie was unhittable - the walking capsule was 0.42m
+     across where the mesh was 0.573m. Fixed three times before it was right:
+     one fat capsule registered hits in mid-air, then bone-mounted spheres left
+     the arms 40% covered, and only segment-length zones actually match the body.
+     Removing the movement capsule from weapon fire made anything without zones
+     silently bulletproof, and static colliders on animated bones sat where they
+     were at the last physics step until the queries synced first.
+     The survivor floated when aiming across its direction of travel, because
+     all three locomotion clips run FORWARD and facing is independent of it.
+     Then it floated again, because the Run clip is authored for 2.74 m/s and
+     the survivor moves at 7.
+     Buildings could be walked through AND blocked movement beside them, from
+     one cause: a collider centred at the origin on meshes centred up to 0.68m
+     off it.
+     Spent cases were inaudible, because the listener rides the camera 23m up
+     against a 20m rolloff.
+     The zombie floated again after its own FBX reimport restored the connected
+     prefab instance's transform.
+   The lesson is not "play more", though that is true. It is that this class of
+   defect is invisible to reading BY CONSTRUCTION, so the harnesses that close
+   the loop end to end - CombatRegression, CasingValidation, FlamethrowerValidation
+   - are worth more per line than any amount of careful review.
+
+FOUND IN PLAY 2026-09-12, FIXED: the survivor floated when aiming across its
+   direction of travel. Facing and movement are independent in a twin-stick game
+   and there are only three locomotion clips, all of which run FORWARD - so
+   aiming left while walking north played a forward run pointed left while the
+   body slid north. The legs stopped meaning anything.
+   Fixed by turning the hips toward travel and unwinding the same angle at the
+   spine, so the legs lead and the torso still aims. Two bones is the whole
+   correction because the rig hangs legs off Pelvis and everything else off
+   Spine. maxHipTurn on PlayerAnimator is the knob; zero restores the bug.
+   Worth noting what found it. This is the second defect in two sessions that was
+   invisible to reading and obvious in the first minute of play, and like the
+   hitbox it was not a wrong value - every part was individually correct and the
+   fault was in how two correct things combined.
 
 1. PLAY IT. The first partial playthrough already paid for itself and proved
    the point twice over.

@@ -1,0 +1,149 @@
+[
+  {
+    "file": "AssaultRifle_Floor_1.wav",
+    "duration": 0.6,
+    "peak": 0.72,
+    "rms": 0.08,
+    "sha256": "6273298355909e2ed179977ec0682adc25d6d50c8d548800bd3f72f9d3d0190e"
+  },
+  {
+    "file": "AssaultRifle_Floor_2.wav",
+    "duration": 0.6,
+    "peak": 0.72,
+    "rms": 0.09,
+    "sha256": "45932f04928bae29ab07a4da2b768e944d370ba77f65426d5c86aa64fce5b618"
+  },
+  {
+    "file": "AssaultRifle_Floor_3.wav",
+    "duration": 0.6,
+    "peak": 0.72,
+    "rms": 0.082,
+    "sha256": "3f1121dfa3ae6caa32be6db1b2174d5a4676b50d5a7904f2cdf53f6faaa7448e"
+  },
+  {
+    "file": "GrenadeLauncher_Floor_1.wav",
+    "duration": 0.96,
+    "peak": 0.72,
+    "rms": 0.077,
+    "sha256": "6b9d0225a7d8d66555fb583485b1a079f96ddb9b0cf72a9f09dfd0d6ad6904f4"
+  },
+  {
+    "file": "GrenadeLauncher_Floor_2.wav",
+    "duration": 0.96,
+    "peak": 0.72,
+    "rms": 0.083,
+    "sha256": "3f9cdde006a4e26454f7199ac38c39f2bc484d0d35357c02d91f7283350ad94b"
+  },
+  {
+    "file": "GrenadeLauncher_Floor_3.wav",
+    "duration": 0.96,
+    "peak": 0.72,
+    "rms": 0.071,
+    "sha256": "9c6d755a7709526c83f894ccc6a09089133c67c8f4b25648b87151d0e030f82b"
+  },
+  {
+    "file": "Pistol_Floor_1.wav",
+    "duration": 0.42,
+    "peak": 0.72,
+    "rms": 0.088,
+    "sha256": "c74463e6f9352b79cef2cefa5d2ef2de1f44aef91164ec9f49d858f2052f019c"
+  },
+  {
+    "file": "Pistol_Floor_2.wav",
+    "duration": 0.42,
+    "peak": 0.72,
+    "rms": 0.071,
+    "sha256": "7c12aeee0b54bf59eec7a4e64a3e78a91d773710c67a8ee69fbacf306bec2da1"
+  },
+  {
+    "file": "Pistol_Floor_3.wav",
+    "duration": 0.42,
+    "peak": 0.72,
+    "rms": 0.093,
+    "sha256": "ca067c087662a56d8366388a188966a58199e3eca1dd533b919cac528efa47f3"
+  },
+  {
+    "file": "SMG_Floor_1.wav",
+    "duration": 0.3,
+    "peak": 0.72,
+    "rms": 0.077,
+    "sha256": "cf43194b3af9ae9427fd90adcffe9beb9a41ec1dec8e7495d930d5c405d9505c"
+  },
+  {
+    "file": "SMG_Floor_2.wav",
+    "duration": 0.3,
+    "peak": 0.72,
+    "rms": 0.083,
+    "sha256": "5d03a5005e6d80f75d5d5f82c744fd02b1503492833bc7e8059b137886ce217d"
+  },
+  {
+    "file": "SMG_Floor_3.wav",
+    "duration": 0.3,
+    "peak": 0.72,
+    "rms": 0.094,
+    "sha256": "b2e9dca4951aaca917a51c7e73de422f00fdff472848b073ea70e834e1030c2d"
+  },
+  {
+    "file": "Shotgun_Floor_1.wav",
+    "duration": 0.22,
+    "peak": 0.72,
+    "rms": 0.076,
+    "sha256": "b22b2a845453987505c4e2d2e7a7fe44189d1ac41934467ba3b1a066203ed39a"
+  },
+  {
+    "file": "Shotgun_Floor_2.wav",
+    "duration": 0.22,
+    "peak": 0.72,
+    "rms": 0.063,
+    "sha256": "0c24044e336ea115242333694729723e1ae3f5c1a654c1fe1856c29b18e44652"
+  },
+  {
+    "file": "Shotgun_Floor_3.wav",
+    "duration": 0.22,
+    "peak": 0.72,
+    "rms": 0.08,
+    "sha256": "7461559fbd24de5a3f1712af0eda5972c832e83889d27e898b7dc65e9636e885"
+  },
+  {
+    "file": "SiphonRifle_Floor_1.wav",
+    "duration": 0.92,
+    "peak": 0.72,
+    "rms": 0.09,
+    "sha256": "c6d4b3a58167f8ced0533d43ff2840603f68b74b7fbde29f099c34252c45ace6"
+  },
+  {
+    "file": "SiphonRifle_Floor_2.wav",
+    "duration": 0.92,
+    "peak": 0.72,
+    "rms": 0.075,
+    "sha256": "2bccc73c1cfc70c29d74eccefdfa2d2efe59898021940493f5f45ea02a6b8738"
+  },
+  {
+    "file": "SiphonRifle_Floor_3.wav",
+    "duration": 0.92,
+    "peak": 0.72,
+    "rms": 0.086,
+    "sha256": "f2521781dd735cae57fc2b13baf7591df7522e509752143dc37166d297436189"
+  },
+  {
+    "file": "SniperRifle_Floor_1.wav",
+    "duration": 0.84,
+    "peak": 0.72,
+    "rms": 0.074,
+    "sha256": "7973977de272c3e8c93475c88915c37889bfa29359741eb35ea5584376603701"
+  },
+  {
+    "file": "SniperRifle_Floor_2.wav",
+    "duration": 0.84,
+    "peak": 0.72,
+    "rms": 0.084,
+    "sha256": "3758d9f01fb3876fd38faa0190b22c0cd94d3e7526c32085a257546ceb4ac28f"
+  },
+  {
+    "file": "SniperRifle_Floor_3.wav",
+    "duration": 0.84,
+    "peak": 0.72,
+    "rms": 0.089,
+    "sha256": "8151a30cc03cfb91648e27ea8d3b1a8f622de07ea5d069f0d8265c19ceb119c0"
+  }
+]
