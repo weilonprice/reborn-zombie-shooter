@@ -12,14 +12,14 @@ sc.view_settings.view_transform = 'Standard'
 w = bpy.data.worlds.new('W'); sc.world = w; w.use_nodes = True
 w.node_tree.nodes['Background'].inputs[0].default_value = (.13, .15, .17, 1)
 
-# Ground: 40m of it, texture tiled every 12m exactly as the builder will.
+# Ground: 40m of it, texture tiled every 24m exactly as the builder will.
 bpy.ops.mesh.primitive_plane_add(size=40, location=(0, 0, 0))
 plane = bpy.context.object
 m = bpy.data.materials.new('ground'); m.use_nodes = True
 nt = m.node_tree
 tex = nt.nodes.new('ShaderNodeTexImage')
 tex.image = bpy.data.images.load(os.path.join(ART, 'Ground/Ground_Albedo.png'))
-mapping = nt.nodes.new('ShaderNodeMapping'); mapping.inputs['Scale'].default_value = (40/12, 40/12, 1)
+mapping = nt.nodes.new('ShaderNodeMapping'); mapping.inputs['Scale'].default_value = (40/24, 40/24, 1)
 coord = nt.nodes.new('ShaderNodeTexCoord')
 nt.links.new(coord.outputs['UV'], mapping.inputs['Vector'])
 nt.links.new(mapping.outputs['Vector'], tex.inputs['Vector'])
