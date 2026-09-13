@@ -1,0 +1,19 @@
+Origin (0.00, 1.01, 0.00) direction (0.00, 0.00, 1.00) socket (0.26, 1.34, 0.45)
+Ray hit Hit_Spine at (0.00, 1.01, 4.82) parent health Zombie(Clone)
+Ray hit Zombie(Clone) at (0.00, 1.01, 4.66) parent health Zombie(Clone)
+Zone Zombie(Clone) bounds Center: (0.00, 1.00, 5.00), Extents: (0.42, 0.95, 0.42) enabled True
+Zone Hit_Head bounds Center: (0.04, 1.76, 4.63), Extents: (0.19, 0.19, 0.19) enabled True
+Zone Hit_Hand.L bounds Center: (0.52, 1.21, 4.38), Extents: (0.10, 0.10, 0.10) enabled True
+Zone Hit_Forearm.L bounds Center: (0.50, 1.25, 4.52), Extents: (0.13, 0.15, 0.25) enabled True
+Zone Hit_UpperArm.L bounds Center: (0.40, 1.43, 4.74), Extents: (0.21, 0.27, 0.21) enabled True
+Zone Hit_Hand.R bounds Center: (-0.40, 1.21, 4.36), Extents: (0.10, 0.10, 0.10) enabled True
+Zone Hit_Forearm.R bounds Center: (-0.41, 1.25, 4.50), Extents: (0.12, 0.15, 0.25) enabled True
+Zone Hit_UpperArm.R bounds Center: (-0.35, 1.44, 4.71), Extents: (0.20, 0.28, 0.20) enabled True
+Zone Hit_Chest bounds Center: (0.03, 1.55, 4.80), Extents: (0.27, 0.35, 0.32) enabled True
+Zone Hit_Spine bounds Center: (0.01, 1.32, 4.92), Extents: (0.26, 0.39, 0.33) enabled True
+Health before 100 after 80 cases 0 -> 1
+Floor contacts 3 sounds 3
+PASS: Centre shot damages real animated zombie
+PASS: Real weapon fire emits a case
+PASS: Case lands with sound
+PASS: No runtime errors: 

@@ -123,7 +123,7 @@ namespace ZombieShooter.EditorTools
                     if (profile == null)
                     {
                         profile = ScriptableObject.CreateInstance<CasingDefinition>();
-                        profile.displayScale = 3.2f;
+                        profile.displayScale = name == "Shotgun" || name == "GrenadeLauncher" ? 3.2f : 5f;
                         profile.bounce = name == "Shotgun" ? .23f : name == "GrenadeLauncher" ? .29f : .38f;
                         profile.impactVolume = name == "GrenadeLauncher" ? .34f : name == "Shotgun" ? .28f : .24f;
                         AssetDatabase.CreateAsset(profile, $"{Data}/CASE_{name}.asset");

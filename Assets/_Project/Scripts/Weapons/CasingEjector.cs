@@ -70,8 +70,9 @@ namespace ZombieShooter
                 voice.playOnAwake = false;
                 voice.spatialBlend = 1f;
                 voice.rolloffMode = AudioRolloffMode.Linear;
-                voice.minDistance = 3f;
-                voice.maxDistance = 20f;
+                // Listener rides the overhead camera, roughly 23 metres above the cases.
+                voice.minDistance = 12f;
+                voice.maxDistance = 45f;
                 voice.dopplerLevel = 0;
                 voice.priority = 180;
                 voices[i] = voice;
@@ -125,7 +126,7 @@ namespace ZombieShooter
             casing.transform.SetPositionAndRotation(shot.socket.position, Random.rotation);
             casing.transform.localScale = Vector3.one * shot.profile.displayScale;
             var sideways = transform.right * (shot.offHand ? -1f : 1f);
-            casing.velocity = sideways * Random.Range(1.4f, 2.4f) + Vector3.up * Random.Range(1.4f, 2.3f)
+            casing.velocity = sideways * Random.Range(2.2f, 3.2f) + Vector3.up * Random.Range(2.1f, 2.9f)
                               - transform.forward * Random.Range(.15f, .55f);
             casing.spin = Random.onUnitSphere * Random.Range(400f, 850f);
             casing.age = 0;

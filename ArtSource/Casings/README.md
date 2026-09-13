@@ -63,3 +63,13 @@ order: pistol, SMG, assault, sniper, shotgun, grenade, siphon. Pauses separate t
 `unity_validation.txt` records the latest Unity checks. `audio_validation.json` records
 duration, signal level and unique content hashes for all 21 sounds. Audio uniqueness and
 clipping checks do not substitute for subjective mix tuning during play.
+
+Visibility tuning: small brass/steel cases use 5x display scale; shotgun and grenade
+cases retain 3.2x. Ejection has a stronger sideways/upward throw so the tumble reads
+against dirt. Impact voices use 12m minimum / 45m maximum distance to reach the
+overhead camera's listener. The mesh proportions and distinct sound families remain.
+
+**Validate Combat Regression** reproduces a centre shot against the actual animated
+normal zombie and checks damage, case emission, floor contacts and sound playback.
+Its report is `combat_regression.txt`. The normal model must sit at -0.95m relative
+to its controller pivot; saving it at zero lifts the hitboxes above the firing ray.

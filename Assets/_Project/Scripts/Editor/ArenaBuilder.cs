@@ -1323,6 +1323,11 @@ namespace ZombieShooter.EditorTools
                     animator.runtimeAnimatorController = LoadOrCreateNormalZombieController();
                     animator.applyRootMotion = false;
 
+                    // Reimporting the FBX above can restore the connected instance's root
+                    // transform. Apply and record the placement after that refresh.
+                    model.transform.localPosition = new Vector3(0f, -controller.height * 0.5f, 0f);
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(model.transform);
+
                     TuneForHorde(model);
 
                     var driver = zombie.AddComponent<ZombieAnimator>();

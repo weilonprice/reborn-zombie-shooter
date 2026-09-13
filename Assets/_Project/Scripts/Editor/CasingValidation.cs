@@ -156,7 +156,10 @@ namespace ZombieShooter.EditorTools
                 "Rapid-fire stress remains capped at 96 reusable meshes");
             Check(pooled.GetComponentsInChildren<AudioSource>(true).Length == 8,
                 "Casing audio uses eight dedicated voices");
-            yield return 8.5f;
+            // Case lifetime uses game time. Editor wall time can advance faster while
+            // rendering or importing, so a fixed wall-clock wait falsely reports leaks.
+            float expiresAt = Time.time + 8.5f;
+            while (Time.time < expiresAt) yield return .1f;
             Check(emitter.ActiveCount == 0, "All spent cases expire and return to the pool");
             Check(errors.Count == 0, "No runtime errors during casing checks: " + string.Join("; ", errors));
         }

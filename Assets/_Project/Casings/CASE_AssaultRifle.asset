@@ -21,7 +21,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 80508cdc5a54b4ee3b337c29af6a268d, type: 3}
   - {fileID: 8300000, guid: 9417eb4907731421a871f8244647cbe3, type: 3}
   - {fileID: 8300000, guid: 520facabc96c941fe966cc74f35b05e1, type: 3}
-  displayScale: 3.2
+  displayScale: 5
   diameter: 0.01
   bounce: 0.38
   impactVolume: 0.24
