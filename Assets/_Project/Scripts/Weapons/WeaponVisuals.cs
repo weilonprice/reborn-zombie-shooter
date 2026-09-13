@@ -50,6 +50,7 @@ namespace ZombieShooter
 
         public Transform EjectionSocket(bool offHand) =>
             offHand ? At(offEjectSockets, shown) : At(ejectSockets, shown);
+        public Transform MainMuzzleSocket => At(muzzleSockets, shown);
 
         /// <summary>Animator on the currently visible weapon model, if its FBX has one.</summary>
         public Animator CurrentAnimator => shownAnimator;

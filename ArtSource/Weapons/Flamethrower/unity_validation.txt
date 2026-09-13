@@ -1,0 +1,11 @@
+PASS: Flame effects installed automatically
+PASS: No flames while idle
+PASS: Sustained fuel ticks emit continuous flames
+PASS: Weapon plays sustained Fire motion
+PASS: Release extinguishes stream and remaining particles
+PASS: Weapon returns to Idle on release
+PASS: Reload stops emission immediately
+PASS: Pause suspends flame emission
+PASS: Switching weapons stops flame emission
+PASS: Switching leaves no stuck particles
+PASS: No runtime errors: 

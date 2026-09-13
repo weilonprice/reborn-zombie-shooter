@@ -27,6 +27,8 @@ namespace ZombieShooter
         [SerializeField] bool blockedByGeometry = true;
 
         static readonly RaycastHit[] SightBuffer = new RaycastHit[12];
+        public float HalfAngle => halfAngle;
+        public bool BlockedByGeometry => blockedByGeometry;
 
         public override bool Deliver(in ShotContext shot, out Vector3 firstImpact)
         {
@@ -82,10 +84,7 @@ namespace ZombieShooter
                 }
             }
 
-            // One puff per tick regardless of how many it caught, or a wide cone into a
-            // horde would spawn a particle burst per enemy per frame.
-            ImpactEffects.Instance?.PlayImpact(
-                shot.MuzzlePosition + shot.Direction * (range * 0.5f), -shot.Direction);
+            // The continuous muzzle effect is driven by accepted Weapon.Fired events.
 
             return anyHit;
         }

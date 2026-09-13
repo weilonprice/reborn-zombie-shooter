@@ -888,6 +888,13 @@ namespace ZombieShooter.EditorTools
                                muzzle, offHandMuzzle, ejectPort);
             CasingSetup.ConfigurePlayer(player);
 
+            // Authored into the player here rather than added by WeaponVisuals at runtime.
+            // ArenaBuilder owns the scene, so a component that only appears once the game is
+            // running is one the prefab cannot show and nobody can tune - and it put a
+            // generic visuals component in the business of knowing about one weapon.
+            if (player.GetComponent<FlamethrowerEffects>() == null)
+                player.AddComponent<FlamethrowerEffects>();
+
             var weaponAnimator = player.AddComponent<WeaponAnimator>();
             using (var f = new Fields(weaponAnimator))
             {
