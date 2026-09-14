@@ -1705,28 +1705,45 @@ namespace ZombieShooter.EditorTools
             var zones = new GameObject(LimbHitboxName);
             zones.transform.SetParent(root.transform, false);
 
-            // joint, next joint along, radius, damage.
-            var segments = new (string from, string to, float radius, float multiplier)[]
+            // joint, next joint along (null = a tip), radius, length if a tip, damage.
+            //
+            // Every radius here was MEASURED, not chosen: each vertex is assigned to the
+            // bone that actually skins it, and the radius is the 99th percentile distance
+            // from that bone's segment across the Chase cycle. The previous set was picked
+            // by eye from the build script and left up to 15cm of mesh outside any zone -
+            // which is exactly the arm and shoulder that shots were passing through.
+            //
+            // Head and hands are capsules along their own bone rather than balls at the
+            // joint. A ball big enough to reach the top of the skull is 0.40m and swallows
+            // the chest with it; a 0.34m capsule of radius 0.24 covers the same skull and
+            // stops where the neck does.
+            //
+            // The pelvis is in the list because the hit ray leaves the player at 1.0m and
+            // travels flat, which is WAIST height on a zombie - not chest. Leaving it out on
+            // the grounds that "no shot is ever at ankle height" skipped the one band every
+            // shot actually passes through.
+            var segments = new (string from, string to, float radius, float tip, float multiplier)[]
             {
-                ("Spine",      "Chest",     0.25f, 1f),
-                ("Chest",      "Neck",      0.26f, 1f),
-                ("Head",       null,        0.19f, 1f),
-                ("UpperArm.L", "Forearm.L", 0.13f, LimbDamageScale),
-                ("UpperArm.R", "Forearm.R", 0.13f, LimbDamageScale),
-                ("Forearm.L",  "Hand.L",    0.11f, LimbDamageScale),
-                ("Forearm.R",  "Hand.R",    0.11f, LimbDamageScale),
-                ("Hand.L",     null,        0.10f, LimbDamageScale),
-                ("Hand.R",     null,        0.10f, LimbDamageScale),
+                ("Pelvis",     "Spine",     0.265f, 0f,     1f),
+                ("Spine",      "Chest",     0.275f, 0f,     1f),
+                ("Chest",      "Neck",      0.320f, 0f,     1f),
+                ("Head",       null,        0.240f, 0.34f,  1f),
+                ("UpperArm.L", "Forearm.L", 0.150f, 0f,     LimbDamageScale),
+                ("UpperArm.R", "Forearm.R", 0.150f, 0f,     LimbDamageScale),
+                ("Forearm.L",  "Hand.L",    0.115f, 0f,     LimbDamageScale),
+                ("Forearm.R",  "Hand.R",    0.115f, 0f,     LimbDamageScale),
+                ("Hand.L",     null,        0.125f, 0.22f,  LimbDamageScale),
+                ("Hand.R",     null,        0.125f, 0.22f,  LimbDamageScale),
             };
 
             int made = 0, colliders = 0;
-            foreach (var (from, to, radius, multiplier) in segments)
+            foreach (var (from, to, radius, tip, multiplier) in segments)
             {
                 var joint = model != null ? FindDeep(model, from) : null;
                 if (joint == null) continue;
 
                 var next = to != null ? FindDeep(model, to) : null;
-                int added = MountHitZone(joint, next, radius, multiplier, from);
+                int added = MountHitZone(joint, next, radius, tip, multiplier, from);
                 if (added <= 0) continue;
 
                 made++;
@@ -1759,7 +1776,7 @@ namespace ZombieShooter.EditorTools
         /// Covers one bone, out to <paramref name="next"/> when there is one.
         /// Returns how many colliders it took.
         /// </summary>
-        static int MountHitZone(Transform joint, Transform next, float radius,
+        static int MountHitZone(Transform joint, Transform next, float radius, float tip,
                                 float multiplier, string label)
         {
             var zone = new GameObject($"Hit_{label}");
@@ -1768,7 +1785,7 @@ namespace ZombieShooter.EditorTools
             zone.transform.localRotation = Quaternion.identity;
             zone.transform.localScale = Vector3.one;
 
-            int colliders = Shape(zone, joint, next, radius);
+            int colliders = Shape(zone, joint, next, radius, tip);
 
             // Hitbox goes on AFTER the colliders, and that ordering is not cosmetic. Hitbox
             // declares RequireComponent(typeof(Collider)); Collider is abstract, so Unity
@@ -1782,13 +1799,17 @@ namespace ZombieShooter.EditorTools
         }
 
         /// <summary>Puts collider volume on a zone and says how many it took.</summary>
-        static int Shape(GameObject zone, Transform joint, Transform next, float radius)
+        static int Shape(GameObject zone, Transform joint, Transform next, float radius,
+                         float tipLength)
         {
-            // A tip joint - head, hand - has nothing past it, so one ball is the whole zone.
-            var tip = next != null ? joint.InverseTransformPoint(next.position) : Vector3.zero;
-            float length = next != null ? tip.magnitude : 0f;
+            // A tip joint - head, hand - has no child to aim at, so it runs along its own
+            // bone for an authored length. Imported bones point down their local +Y, which
+            // is also what the measured centres below confirm.
+            var tip = next != null ? joint.InverseTransformPoint(next.position)
+                                   : Vector3.up * tipLength;
+            float length = tip.magnitude;
 
-            if (next == null || length < 0.01f)
+            if (length < 0.01f)
             {
                 var ball = zone.AddComponent<SphereCollider>();
                 ball.isTrigger = true;
