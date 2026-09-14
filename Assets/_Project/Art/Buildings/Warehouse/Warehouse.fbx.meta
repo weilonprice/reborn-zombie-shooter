@@ -3,7 +3,37 @@ guid: 6ebb4ce6217bd4641ad5ec40e6d7d8c5
 ModelImporter:
   serializedVersion: 24600
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Charcoal metal
+    second: {fileID: 2100000, guid: 23dd70c8f1ca04020a61c5634daed1ea, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Dark blue glass
+    second: {fileID: 2100000, guid: 346a87a0dab0942689b8ac19ce9aa93a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Industrial blue siding
+    second: {fileID: 2100000, guid: 43156e879ab244bed800556cedab5392, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Ivory paint
+    second: {fileID: 2100000, guid: 536102917b00449a091df779a0e717b6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Oxidized teal steel
+    second: {fileID: 2100000, guid: 8769d46b3674144f5b1572491e2fcd58, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Weathered timber
+    second: {fileID: 2100000, guid: c267d80591cd54ba2acb7484d3e46c98, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -31,7 +61,7 @@ ModelImporter:
     extraExposedTransformPaths: []
     extraUserProperties: []
     clipAnimations: []
-    isReadable: 0
+    isReadable: 1
   meshes:
     lODScreenPercentages: []
     globalScale: 1
@@ -49,11 +79,11 @@ ModelImporter:
     nodeNameCollisionStrategy: 1
     fileIdsGeneration: 2
     swapUVChannels: 0
-    generateSecondaryUV: 0
+    generateSecondaryUV: 1
     useFileUnits: 1
     keepQuads: 0
     weldVertices: 1
-    bakeAxisConversion: 0
+    bakeAxisConversion: 1
     preserveHierarchy: 0
     skinWeightsMode: 0
     maxBonesPerVertex: 4
@@ -85,7 +115,7 @@ ModelImporter:
     normalSmoothingSource: 0
     calculateBlendshapeNormalsDeltaFromImportedNormals: 0
   referencedClips: []
-  importAnimation: 1
+  importAnimation: 0
   humanDescription:
     serializedVersion: 3
     human: []

@@ -3,7 +3,42 @@ guid: e4f17aa52ac7243d582f0d15d776e518
 ModelImporter:
   serializedVersion: 24600
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Charcoal metal
+    second: {fileID: 2100000, guid: 80e440a3272a44b67a046d6c3709334c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Dark blue glass
+    second: {fileID: 2100000, guid: 12ce65e0b685443b192e19aeba77cd05, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Ivory paint
+    second: {fileID: 2100000, guid: 19cda85dff59040b0854fdc3c7ac8ab3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Oxidized teal steel
+    second: {fileID: 2100000, guid: 92e7ec3a679bc459ab2f9ba0a57e4c25, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Rust and brick
+    second: {fileID: 2100000, guid: 5abca1b4b6c054adb979661452375a4f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Warm plaster
+    second: {fileID: 2100000, guid: 03e9cfe20e07442dbb514d05fa5074bd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Weathered timber
+    second: {fileID: 2100000, guid: ff2090bb790bb4190846378870872832, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -31,7 +66,7 @@ ModelImporter:
     extraExposedTransformPaths: []
     extraUserProperties: []
     clipAnimations: []
-    isReadable: 0
+    isReadable: 1
   meshes:
     lODScreenPercentages: []
     globalScale: 1
@@ -49,11 +84,11 @@ ModelImporter:
     nodeNameCollisionStrategy: 1
     fileIdsGeneration: 2
     swapUVChannels: 0
-    generateSecondaryUV: 0
+    generateSecondaryUV: 1
     useFileUnits: 1
     keepQuads: 0
     weldVertices: 1
-    bakeAxisConversion: 0
+    bakeAxisConversion: 1
     preserveHierarchy: 0
     skinWeightsMode: 0
     maxBonesPerVertex: 4
@@ -85,7 +120,7 @@ ModelImporter:
     normalSmoothingSource: 0
     calculateBlendshapeNormalsDeltaFromImportedNormals: 0
   referencedClips: []
-  importAnimation: 1
+  importAnimation: 0
   humanDescription:
     serializedVersion: 3
     human: []

@@ -354,6 +354,11 @@ def export_one(name, builder):
 
 
 for building_name, building_builder in BUILDERS.items():
-    export_one(building_name, building_builder)
+    if building_name == "ApartmentBlock":
+        export_one(building_name, building_builder)
+
+# The three detailed replacements have their own reproducible authoring pass.
+import runpy
+runpy.run_path(os.path.join(BASE, "upgrade_buildings.py"), run_name="__main__")
 
 print("BUILDING_BUILD_COMPLETE", flush=True)

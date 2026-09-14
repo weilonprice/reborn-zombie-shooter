@@ -1,24 +1,26 @@
 {
   "building": "Storefront",
   "style": "stylized low-poly Dark War survival arena building",
-  "parts": 33,
+  "parts": 7,
   "bounds_meters": {
     "min": [
-      -6.269999980926514,
-      -4.799999713897705,
+      -6.110000133514404,
+      -4.930000305175781,
       0.0
     ],
     "max": [
-      6.269999980926514,
-      4.050000190734863,
-      5.210000038146973
+      6.110000133514404,
+      4.059999942779541,
+      5.404999732971191
     ],
     "size": [
-      12.539999961853027,
-      8.850000381469727,
-      5.210000038146973
+      12.220000267028809,
+      8.990000247955322,
+      5.404999732971191
     ]
   },
   "unity_forward_axis": "+Z",
-  "static_colliders": "generated on MeshFilters by ArenaBuilder"
+  "static_colliders": "One root BoxCollider, supplied by ArenaBuilder. No interior.",
+  "triangles": 16676,
+  "uvs": "UV0 smart packed; Unity generates secondary lightmap UVs."
 }

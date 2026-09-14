@@ -1,24 +1,26 @@
 {
   "building": "Warehouse",
   "style": "stylized low-poly Dark War survival arena building",
-  "parts": 51,
+  "parts": 6,
   "bounds_meters": {
     "min": [
-      -8.274999618530273,
-      -5.511173248291016,
+      -8.300000190734863,
+      -5.484999656677246,
       0.0
     ],
     "max": [
-      8.274999618530273,
-      5.055558681488037,
-      8.173068046569824
+      8.299999237060547,
+      5.059999465942383,
+      7.464613914489746
     ],
     "size": [
-      16.549999237060547,
-      10.566732406616211,
-      8.173068046569824
+      16.59999942779541,
+      10.544999122619629,
+      7.464613914489746
     ]
   },
   "unity_forward_axis": "+Z",
-  "static_colliders": "generated on MeshFilters by ArenaBuilder"
+  "static_colliders": "One root BoxCollider, supplied by ArenaBuilder. No interior.",
+  "triangles": 26470,
+  "uvs": "UV0 smart packed; Unity generates secondary lightmap UVs."
 }

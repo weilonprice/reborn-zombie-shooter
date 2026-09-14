@@ -1,0 +1,4 @@
+PASS Shack: 17534 triangles, 8 renderers, UV0 + lightmap UVs, URP materials, grounded wall collider (8.40, 3.60, 6.80)
+PASS Storefront: 16484 triangles, 7 renderers, UV0 + lightmap UVs, URP materials, grounded wall collider (12.00, 4.40, 7.60)
+PASS Warehouse: 26470 triangles, 6 renderers, UV0 + lightmap UVs, URP materials, grounded wall collider (16.00, 5.00, 9.60)
+PASS ApartmentBlock: 22552 triangles, 8 renderers, UV0 + lightmap UVs, URP materials, grounded wall collider (10.00, 8.40, 8.20)
