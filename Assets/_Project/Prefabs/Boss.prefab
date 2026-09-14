@@ -52,8 +52,8 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.13
-  m_Height: 0.61242044
+  m_Radius: 0.175
+  m_Height: 0.7024205
   m_Direction: 1
   m_Center: {x: -0.000000074505806, y: 0.17621022, z: -0.000000022351742}
 --- !u!114 &4560598086754671397
@@ -78,7 +78,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5534403286391061801}
-  - component: {fileID: 8757684641832263002}
+  - component: {fileID: 6907265484842821564}
   - component: {fileID: 3318656884434952839}
   m_Layer: 0
   m_Name: Hit_Head
@@ -102,8 +102,8 @@ Transform:
   m_Children: []
   m_Father: {fileID: 7207220620268992751}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!135 &8757684641832263002
-SphereCollider:
+--- !u!136 &6907265484842821564
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -120,9 +120,11 @@ SphereCollider:
   m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.19
-  m_Center: {x: 0, y: 0, z: 0}
+  serializedVersion: 2
+  m_Radius: 0.24
+  m_Height: 0.82
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.17, z: 0}
 --- !u!114 &3318656884434952839
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -436,8 +438,8 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.11
-  m_Height: 0.5149578
+  m_Radius: 0.135
+  m_Height: 0.56495774
   m_Direction: 1
   m_Center: {x: -0.000000048428774, y: 0.14747888, z: 0.00000013038516}
 --- !u!114 &4247137584543506857
@@ -447,6 +449,75 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5001617057774321442}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c46e4649184774df98137c015f63cc99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.Hitbox
+  damageMultiplier: 0.6
+--- !u!1 &5319846673782350707
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2614980372196189863}
+  - component: {fileID: 7311767294529468154}
+  - component: {fileID: 1780357784128663063}
+  m_Layer: 0
+  m_Name: Hit_Shoulder.L
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2614980372196189863
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5319846673782350707}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3714688315009772645}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!136 &7311767294529468154
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5319846673782350707}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.18
+  m_Height: 0.68756664
+  m_Direction: 0
+  m_Center: {x: -0.15, y: 0.065095186, z: -0.009358715}
+--- !u!114 &1780357784128663063
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5319846673782350707}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c46e4649184774df98137c015f63cc99, type: 3}
@@ -505,8 +576,8 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.11
-  m_Height: 0.5149578
+  m_Radius: 0.135
+  m_Height: 0.56495774
   m_Direction: 1
   m_Center: {x: 0.000000048428774, y: 0.14747888, z: 0.00000013038516}
 --- !u!114 &3545466885213376298
@@ -531,7 +602,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7251436763149399509}
-  - component: {fileID: 6675292741053911121}
+  - component: {fileID: 827630089184364043}
   - component: {fileID: 913457278685841427}
   m_Layer: 0
   m_Name: Hit_Hand.L
@@ -555,8 +626,8 @@ Transform:
   m_Children: []
   m_Father: {fileID: 6301420600676098886}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!135 &6675292741053911121
-SphereCollider:
+--- !u!136 &827630089184364043
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -573,9 +644,11 @@ SphereCollider:
   m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.1
-  m_Center: {x: 0, y: 0, z: 0}
+  serializedVersion: 2
+  m_Radius: 0.125
+  m_Height: 0.47
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.11, z: 0}
 --- !u!114 &913457278685841427
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -641,8 +714,8 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.25
-  m_Height: 0.8162273
+  m_Radius: 0.275
+  m_Height: 0.8662273
   m_Direction: 1
   m_Center: {x: 0, y: 0.15811366, z: 0.000000070780516}
 --- !u!114 &256325246933313327
@@ -667,7 +740,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4954378575175077600}
-  - component: {fileID: 91496358722368937}
+  - component: {fileID: 6652016583012010855}
   - component: {fileID: 6342655663676660886}
   m_Layer: 0
   m_Name: Hit_Hand.R
@@ -691,8 +764,8 @@ Transform:
   m_Children: []
   m_Father: {fileID: 4842478658357246286}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!135 &91496358722368937
-SphereCollider:
+--- !u!136 &6652016583012010855
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -709,9 +782,11 @@ SphereCollider:
   m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.1
-  m_Center: {x: 0, y: 0, z: 0}
+  serializedVersion: 2
+  m_Radius: 0.125
+  m_Height: 0.47
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.11, z: 0}
 --- !u!114 &6342655663676660886
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -777,8 +852,8 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.13
-  m_Height: 0.61242044
+  m_Radius: 0.175
+  m_Height: 0.7024205
   m_Direction: 1
   m_Center: {x: 0.000000074505806, y: 0.17621022, z: -0.000000022351742}
 --- !u!114 &7806664931023512560
@@ -794,6 +869,144 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.Hitbox
   damageMultiplier: 0.6
+--- !u!1 &8188342356798301589
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6122021592059552044}
+  - component: {fileID: 6489975494885102409}
+  - component: {fileID: 4558554987446507806}
+  m_Layer: 0
+  m_Name: Hit_Shoulder.R
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6122021592059552044
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8188342356798301589}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3714688315009772645}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!136 &6489975494885102409
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8188342356798301589}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.18
+  m_Height: 0.68756664
+  m_Direction: 0
+  m_Center: {x: 0.15, y: 0.065095186, z: -0.009358715}
+--- !u!114 &4558554987446507806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8188342356798301589}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c46e4649184774df98137c015f63cc99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.Hitbox
+  damageMultiplier: 0.6
+--- !u!1 &8632460002637109838
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7157405923229790909}
+  - component: {fileID: 7888156225764710912}
+  - component: {fileID: 854874426377728670}
+  m_Layer: 0
+  m_Name: Hit_Pelvis
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7157405923229790909
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8632460002637109838}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4206748375247334530}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!136 &7888156225764710912
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8632460002637109838}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.265
+  m_Height: 0.6999996
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.0849998, z: 0}
+--- !u!114 &854874426377728670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8632460002637109838}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c46e4649184774df98137c015f63cc99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZombieShooter.Hitbox
+  damageMultiplier: 1
 --- !u!1 &9080295939163764833
 GameObject:
   m_ObjectHideFlags: 0
@@ -846,8 +1059,8 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.26
-  m_Height: 0.7358699
+  m_Radius: 0.32
+  m_Height: 0.8558699
   m_Direction: 1
   m_Center: {x: 0, y: 0.10772957, z: -0.006655097}
 --- !u!114 &8811890900020177221
@@ -962,9 +1175,18 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 7308818486409513353, guid: c3d996086e2b444d993798b2766e023e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7157405923229790909}
     - targetCorrespondingSourceObject: {fileID: 898088100486374853, guid: c3d996086e2b444d993798b2766e023e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5612394467707083504}
+    - targetCorrespondingSourceObject: {fileID: -1404483459101144722, guid: c3d996086e2b444d993798b2766e023e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2614980372196189863}
+    - targetCorrespondingSourceObject: {fileID: -1404483459101144722, guid: c3d996086e2b444d993798b2766e023e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6122021592059552044}
     - targetCorrespondingSourceObject: {fileID: -1404483459101144722, guid: c3d996086e2b444d993798b2766e023e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8763909377093048960}
@@ -1002,6 +1224,11 @@ Transform:
 --- !u!4 &3714688315009772645 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -1404483459101144722, guid: c3d996086e2b444d993798b2766e023e, type: 3}
+  m_PrefabInstance: {fileID: 6849830908827985163}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4206748375247334530 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7308818486409513353, guid: c3d996086e2b444d993798b2766e023e, type: 3}
   m_PrefabInstance: {fileID: 6849830908827985163}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &4842478658357246286 stripped

@@ -45,3 +45,25 @@ script and re-running Blender headless.
   across a life — a revenant's one revive, for instance — has to reset there too.
 - **Per-instance materials for hit flash.** The GPU Resident Drawer ignores
   `MaterialPropertyBlock`, so `HitFlash` instances the material instead.
+
+## Arena lighting
+
+The arena uses cool dusk light with warm sodium floodlights along its boundary,
+soft sun shadows, distance haze, and URP post processing (ACES, split toning,
+restrained bloom and vignette). The HUD remains outside the post processing pass.
+Only the sun casts shadows; perimeter lights do not allocate shadow maps.
+
+Tune `Materials/ArenaDusk.asset` in the Inspector. Its values survive arena rebuilds.
+`ArenaLightingSetup` owns the environmental lighting and camera configuration, and
+`ArenaBuilder` calls it automatically. To update the existing arena without
+rebuilding gameplay objects, open Arena.unity and use **Tools → Zombie Shooter →
+Apply Arena Dusk Lighting**. This command saves the scene.
+
+## Military base
+
+The current map is an open Military Base with no buildings. `MilitaryBaseSetup`
+generates four shared-mesh barbed-wire fence sections with steel pickets, barbs,
+concertina coils, and floodlight poles. Continuous box colliders preserve the
+original arena boundary. `ArenaBuilder` uses this layout on future rebuilds.
+To reapply just the environment, use **Tools → Zombie Shooter → Apply Military Base**.
+This saves the scene and leaves gameplay objects in place.
