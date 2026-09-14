@@ -1,9 +1,11 @@
-# Storefront
+# Storefront — detailed replacement
 
-Stylized low-poly survival arena building for the Zombie Shooter map.
+Editable Blender source: ArtSource/Buildings/Storefront/Storefront.blend.
+FBX is the Unity model; GLB is the portable version. Rebuild with Blender
+--background --python ArtSource/Buildings/upgrade_buildings.py, then run
+Tools > Zombie Shooter > Install Detailed Buildings in Unity.
 
-- `Storefront.fbx` — Unity environment import.
-- `Storefront.glb` — portable geometry export.
-- `Storefront.blend` — editable Blender source in ArtSource.
-
-The arena builder adds static mesh colliders when it places this building.
+Ready prefab: Assets/_Project/Prefabs/Buildings/Storefront.prefab.
+URP materials, UV0, generated lightmap UVs, combined decorative geometry,
+one wall box collider. Exterior-only static cover; doors are decorative.
+Existing map placement retains the FBX path/GUID and footprint scaling.

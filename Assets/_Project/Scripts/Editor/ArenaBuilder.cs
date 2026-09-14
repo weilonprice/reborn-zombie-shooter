@@ -165,89 +165,94 @@ namespace ZombieShooter.EditorTools
         /// One arena's cover. Height and elevation are shared, so a layout only states where
         /// its blocks are and how big they are on the floor plane.
         /// </summary>
-        readonly struct ArenaLayout
+        /// <summary>
+        /// One authored building: which prefab, where, and which way it faces.
+        /// <para>
+        /// Placements replaced a system that described cover as rectangles and then squashed
+        /// a building non-uniformly to fill each one. That was right for four greybox blocks
+        /// and wrong the moment the models gained signage, corrugated siding and window
+        /// frames - all of which visibly distort when x and z are scaled by different
+        /// amounts. These are placed at their authored size and the layout is designed round
+        /// their real footprints instead.
+        /// </para>
+        /// </summary>
+        readonly struct Placement
         {
-            public readonly string Name;
-            readonly (float x, float z, float sx, float sz)[] blocks;
+            public readonly string Building;
+            public readonly float X, Z, Yaw;
 
-            public ArenaLayout(string name, (float, float, float, float)[] blocks)
+            public Placement(string building, float x, float z, float yaw)
             {
-                Name = name;
-                this.blocks = blocks;
-            }
-
-            public (Vector3 position, Vector3 size)[] Blocks()
-            {
-                var result = new (Vector3, Vector3)[blocks.Length];
-
-                for (int i = 0; i < blocks.Length; i++)
-                {
-                    result[i] = (new Vector3(blocks[i].x, CoverHeight * 0.5f, blocks[i].z),
-                                 new Vector3(blocks[i].sx, CoverHeight, blocks[i].sz));
-                }
-
-                return result;
+                Building = building; X = x; Z = z; Yaw = yaw;
             }
         }
 
-        const float CoverHeight = 2.5f;
+        readonly struct ArenaLayout
+        {
+            public readonly string Name;
+            public readonly Placement[] Placements;
+
+            public ArenaLayout(string name, Placement[] placements)
+            {
+                Name = name;
+                Placements = placements;
+            }
+        }
 
         /// <summary>
-        /// Four spaces that ask different questions of the same arsenal. All 90x90 and all
-        /// with a clear centre, so spawn radius, placement bounds and the player's start need
-        /// no per-arena tuning - the difference is entirely in what the cover does.
+        /// Four arenas, each a different answer to "where is it safe to stand".
         /// <para>
-        /// Footprints are sized in BUILDINGS, not in abstract blocks. The narrowest source
-        /// mesh is 8.95m across, so a 3m-wide slab squashed it to a quarter of its width -
-        /// these were authored when cover was featureless boxes, and the models changed the
-        /// unit. Nothing below is narrower than about five metres.
+        /// Positions were laid out and checked geometrically rather than by eye: no two
+        /// buildings within two metres of each other, nothing overlapping the player spawn,
+        /// nothing crossing the arena wall. The first pass of these had four such faults,
+        /// including two buildings sitting on the spawn point.
+        /// </para>
+        /// <para>
+        /// Tall buildings are kept to the corners. The camera looks down at 61 degrees, so a
+        /// building of height h hides roughly 0.55h of ground behind it - and the apartment
+        /// block is 10.8m tall. In a corner the ground it hides is mostly outside the arena.
         /// </para>
         /// </summary>
         static readonly ArenaLayout[] ArenaLayouts =
         {
-            // Scattered blocks and long anchors. The balanced baseline everything else is
-            // measured against, and the one the game was tuned in.
-            new("The Yard", new (float, float, float, float)[]
+            // Scattered cover and long anchors. The balanced baseline every other
+            // arena is measured against, and the one the game was tuned in.
+            new("The Yard", new Placement[]
             {
-                (-18f, 12f, 6f, 6f), (21f, -9f, 6f, 6f), (6f, 26f, 6f, 6f),
-                (-27f, -21f, 6f, 6f), (14f, 14f, 6f, 6f), (-9f, -28f, 6f, 6f),
-                (0f, -14f, 12f, 5.5f), (-33f, 4f, 5.5f, 12f), (33f, 18f, 5.5f, 12f),
-                (18f, -30f, 12f, 5.5f), (-20f, 30f, 10f, 5.5f), (30f, -20f, 6f, 6f),
-                (-34f, -34f, 6f, 6f), (34f, 34f, 6f, 6f),
+                new("Warehouse", -24f, 24f, 0f), new("Storefront", 17f, 28f, 0f), new("ApartmentBlock", 35f, 34f, 90f),
+                new("Storefront", 14f, 6f, 90f), new("Warehouse", -30f, -3f, 90f), new("Shack", -8f, -25f, 90f),
+                new("Warehouse", 18f, -21f, 0f),
             }),
 
-            // Long parallel lanes. Sightlines run one way and not the other, which is the
-            // sniper's and rifle's arena and the flamethrower's worst. A barricade across a
-            // lane closes it completely, so fortification is at its strongest here.
-            new("The Corridors", new (float, float, float, float)[]
+            // Four lanes running north-south with an open central corridor.
+            // Two buildings a lane is the fewest that still reads as a lane rather than as
+            // scattered cover. Sightlines run one way and not the other.
+            new("The Corridors", new Placement[]
             {
-                (-31f, -22f, 7f, 30f), (-31f, 18f, 7f, 24f),
-                (-15f, -2f, 7f, 38f),
-                (1f, -28f, 7f, 22f), (1f, 16f, 7f, 26f),
-                (17f, -2f, 7f, 38f),
-                (33f, -22f, 7f, 30f), (33f, 18f, 7f, 24f),
-                // Two cross-pieces, so the lanes are not perfectly parallel and a player
-                // cannot simply hold one line forever.
-                (-23f, 34f, 18f, 6f), (23f, -34f, 18f, 6f),
+                new("Warehouse", -34f, 22f, 90f), new("Warehouse", -34f, -4f, 90f), new("Warehouse", -15f, 8f, 90f),
+                new("Warehouse", -15f, -18f, 90f), new("Warehouse", 15f, 22f, 90f), new("Warehouse", 15f, -4f, 90f),
+                new("Storefront", 34f, 8f, 90f), new("Storefront", 34f, -18f, 90f),
             }),
 
-            // Open centre, a dense band of cover at mid radius, open again at the edge. You
-            // fight in a donut: kiting around the band is easy, holding a spot is hard, and
-            // ranged enemies get clean shots across the middle.
-            new("The Ring", new (float, float, float, float)[]
+            // A band of cover at a constant radius, open in the middle and open at
+            // the rim. Six in the band, at radius 22 rather than 27 - the same six make a
+            // tighter band that reads as one, where a wider circle just scattered them.
+            new("The Ring", new Placement[]
             {
-                (0f, 21f, 14f, 6f), (0f, -21f, 14f, 6f),
-                (21f, 0f, 6f, 14f), (-21f, 0f, 6f, 14f),
-                (16f, 16f, 8f, 6f), (-16f, 16f, 8f, 6f),
-                (16f, -16f, 8f, 6f), (-16f, -16f, 8f, 6f),
-                (25f, 25f, 6f, 8f), (-25f, 25f, 6f, 8f),
-                (25f, -25f, 6f, 8f), (-25f, -25f, 6f, 8f),
+                new("Shack", 21f, 8f, 90f), new("Storefront", 4f, 22f, 0f), new("Shack", -17f, 14f, 90f),
+                new("Storefront", -21f, -8f, 90f), new("Shack", -4f, -22f, 0f), new("Storefront", 17f, -14f, 90f),
+                new("ApartmentBlock", -34f, 34f, 0f), new("Warehouse", 33f, 33f, 0f),
             }),
 
-            // Dense small cover everywhere, no long sightlines. The shotgun's and
-            // flamethrower's arena and the sniper's worst, and the hardest test the flow
-            // field gets - every route is a sequence of corners.
-            new("The Warren", WarrenBlocks()),
+            // A three-by-three grid with the middle left out, jittered, at 20m
+            // spacing. Eight buildings make streets; sixteen made a maze, and at 28m apart
+            // eight made nothing at all.
+            new("The Warren", new Placement[]
+            {
+                new("Storefront", -18f, -22f, 0f), new("Shack", -17f, 2f, 90f), new("Storefront", -18f, 21f, 0f),
+                new("Shack", 3f, -17f, 90f), new("Shack", -2f, 20f, 90f), new("Storefront", 21f, -23f, 0f),
+                new("Shack", 21f, -3f, 90f), new("Storefront", 19f, 17f, 0f),
+            })
         };
 
         /// <summary>
@@ -322,8 +327,7 @@ namespace ZombieShooter.EditorTools
                 new Vector3(2f, WallHeight, ArenaHalfSize * 2f + 2f), wallMat);
 
             // Every layout is built and all but one switched off at runtime. The builder
-            // generates the scene once and cannot know which arena a future run wants. Each
-            // old cover footprint now receives a scaled authored building instead of a cube.
+            // generates the scene once and cannot know which arena a future run wants.
             var layoutRoots = new Object[ArenaLayouts.Length];
 
             for (int i = 0; i < ArenaLayouts.Length; i++)
@@ -333,19 +337,8 @@ namespace ZombieShooter.EditorTools
                 var root = new GameObject(layout.Name).transform;
                 root.SetParent(env, false);
 
-                var blocks = layout.Blocks();
-
-                // The authored buildings have far more visual weight than the old greybox
-                // columns. Keep roughly one in five of the original placements and sample
-                // them evenly through the layout so the survivors do not clump in one corner.
-                int keepCount = Mathf.Max(1, Mathf.RoundToInt(blocks.Length * BuildingKeepFraction));
-                for (int kept = 0; kept < keepCount; kept++)
-                {
-                    int b = Mathf.Min(blocks.Length - 1,
-                        Mathf.FloorToInt((kept + 0.5f) * blocks.Length / keepCount));
-                    FillFootprint(root, CompactBuildingFootprint(blocks[b]),
-                                  wallMat, i * 100 + b);
-                }
+                foreach (var placement in layout.Placements)
+                    PlaceBuilding(root, placement, wallMat);
 
                 layoutRoots[i] = root.gameObject;
             }
@@ -355,21 +348,6 @@ namespace ZombieShooter.EditorTools
             {
                 f.Arr("layouts", layoutRoots).I("forcedIndex", -1);
             }
-        }
-
-        /// <summary>Twenty percent of the old cover positions remain as buildings.</summary>
-        const float BuildingKeepFraction = 0.20f;
-
-        static (Vector3 position, Vector3 size) CompactBuildingFootprint(
-            (Vector3 position, Vector3 size) block)
-        {
-            // A retained corridor slab should become one building, not a terrace stretching
-            // across the old 20-38m obstacle. Capping its run opens the surrounding lane and
-            // also guarantees FillFootprint places exactly one authored model here.
-            var size = block.size;
-            if (size.x >= size.z) size.x = Mathf.Min(size.x, BuildingRunPerUnit);
-            else size.z = Mathf.Min(size.z, BuildingRunPerUnit);
-            return (block.position, size);
         }
 
         static void CreateWall(Transform parent, string name, Vector3 position, Vector3 size, Material mat)
@@ -382,265 +360,43 @@ namespace ZombieShooter.EditorTools
             wall.GetComponent<MeshRenderer>().sharedMaterial = mat;
         }
 
+        /// <summary>Prefabs built by Tools > Zombie Shooter > Install Detailed Buildings.</summary>
+        const string BuildingPrefabDir = "Assets/_Project/Prefabs/Buildings";
+
         /// <summary>
-        /// Size of each building's walls, measured off the asset rather than written down.
+        /// Drops one authored building into a layout at its own size.
         /// <para>
-        /// This used to be a hand-maintained table, and it had drifted: the shack was listed
-        /// 7.13m tall against an actual 6.25m and the warehouse 9.43m against 8.17m, because
-        /// both were regenerated when the peaked roof was fixed and the numbers were not.
-        /// Anything derived from those figures - the scale a footprint is fitted to, and the
-        /// collider - was wrong by however far the table had drifted.
+        /// No scaling and no collider work. The prefab already carries a BoxCollider fitted
+        /// to its wall shell and is already marked static, so the builder's job here is
+        /// position and yaw and nothing else. What this replaced measured wall bounds out of
+        /// mesh vertices, stretched the model non-uniformly to fill a rectangle, and rebuilt
+        /// the collider on every run - all of which the prefab now settles once, at authoring
+        /// time, where it can be inspected.
         /// </para>
         /// </summary>
-        static readonly Dictionary<string, Bounds> BuildingWallBounds = new();
-
-        /// <summary>
-        /// Only the part of a building that is wall. Above this fraction of its height is
-        /// roof, eaves and awning, which overhang the walls and must not block a player
-        /// walking past underneath.
-        /// </summary>
-        const float BuildingWallFraction = 0.8f;
-
-        /// <summary>
-        /// Local-space bounds of a building's walls, cached per art name. Measured from the
-        /// vertices below <see cref="BuildingWallFraction"/> of the model's height, so the
-        /// box is the thing that can be walked into rather than the thing that casts a
-        /// shadow - and so it is centred where the mesh actually is. The old box assumed a
-        /// centre of zero on both horizontal axes; the apartment block's is 0.55m off, which
-        /// put wall outside the collider on one side and collider outside the wall on the
-        /// other. That is one bug presenting as two.
-        /// </summary>
-        static bool TryGetBuildingWallBounds(string artName, out Bounds bounds)
+        static void PlaceBuilding(Transform parent, Placement placement, Material fallbackMat)
         {
-            if (BuildingWallBounds.TryGetValue(artName, out bounds)) return bounds.size.sqrMagnitude > 0f;
-
-            bounds = new Bounds();
-            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(
-                $"{Root}/Art/Buildings/{artName}/{artName}.fbx");
-
-            if (asset != null)
-            {
-                var toRoot = asset.transform.worldToLocalMatrix;
-                var whole = new Bounds();
-                bool any = false;
-
-                foreach (var filter in asset.GetComponentsInChildren<MeshFilter>(true))
-                {
-                    if (filter.sharedMesh == null) continue;
-                    var matrix = toRoot * filter.transform.localToWorldMatrix;
-
-                    foreach (var vertex in filter.sharedMesh.vertices)
-                    {
-                        var local = matrix.MultiplyPoint3x4(vertex);
-                        if (!any) { whole = new Bounds(local, Vector3.zero); any = true; }
-                        else whole.Encapsulate(local);
-                    }
-                }
-
-                if (any)
-                {
-                    float ceiling = whole.min.y + whole.size.y * BuildingWallFraction;
-                    var walls = new Bounds();
-                    bool wallFound = false;
-
-                    foreach (var filter in asset.GetComponentsInChildren<MeshFilter>(true))
-                    {
-                        if (filter.sharedMesh == null) continue;
-                        var matrix = toRoot * filter.transform.localToWorldMatrix;
-
-                        foreach (var vertex in filter.sharedMesh.vertices)
-                        {
-                            var local = matrix.MultiplyPoint3x4(vertex);
-                            if (local.y > ceiling) continue;
-                            if (!wallFound) { walls = new Bounds(local, Vector3.zero); wallFound = true; }
-                            else walls.Encapsulate(local);
-                        }
-                    }
-
-                    // Keep the full height: the walls stop at the eaves but the building is
-                    // still solid up to its roof, and nothing walks over it.
-                    bounds = wallFound ? walls : whole;
-                    bounds.Encapsulate(new Vector3(bounds.center.x, whole.max.y, bounds.center.z));
-                    bounds.Encapsulate(new Vector3(bounds.center.x, whole.min.y, bounds.center.z));
-                }
-            }
-
-            BuildingWallBounds[artName] = bounds;
-            return bounds.size.sqrMagnitude > 0f;
-        }
-
-        /// <summary>
-        /// Covers one layout block with buildings, tiling along its long axis rather than
-        /// stretching a single mesh to fit.
-        /// <para>
-        /// The Corridors has slabs up to 38m. Fitting one Warehouse to a 3x38m footprint
-        /// scaled it 0.18 across and 3.67 along - a twenty-to-one distortion that smears
-        /// every door, window and roof ridge. A row of buildings reads as a terrace; one
-        /// stretched building reads as a bug.
-        /// </para>
-        /// </summary>
-        static void FillFootprint(Transform parent, (Vector3 position, Vector3 size) block,
-                                  Material fallbackMat, int index)
-        {
-            bool alongX = block.size.x >= block.size.z;
-
-            float length = alongX ? block.size.x : block.size.z;
-            float width = alongX ? block.size.z : block.size.x;
-
-            // One building per roughly nine metres of run, so a 38m slab becomes four rather
-            // than one enormous one. Ceil, so a footprint is always fully covered.
-            int count = Mathf.Max(1, Mathf.CeilToInt(length / BuildingRunPerUnit));
-            float step = length / count;
-
-            for (int i = 0; i < count; i++)
-            {
-                // Centre of this slice along the run.
-                float offset = -length * 0.5f + step * (i + 0.5f);
-
-                var slice = alongX
-                    ? new Vector3(step, block.size.y, width)
-                    : new Vector3(width, block.size.y, step);
-
-                var position = alongX
-                    ? new Vector3(block.position.x + offset, 0f, block.position.z)
-                    : new Vector3(block.position.x, 0f, block.position.z + offset);
-
-                var artName = BuildingArtForFootprint(slice, index * 10 + i);
-                float yaw = slice.x >= slice.z ? 0f : 90f;
-
-                // Alternate the facing along a terrace so a row does not read as one mesh
-                // repeated, which is the other way tiling can look wrong.
-                if (count > 1 && i % 2 == 1) yaw += 180f;
-
-                CreateBuilding(parent, artName, position, yaw,
-                               BuildingScaleForFootprint(artName, slice), fallbackMat,
-                               index * 10 + i);
-            }
-        }
-
-        /// <summary>Metres of footprint each building covers before another is placed.</summary>
-        const float BuildingRunPerUnit = 9f;
-
-        /// <summary>
-        /// Picks a building for a footprint, varying by index so a terrace is not one mesh
-        /// repeated down its whole length.
-        /// <para>
-        /// Candidates are filtered by how evenly they would have to scale, not just by size:
-        /// squashing a 16m warehouse onto a 6m footprint distorts it as badly as stretching
-        /// a shack. Only when nothing fits well does the least-bad option win outright.
-        /// </para>
-        /// </summary>
-        static string BuildingArtForFootprint(Vector3 size, int index)
-        {
-            string[] options = { "Shack", "Storefront", "ApartmentBlock", "Warehouse" };
-
-            var good = new List<string>();
-            string best = options[0];
-            float bestPenalty = float.MaxValue;
-
-            foreach (var option in options)
-            {
-                if (!TryGetBuildingWallBounds(option, out var bounds)) continue;
-                var source = bounds.size;
-
-                float sx = Mathf.Max(size.x, 0.8f) / source.x;
-                float sz = Mathf.Max(size.z, 0.8f) / source.z;
-
-                // Penalty is how far from square the two scales are, and how far the overall
-                // scale strays from life size.
-                float aspect = Mathf.Max(sx, sz) / Mathf.Max(0.01f, Mathf.Min(sx, sz));
-                float shrink = 1f / Mathf.Max(0.01f, Mathf.Min(sx, sz));
-                float penalty = aspect + shrink * 0.35f;
-
-                if (penalty < bestPenalty) { bestPenalty = penalty; best = option; }
-                if (aspect <= 1.6f && sx >= 0.35f && sz >= 0.35f) good.Add(option);
-            }
-
-            if (good.Count == 0) return best;
-            return good[Mathf.Abs(index) % good.Count];
-        }
-
-        static Vector3 BuildingScaleForFootprint(string artName, Vector3 footprint)
-        {
-            if (!TryGetBuildingWallBounds(artName, out var sourceBounds))
-                return Vector3.one;
-
-            var source = sourceBounds.size;
-            float sx = Mathf.Max(footprint.x, 0.8f) / source.x;
-            float sz = Mathf.Max(footprint.z, 0.8f) / source.z;
-            // Thin corridor buildings stay readable without making tiny Warren props tower
-            // over the player. The source meshes are allowed to squash in X/Z because the
-            // layouts contain long slab footprints.
-            // Capped well below life size on purpose. The camera looks down at 61 degrees,
-            // so a building of height h hides roughly 0.55h of ground behind it - and the
-            // screen-space occlusion fade that would make tall cover safe is not due until
-            // Phase 3. Until then, shorter buildings lose the player less often.
-            float sy = Mathf.Clamp(Mathf.Min(sx, sz) * 1.6f, 0.45f, 0.72f);
-            return new Vector3(sx, sy, sz);
-        }
-
-        static void CreateBuilding(Transform parent, string artName, Vector3 position, float yaw,
-                                   Vector3 scale, Material fallbackMat, int index)
-        {
-            string path = $"{Root}/Art/Buildings/{artName}/{artName}.fbx";
+            string path = $"{BuildingPrefabDir}/{placement.Building}.prefab";
             var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+
             if (asset == null)
             {
-                // Keep the editor menu useful if someone runs it before importing the art.
-                CreateWall(parent, $"BuildingFallback_{index}", position, new Vector3(7f, 2.5f, 7f), fallbackMat);
-                Debug.LogWarning($"ArenaBuilder: no building model at {path}; using a fallback cover block.");
+                // Keep the menu item useful before the buildings have been installed.
+                CreateWall(parent, $"MissingBuilding_{placement.Building}",
+                           new Vector3(placement.X, 2.5f, placement.Z),
+                           new Vector3(8f, 5f, 8f), fallbackMat);
+                Debug.LogWarning($"ArenaBuilder: no building prefab at {path}; using a block. " +
+                                 "Run Tools > Zombie Shooter > Install Detailed Buildings.");
                 return;
             }
 
             var building = PrefabUtility.InstantiatePrefab(asset, parent) as GameObject;
             if (building == null) return;
 
-            building.name = $"{artName}_{index:00}";
-            building.transform.localPosition = position;
-            building.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
-            building.transform.localScale = scale;
-            MarkBuildingStaticAndAddColliders(building);
-
-            // One box per building, and it is the only collider. Sized to the walls rather
-            // than to the mesh bounds: bounds include the roof overhang, which would block
-            // movement in the open air beside the building.
-            if (TryGetBuildingWallBounds(artName, out var wallBounds))
-            {
-                var cover = building.GetComponent<BoxCollider>();
-                if (cover == null) cover = building.AddComponent<BoxCollider>();
-
-                // Measured, and centred where the mesh actually is. Both of those were wrong
-                // before: the size came from a table that had drifted, and the centre was
-                // assumed to be zero when the apartment block's is 0.55m off its own origin.
-                cover.center = wallBounds.center;
-                cover.size = wallBounds.size;
-            }
-            else
-            {
-                Debug.LogWarning($"ArenaBuilder: could not measure '{artName}', so it has no " +
-                                 "collider and everything walks straight through it.");
-            }
-        }
-
-        static void MarkBuildingStaticAndAddColliders(GameObject building)
-        {
-            building.isStatic = true;
-            foreach (var renderer in building.GetComponentsInChildren<MeshRenderer>(true))
-            {
-                renderer.receiveShadows = true;
-                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-                renderer.gameObject.isStatic = true;
-            }
-
-            // Deliberately NO per-part MeshColliders. The apartment alone is 67 parts, and
-            // The Warren places 26 buildings - that is well over a thousand non-convex mesh
-            // colliders for the flow field's 8,100-cell bake and every bullet to test
-            // against. They also buy nothing: the solid root box below already blocks
-            // anything that would have reached them, so the detail is unreachable. Doors and
-            // windows are decorative at this scale; if a building ever becomes enterable,
-            // the box is what has to go, not the other way round.
-            foreach (var filter in building.GetComponentsInChildren<MeshFilter>(true))
-                filter.gameObject.isStatic = true;
+            building.name = $"{placement.Building}_{Mathf.RoundToInt(placement.X)}_{Mathf.RoundToInt(placement.Z)}";
+            building.transform.localPosition = new Vector3(placement.X, 0f, placement.Z);
+            building.transform.localRotation = Quaternion.Euler(0f, placement.Yaw, 0f);
+            building.transform.localScale = Vector3.one;
         }
 
         /// <summary>
@@ -1949,28 +1705,45 @@ namespace ZombieShooter.EditorTools
             var zones = new GameObject(LimbHitboxName);
             zones.transform.SetParent(root.transform, false);
 
-            // joint, next joint along, radius, damage.
-            var segments = new (string from, string to, float radius, float multiplier)[]
+            // joint, next joint along (null = a tip), radius, length if a tip, damage.
+            //
+            // Every radius here was MEASURED, not chosen: each vertex is assigned to the
+            // bone that actually skins it, and the radius is the 99th percentile distance
+            // from that bone's segment across the Chase cycle. The previous set was picked
+            // by eye from the build script and left up to 15cm of mesh outside any zone -
+            // which is exactly the arm and shoulder that shots were passing through.
+            //
+            // Head and hands are capsules along their own bone rather than balls at the
+            // joint. A ball big enough to reach the top of the skull is 0.40m and swallows
+            // the chest with it; a 0.34m capsule of radius 0.24 covers the same skull and
+            // stops where the neck does.
+            //
+            // The pelvis is in the list because the hit ray leaves the player at 1.0m and
+            // travels flat, which is WAIST height on a zombie - not chest. Leaving it out on
+            // the grounds that "no shot is ever at ankle height" skipped the one band every
+            // shot actually passes through.
+            var segments = new (string from, string to, float radius, float tip, float multiplier)[]
             {
-                ("Spine",      "Chest",     0.25f, 1f),
-                ("Chest",      "Neck",      0.26f, 1f),
-                ("Head",       null,        0.19f, 1f),
-                ("UpperArm.L", "Forearm.L", 0.13f, LimbDamageScale),
-                ("UpperArm.R", "Forearm.R", 0.13f, LimbDamageScale),
-                ("Forearm.L",  "Hand.L",    0.11f, LimbDamageScale),
-                ("Forearm.R",  "Hand.R",    0.11f, LimbDamageScale),
-                ("Hand.L",     null,        0.10f, LimbDamageScale),
-                ("Hand.R",     null,        0.10f, LimbDamageScale),
+                ("Pelvis",     "Spine",     0.265f, 0f,     1f),
+                ("Spine",      "Chest",     0.275f, 0f,     1f),
+                ("Chest",      "Neck",      0.320f, 0f,     1f),
+                ("Head",       null,        0.240f, 0.34f,  1f),
+                ("UpperArm.L", "Forearm.L", 0.150f, 0f,     LimbDamageScale),
+                ("UpperArm.R", "Forearm.R", 0.150f, 0f,     LimbDamageScale),
+                ("Forearm.L",  "Hand.L",    0.115f, 0f,     LimbDamageScale),
+                ("Forearm.R",  "Hand.R",    0.115f, 0f,     LimbDamageScale),
+                ("Hand.L",     null,        0.125f, 0.22f,  LimbDamageScale),
+                ("Hand.R",     null,        0.125f, 0.22f,  LimbDamageScale),
             };
 
             int made = 0, colliders = 0;
-            foreach (var (from, to, radius, multiplier) in segments)
+            foreach (var (from, to, radius, tip, multiplier) in segments)
             {
                 var joint = model != null ? FindDeep(model, from) : null;
                 if (joint == null) continue;
 
                 var next = to != null ? FindDeep(model, to) : null;
-                int added = MountHitZone(joint, next, radius, multiplier, from);
+                int added = MountHitZone(joint, next, radius, tip, multiplier, from);
                 if (added <= 0) continue;
 
                 made++;
@@ -2003,7 +1776,7 @@ namespace ZombieShooter.EditorTools
         /// Covers one bone, out to <paramref name="next"/> when there is one.
         /// Returns how many colliders it took.
         /// </summary>
-        static int MountHitZone(Transform joint, Transform next, float radius,
+        static int MountHitZone(Transform joint, Transform next, float radius, float tip,
                                 float multiplier, string label)
         {
             var zone = new GameObject($"Hit_{label}");
@@ -2012,7 +1785,7 @@ namespace ZombieShooter.EditorTools
             zone.transform.localRotation = Quaternion.identity;
             zone.transform.localScale = Vector3.one;
 
-            int colliders = Shape(zone, joint, next, radius);
+            int colliders = Shape(zone, joint, next, radius, tip);
 
             // Hitbox goes on AFTER the colliders, and that ordering is not cosmetic. Hitbox
             // declares RequireComponent(typeof(Collider)); Collider is abstract, so Unity
@@ -2026,13 +1799,17 @@ namespace ZombieShooter.EditorTools
         }
 
         /// <summary>Puts collider volume on a zone and says how many it took.</summary>
-        static int Shape(GameObject zone, Transform joint, Transform next, float radius)
+        static int Shape(GameObject zone, Transform joint, Transform next, float radius,
+                         float tipLength)
         {
-            // A tip joint - head, hand - has nothing past it, so one ball is the whole zone.
-            var tip = next != null ? joint.InverseTransformPoint(next.position) : Vector3.zero;
-            float length = next != null ? tip.magnitude : 0f;
+            // A tip joint - head, hand - has no child to aim at, so it runs along its own
+            // bone for an authored length. Imported bones point down their local +Y, which
+            // is also what the measured centres below confirm.
+            var tip = next != null ? joint.InverseTransformPoint(next.position)
+                                   : Vector3.up * tipLength;
+            float length = tip.magnitude;
 
-            if (next == null || length < 0.01f)
+            if (length < 0.01f)
             {
                 var ball = zone.AddComponent<SphereCollider>();
                 ball.isTrigger = true;
