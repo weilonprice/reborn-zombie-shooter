@@ -219,46 +219,39 @@ namespace ZombieShooter.EditorTools
             // arena is measured against, and the one the game was tuned in.
             new("The Yard", new Placement[]
             {
-                new("Warehouse", -24f, 24f, 0f), new("Shack", -5f, 31f, 0f), new("Storefront", 17f, 28f, 0f),
-                new("ApartmentBlock", 35f, 34f, 90f), new("Shack", 30f, 9f, 90f), new("Storefront", 14f, 6f, 90f),
-                new("Warehouse", -30f, -3f, 90f), new("Shack", -12f, 12f, 0f), new("Storefront", -29f, -27f, 0f),
-                new("Shack", -8f, -25f, 90f), new("Warehouse", 18f, -21f, 0f), new("ApartmentBlock", 36f, -34f, 0f),
-                new("Shack", 3f, -36f, 0f),
+                new("Warehouse", -24f, 24f, 0f), new("Storefront", 17f, 28f, 0f), new("ApartmentBlock", 35f, 34f, 90f),
+                new("Storefront", 14f, 6f, 90f), new("Warehouse", -30f, -3f, 90f), new("Shack", -8f, -25f, 90f),
+                new("Warehouse", 18f, -21f, 0f),
             }),
 
             // Four lanes running north-south with an open central corridor.
-            // Sightlines run one way and not the other: the sniper's and rifle's arena and
-            // the flamethrower's worst. A barricade across a lane closes it completely.
+            // Two buildings a lane is the fewest that still reads as a lane rather than as
+            // scattered cover. Sightlines run one way and not the other.
             new("The Corridors", new Placement[]
             {
-                new("Warehouse", -34f, 30f, 90f), new("Warehouse", -34f, 9f, 90f), new("Warehouse", -34f, -12f, 90f),
-                new("Shack", -34f, -33f, 90f), new("Warehouse", -15f, 21f, 90f), new("Warehouse", -15f, 0f, 90f),
-                new("Warehouse", -15f, -21f, 90f), new("Warehouse", 15f, 30f, 90f), new("Warehouse", 15f, 9f, 90f),
-                new("Warehouse", 15f, -12f, 90f), new("Shack", 15f, -33f, 90f), new("Storefront", 34f, 21f, 90f),
-                new("Storefront", 34f, 0f, 90f), new("Storefront", 34f, -21f, 90f),
+                new("Warehouse", -34f, 22f, 90f), new("Warehouse", -34f, -4f, 90f), new("Warehouse", -15f, 8f, 90f),
+                new("Warehouse", -15f, -18f, 90f), new("Warehouse", 15f, 22f, 90f), new("Warehouse", 15f, -4f, 90f),
+                new("Storefront", 34f, 8f, 90f), new("Storefront", 34f, -18f, 90f),
             }),
 
-            // A single band of cover at a constant radius, open in the middle and
-            // open at the rim. You fight in a donut - kiting round the band is easy, holding
-            // a spot is hard, and ranged enemies get clean shots across the centre.
+            // A band of cover at a constant radius, open in the middle and open at
+            // the rim. Six in the band, at radius 22 rather than 27 - the same six make a
+            // tighter band that reads as one, where a wider circle just scattered them.
             new("The Ring", new Placement[]
             {
-                new("Shack", 26f, 10f, 90f), new("Storefront", 11f, 26f, 0f), new("Shack", -10f, 26f, 0f),
-                new("Storefront", -26f, 11f, 90f), new("Shack", -26f, -10f, 90f), new("Storefront", -11f, -26f, 0f),
-                new("Shack", 10f, -26f, 0f), new("Storefront", 26f, -11f, 90f), new("ApartmentBlock", -34f, 34f, 0f),
-                new("ApartmentBlock", 34f, -34f, 0f), new("Warehouse", 33f, 33f, 0f), new("Warehouse", -33f, -33f, 0f),
+                new("Shack", 21f, 8f, 90f), new("Storefront", 4f, 22f, 0f), new("Shack", -17f, 14f, 90f),
+                new("Storefront", -21f, -8f, 90f), new("Shack", -4f, -22f, 0f), new("Storefront", 17f, -14f, 90f),
+                new("ApartmentBlock", -34f, 34f, 0f), new("Warehouse", 33f, 33f, 0f),
             }),
 
-            // A jittered grid, short sightlines, corners everywhere. The
-            // flamethrower's arena and the sniper's worst.
+            // A three-by-three grid with the middle left out, jittered, at 20m
+            // spacing. Eight buildings make streets; sixteen made a maze, and at 28m apart
+            // eight made nothing at all.
             new("The Warren", new Placement[]
             {
-                new("Storefront", -34f, -32f, 0f), new("Shack", -32f, -15f, 90f), new("Shack", -35f, 13f, 0f),
-                new("Storefront", -33f, 33f, 90f), new("Shack", -15f, -33f, 90f), new("Shack", -16f, -14f, 0f),
-                new("Shack", -16f, 12f, 90f), new("Shack", -15f, 33f, 0f), new("Shack", 12f, -35f, 0f),
-                new("Shack", 13f, -14f, 90f), new("Shack", 14f, 13f, 0f), new("Shack", 16f, 33f, 90f),
-                new("Storefront", 31f, -32f, 90f), new("Shack", 32f, -14f, 0f), new("Shack", 31f, 16f, 90f),
-                new("Storefront", 32f, 35f, 0f),
+                new("Storefront", -18f, -22f, 0f), new("Shack", -17f, 2f, 90f), new("Storefront", -18f, 21f, 0f),
+                new("Shack", 3f, -17f, 90f), new("Shack", -2f, 20f, 90f), new("Storefront", 21f, -23f, 0f),
+                new("Shack", 21f, -3f, 90f), new("Storefront", 19f, 17f, 0f),
             })
         };
 

@@ -35,10 +35,16 @@ for a top-down map of all four.
 
 | | |
 |---|---|
-| **The Yard** | 13 buildings scattered with long anchors. The balanced baseline. |
-| **The Corridors** | 14 in four north-south lanes with an open central corridor. Sightlines run one way and not the other. |
-| **The Ring** | 12 — a band at a constant radius, open centre, open rim. You fight in a donut. |
-| **The Warren** | 16 on a jittered grid. Short sightlines, corners everywhere. |
+| **The Yard** | 7 buildings scattered with long anchors. The balanced baseline. |
+| **The Corridors** | 8 in four north-south lanes with an open central corridor. Sightlines run one way and not the other. |
+| **The Ring** | 8 — six in a band at radius 22, two anchors outside it. You fight in a donut. |
+| **The Warren** | 8 on a jittered 3×3 grid at 20 m spacing, middle cell empty. Streets, not a maze. |
+
+Thinned from 55 placements to 31. Two of them needed more than deletion to survive
+the cut: at half the count The Ring stopped reading as a ring and The Warren
+stopped reading as anything, so both were **pulled tighter** rather than merely
+emptied — radius 27 → 22, grid spacing 28 → 20 m. Fewer buildings closer together
+keeps the shape; fewer buildings equally spread just removes it.
 
 Positions were **checked geometrically, not by eye**: no two buildings within two
 metres, nothing overlapping the player spawn, nothing crossing the arena wall. The
@@ -51,5 +57,5 @@ height *h* hides roughly 0.55*h* of ground behind it — and the apartment block
 
 ## Budget
 
-230k–320k triangles of static geometry per arena, and only one arena is active at a
+136k–192k triangles of static geometry per arena, and only one arena is active at a
 time. Static, so it batches; worth re-checking if the target ever moves off desktop.
