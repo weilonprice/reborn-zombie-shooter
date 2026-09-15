@@ -229,7 +229,7 @@ namespace ZombieShooter
 
         void Update()
         {
-            if (Time.timeScale <= 0f) return;
+            if (Time.timeScale <= 0f || GameMenu.BlocksGameplayInput) return;
             if (definition == null) return;
             if (GameManager.Instance != null && GameManager.Instance.State != GameState.Playing) return;
             if (ownerHealth != null && !ownerHealth.IsAlive) return;

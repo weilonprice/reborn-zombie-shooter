@@ -64,7 +64,7 @@ namespace ZombieShooter
 
         void Request(float seconds, float scale)
         {
-            if (seconds <= 0f) return;
+            if (seconds <= 0f || GameMenu.IsOpen) return;
 
             float until = Time.realtimeSinceStartup + seconds;
 
@@ -88,7 +88,7 @@ namespace ZombieShooter
             while (Time.realtimeSinceStartup < resumeAt)
                 yield return null;
 
-            Time.timeScale = 1f;
+            Time.timeScale = GameMenu.IsOpen ? 0f : 1f;
             routine = null;
         }
 
@@ -101,7 +101,7 @@ namespace ZombieShooter
                 routine = null;
             }
 
-            if (!Mathf.Approximately(Time.timeScale, 1f)) Time.timeScale = 1f;
+            if (!Mathf.Approximately(Time.timeScale, 1f)) Time.timeScale = GameMenu.IsOpen ? 0f : 1f;
         }
     }
 }

@@ -118,6 +118,7 @@ namespace ZombieShooter
 
         void Update()
         {
+            if (GameMenu.IsOpen) return;
             if (IsOpen)
             {
                 if (InputReader.RestartPressed)
@@ -126,7 +127,7 @@ namespace ZombieShooter
                     return;
                 }
 
-                if (InputReader.ArmoryPressed || (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame))
+                if (InputReader.ArmoryPressed)
                 {
                     Close();
                     return;

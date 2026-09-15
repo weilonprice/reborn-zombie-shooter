@@ -67,3 +67,10 @@ concertina coils, and floodlight poles. Continuous box colliders preserve the
 original arena boundary. `ArenaBuilder` uses this layout on future rebuilds.
 To reapply just the environment, use **Tools → Zombie Shooter → Apply Military Base**.
 This saves the scene and leaves gameplay objects in place.
+
+## Menus
+
+Each scene load starts on the Reborn start screen. Start Game begins the first
+wave. Escape (or gamepad Start) toggles pause, with Resume and Main Menu buttons.
+Returning to the main menu resets the run. Pausing over the armory preserves its
+open state on resume. Gameplay and audio pause together.
