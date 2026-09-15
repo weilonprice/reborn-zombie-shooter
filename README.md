@@ -27,7 +27,8 @@ player, HUD, shop, prefabs, and every design asset that does not already exist.
 It logs how many enemy archetypes it wired; if it reports a problem, re-run it
 rather than fixing the scene by hand.
 
-Then press Play.
+Then press Play. The scene opens on the Reborn start screen — the first wave
+does not begin until **Start Game**.
 
 ### Controls
 
@@ -42,10 +43,15 @@ Then press Play.
 | Cycle deployable | Q |
 | Rotate deployable | R |
 | Open the Armory | B (between waves) |
+| Pause / resume | Escape, or Start on a gamepad |
 | Continue into endless | E (on the win screen) |
 
 Gamepad works for movement, aim and the first four weapon slots. Slots 5–10 are
 keyboard only — see debt 18.
+
+Pausing stops the clock and the audio together, and holds whatever the Armory
+was doing. Escape no longer closes the Armory — it pauses over it, and resuming
+puts it back.
 
 ---
 

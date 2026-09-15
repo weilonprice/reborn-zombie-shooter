@@ -854,6 +854,21 @@ main reason content comes first.
     Also open: each spent case ships three materials against a horde that costs
     one apiece, so ninety-six cases can out-draw sixty enemies. The palette bake
     in enemy_kit is the fix and has not been applied here.
+[x] Start and pause menus - DONE 2026-09-14. Every scene load now opens on a
+    start screen instead of dropping straight into wave 1, and Escape or gamepad
+    Start pauses to Resume / Main Menu. GameMenu builds its own canvas at
+    sortingOrder 1000 and adds itself from GameManager.Awake, so it needs no
+    builder wiring and survives a rebuild.
+    Pausing is a real stop, not a hidden menu: timeScale and AudioListener go
+    together, WaveManager holds before wave 1 while AtStart, Weapon and ArmoryUI
+    drop input, and HitStop restores to 0 rather than 1 when it unfreezes into a
+    paused game - which is the bug that would otherwise have unpaused the world
+    50ms after a kill. Escape no longer closes the Armory; it pauses over it, and
+    resuming restores the Armory's own pause.
+    Unverified: BlocksGameplayInput covers exactly one frame after Resume, which
+    stops the click that pressed the button from also firing the gun. Against a
+    full-auto weapon with the mouse still held it will not.
+
 [ ] Meta progression - needs the save system, debt item 4.
 [~] Enemy models - twelve authored, palette and skulls fixed 2026-09-12.
     STILL NOT SEEN IN UNITY.
@@ -1335,10 +1350,11 @@ START HERE - THIS WEEK
    locomotion speed parameter and the flamethrower effects are all authored into
    prefabs and the scene, so none of them exist in a build made before them.
 
-WHAT PLAY FOUND, 2026-09-12 and 13. Eleven defects in two sessions, and the
-   pattern is worth reading before the next stretch of work: not one of them was
-   a wrong value that reading could have caught. Every one was two individually
-   correct things combining badly, or an asset pipeline lying quietly.
+WHAT PLAY FOUND, 2026-09-12 to 14. Twelve defects in three sessions. Eleven of
+   them share a pattern worth reading before the next stretch of work: not one
+   was a wrong value that reading could have caught. Every one was two
+   individually correct things combining badly, or an asset pipeline lying
+   quietly. The twelfth breaks the pattern, and that is recorded below too.
      A quarter of every zombie was unhittable - the walking capsule was 0.42m
      across where the mesh was 0.573m. Fixed three times before it was right:
      one fat capsule registered hits in mid-air, then bone-mounted spheres left
@@ -1357,6 +1373,24 @@ WHAT PLAY FOUND, 2026-09-12 and 13. Eleven defects in two sessions, and the
      against a 20m rolloff.
      The zombie floated again after its own FBX reimport restored the connected
      prefab instance's transform.
+     The upgrade panel bought tiers and never redrew. Every click landed - the
+     weapon really was upgrading - but tier one stayed the only live button
+     while the purchases stacked up invisibly behind it.
+   THE TWELFTH IS THE EXCEPTION, AND IT IS THE MORE UNCOMFORTABLE ONE. The
+   upgrade panel subscribed to UpgradeManager.Changed in OnEnable. It sits on
+   ArmoryUI's root, which is never toggled, so OnEnable fired once during scene
+   load - and OnEnable is not ordered against other objects' Awake, where the
+   singletons are assigned. It lost that race, the null check skipped the
+   subscription, and nothing said so. Unlike the other eleven this WAS findable
+   by reading: ArmoryUI is on the same GameObject, talks to the same managers,
+   and has always subscribed in Start. Two components doing the same job in two
+   ways, one of them working. Nobody compared them.
+   A second defect rode in with it and would have survived the first fix.
+   Selectable drives its target graphic from its own ColorBlock on every state
+   change, so setting image.color directly was overwritten: purchased,
+   rule-locked, unaffordable and not-yet-reachable all collapsed onto one
+   disabled grey - erasing the exact distinction the panel exists to draw, and
+   the one its class comment names as its reason to exist.
    The lesson is not "play more", though that is true. It is that this class of
    defect is invisible to reading BY CONSTRUCTION, so the harnesses that close
    the loop end to end - CombatRegression, CasingValidation, FlamethrowerValidation
