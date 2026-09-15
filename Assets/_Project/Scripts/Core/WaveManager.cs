@@ -96,6 +96,7 @@ namespace ZombieShooter
 
         IEnumerator RunWaves()
         {
+            while (GameMenu.Instance != null && GameMenu.Instance.AtStart) yield return null;
             while (true)
             {
                 if (GameManager.Instance != null && GameManager.Instance.State != GameState.Playing)

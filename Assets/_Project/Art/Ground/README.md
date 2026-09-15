@@ -1,48 +1,43 @@
 # Arena ground
 
-`Ground_Albedo.png` — 1024×1024, seamless, tiled every 12 m by `ArenaBuilder`
-(7.5 repeats across the 90 m arena).
+`Ground_Albedo.png` — 1024×1024, tiled every **24 m** by `ArenaBuilder`
+(3.75 repeats across the 90 m arena).
 
-Generated, not painted:
+The artwork is tan packed dirt, muted olive grass and grey stone. The master and
+the prompt that produced it live in
+[`ArtSource/Ground`](../../../../ArtSource/Ground); `build_ground.py` restores this
+file from it. **Do not edit this PNG** — it is a build output, and the destination
+`.meta` is deliberately preserved so the texture GUID and every reference to it
+survive a restore.
 
-```bash
-python3 ArtSource/Ground/build_ground.py
-```
+Two things the build step does on the way in, neither of which the eye catches:
 
-## Why it looks like this
+- **Resizes to a power of two.** The master is 1254², and Unity's default
+  `npotScale` is `ToNearest` — so it was silently resampling to 1024 on import,
+  meaning the pixels shipping in a build were not the pixels in the repository.
+- **Closes the tile.** The master's opposite edges differed by about 2.2× a normal
+  interior step, which at 3.75 repeats is a faint seam at every join. The trailing
+  rows and columns are cross-faded into the mirrored opposite edge over a 64 px
+  margin, taking the measured mismatch to zero.
 
-It is deliberately **the quietest surface in the project**. The floor fills most
-of a 61-degree screen, so every bit of contrast it carries is contrast competing
-with the horde — and reading the horde is the game.
+## Readability
+
+The floor fills most of a 61° screen, so its contrast competes with the horde —
+and reading the horde is the game.
 
 | | mean luminance | spread |
 |---|---|---|
 | characters | ~56 | wide |
-| ground | 89 | 23 |
+| ground | 128 | 58 |
 
-Three rules it is built to:
+Bodies separate on **value**: they are dark silhouettes on a bright floor, and by
+a wider margin than the generated concrete this replaced (which sat at 89).
 
-- **Value sits just above the characters and barely moves**, so a silhouette
-  always separates from it.
-- **Hue is cool** where the characters are warm and green, so they separate by
-  temperature too — which still works when a dark archetype crosses a shadow.
-- **Tone is quantised into five steps**, not a continuous gradient. Everything
-  else in the project is flat-shaded low-poly, and photographic grain fights it.
-
-The faint grid is slab seams, three to a tile — a seam every four metres. It says
-*paved*, which is what the shacks and storefronts are standing on, and gives the
-eye a scale reference on a surface that otherwise has none.
-
-## What was tried and rejected
-
-The first pass used continuous noise and long meandering crack lines. At twenty
-metres the cracks did not read as cracks, they read as **scribbled hair** across
-the whole arena — the exact noise the design was meant to avoid. Cracks are now
-short, nearly straight and sparse, at half the contrast.
-
-The first dirt pass drifted far enough into tan that the olive archetypes stopped
-separating from it. It is now weaker, cooler, and rarer.
+The trade is internal contrast — spread 58 against the old 23. That is a busier
+surface to pick a crawler out of, and **no wave of crawlers has been played on
+it.** Since 2026-09-13 the map also has no buildings, so the floor is most of what
+is on screen.
 
 Judge changes with `ArtSource/Ground/preview_ground.py`, which renders the floor
-under five real characters from the game's own camera. A flat swatch will not
-tell you whether an enemy reads against it.
+under five real characters from the game's own camera. A flat swatch will not tell
+you whether an enemy reads against it.

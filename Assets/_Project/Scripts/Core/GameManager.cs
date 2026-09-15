@@ -43,6 +43,7 @@ namespace ZombieShooter
                 return;
             }
             Instance = this;
+            if (GetComponent<GameMenu>() == null) gameObject.AddComponent<GameMenu>();
         }
 
         void Start()

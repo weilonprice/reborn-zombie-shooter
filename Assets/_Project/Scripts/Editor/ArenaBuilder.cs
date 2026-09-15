@@ -63,7 +63,6 @@ namespace ZombieShooter.EditorTools
         const float ArenaHalfSize = 45f;
         /// <summary>Deployables stay this far inside the walls.</summary>
         const float PlacementMargin = 3f;
-        const float WallHeight = 3f;
 
         [MenuItem("Tools/Zombie Shooter/Build Playable Arena")]
         public static void Build()
@@ -88,6 +87,7 @@ namespace ZombieShooter.EditorTools
 
             // Pass 1 - generate assets.
             CreateGroundMaterial();
+            ArenaLightingSetup.CreateProfile();
             CreateMaterial("M_Wall", new Color(0.32f, 0.33f, 0.36f));
             CreateMaterial("M_Player", new Color(0.25f, 0.65f, 1.00f));
             CreateMaterial("M_Gun", new Color(0.90f, 0.90f, 0.95f));
@@ -142,12 +142,11 @@ namespace ZombieShooter.EditorTools
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             var groundMat = LoadMaterial("M_Ground");
-            var wallMat = LoadMaterial("M_Wall");
             var playerMat = LoadMaterial("M_Player");
             var tracerMat = LoadMaterial("M_Tracer");
             var sparkMat = LoadMaterial("M_Spark");
             var brassMat = LoadMaterial("M_Brass");
-            BuildEnvironment(groundMat, wallMat);
+            BuildEnvironment(groundMat);
             var player = BuildPlayer(playerMat, tracerMat, sparkMat, brassMat);
             BuildCamera(player.transform);
             var waves = BuildManagers(player, sparkMat);
@@ -165,238 +164,24 @@ namespace ZombieShooter.EditorTools
         /// One arena's cover. Height and elevation are shared, so a layout only states where
         /// its blocks are and how big they are on the floor plane.
         /// </summary>
-        /// <summary>
-        /// One authored building: which prefab, where, and which way it faces.
-        /// <para>
-        /// Placements replaced a system that described cover as rectangles and then squashed
-        /// a building non-uniformly to fill each one. That was right for four greybox blocks
-        /// and wrong the moment the models gained signage, corrugated siding and window
-        /// frames - all of which visibly distort when x and z are scaled by different
-        /// amounts. These are placed at their authored size and the layout is designed round
-        /// their real footprints instead.
-        /// </para>
-        /// </summary>
-        readonly struct Placement
-        {
-            public readonly string Building;
-            public readonly float X, Z, Yaw;
-
-            public Placement(string building, float x, float z, float yaw)
-            {
-                Building = building; X = x; Z = z; Yaw = yaw;
-            }
-        }
-
-        readonly struct ArenaLayout
-        {
-            public readonly string Name;
-            public readonly Placement[] Placements;
-
-            public ArenaLayout(string name, Placement[] placements)
-            {
-                Name = name;
-                Placements = placements;
-            }
-        }
-
-        /// <summary>
-        /// Four arenas, each a different answer to "where is it safe to stand".
-        /// <para>
-        /// Positions were laid out and checked geometrically rather than by eye: no two
-        /// buildings within two metres of each other, nothing overlapping the player spawn,
-        /// nothing crossing the arena wall. The first pass of these had four such faults,
-        /// including two buildings sitting on the spawn point.
-        /// </para>
-        /// <para>
-        /// Tall buildings are kept to the corners. The camera looks down at 61 degrees, so a
-        /// building of height h hides roughly 0.55h of ground behind it - and the apartment
-        /// block is 10.8m tall. In a corner the ground it hides is mostly outside the arena.
-        /// </para>
-        /// </summary>
-        static readonly ArenaLayout[] ArenaLayouts =
-        {
-            // Scattered cover and long anchors. The balanced baseline every other
-            // arena is measured against, and the one the game was tuned in.
-            new("The Yard", new Placement[]
-            {
-                new("Warehouse", -24f, 24f, 0f), new("Storefront", 17f, 28f, 0f), new("ApartmentBlock", 35f, 34f, 90f),
-                new("Storefront", 14f, 6f, 90f), new("Warehouse", -30f, -3f, 90f), new("Shack", -8f, -25f, 90f),
-                new("Warehouse", 18f, -21f, 0f),
-            }),
-
-            // Four lanes running north-south with an open central corridor.
-            // Two buildings a lane is the fewest that still reads as a lane rather than as
-            // scattered cover. Sightlines run one way and not the other.
-            new("The Corridors", new Placement[]
-            {
-                new("Warehouse", -34f, 22f, 90f), new("Warehouse", -34f, -4f, 90f), new("Warehouse", -15f, 8f, 90f),
-                new("Warehouse", -15f, -18f, 90f), new("Warehouse", 15f, 22f, 90f), new("Warehouse", 15f, -4f, 90f),
-                new("Storefront", 34f, 8f, 90f), new("Storefront", 34f, -18f, 90f),
-            }),
-
-            // A band of cover at a constant radius, open in the middle and open at
-            // the rim. Six in the band, at radius 22 rather than 27 - the same six make a
-            // tighter band that reads as one, where a wider circle just scattered them.
-            new("The Ring", new Placement[]
-            {
-                new("Shack", 21f, 8f, 90f), new("Storefront", 4f, 22f, 0f), new("Shack", -17f, 14f, 90f),
-                new("Storefront", -21f, -8f, 90f), new("Shack", -4f, -22f, 0f), new("Storefront", 17f, -14f, 90f),
-                new("ApartmentBlock", -34f, 34f, 0f), new("Warehouse", 33f, 33f, 0f),
-            }),
-
-            // A three-by-three grid with the middle left out, jittered, at 20m
-            // spacing. Eight buildings make streets; sixteen made a maze, and at 28m apart
-            // eight made nothing at all.
-            new("The Warren", new Placement[]
-            {
-                new("Storefront", -18f, -22f, 0f), new("Shack", -17f, 2f, 90f), new("Storefront", -18f, 21f, 0f),
-                new("Shack", 3f, -17f, 90f), new("Shack", -2f, 20f, 90f), new("Storefront", 21f, -23f, 0f),
-                new("Shack", 21f, -3f, 90f), new("Storefront", 19f, 17f, 0f),
-            })
-        };
-
-        /// <summary>
-        /// A deterministic scatter. Seeded rather than hand-placed because two dozen blocks
-        /// are data, not design, and the centre is kept clear so the player never starts
-        /// inside cover.
-        /// </summary>
-        static (float, float, float, float)[] WarrenBlocks()
-        {
-            var random = new System.Random(20260911);
-            var blocks = new List<(float, float, float, float)>();
-
-            // Fewer and larger than the original scatter: 26 boxes of 3m became 26 buildings
-            // filling the arena once cover stopped being abstract.
-            const float clearRadius = 11f;
-            const float spacing = 12f;
-
-            for (int attempt = 0; attempt < 600 && blocks.Count < 18; attempt++)
-            {
-                float x = (float)(random.NextDouble() * 72f - 36f);
-                float z = (float)(random.NextDouble() * 72f - 36f);
-
-                if (x * x + z * z < clearRadius * clearRadius) continue;
-
-                bool tooClose = false;
-                foreach (var placed in blocks)
-                {
-                    float dx = placed.Item1 - x;
-                    float dz = placed.Item2 - z;
-                    if (dx * dx + dz * dz < spacing * spacing) { tooClose = true; break; }
-                }
-                if (tooClose) continue;
-
-                float size = 5.5f + (float)random.NextDouble() * 3f;
-                blocks.Add((x, z, size, size));
-            }
-
-            return blocks.ToArray();
-        }
-
         // ---------------------------------------------------------------- environment
 
-        static void BuildEnvironment(Material groundMat, Material wallMat)
+        static void BuildEnvironment(Material groundMat)
         {
-            var sun = new GameObject("Directional Light");
-            var light = sun.AddComponent<Light>();
-            light.type = LightType.Directional;
-            light.intensity = 1.1f;
-            light.shadows = LightShadows.Soft;
-            light.color = new Color(1f, 0.96f, 0.90f);
-            sun.transform.rotation = Quaternion.Euler(52f, -35f, 0f);
-
+            ArenaLightingSetup.BuildEnvironment(ArenaHalfSize);
             var env = new GameObject("Environment").transform;
-
-            // Unity's Plane primitive is 10x10 units at unit scale.
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
             ground.transform.SetParent(env, false);
             ground.transform.localScale = Vector3.one * (ArenaHalfSize * 2f / 10f);
             ground.GetComponent<MeshRenderer>().sharedMaterial = groundMat;
+            MilitaryBaseSetup.BuildPerimeter(env, ArenaHalfSize);
 
-            var walls = new GameObject("Walls").transform;
-            walls.SetParent(env, false);
-
-            CreateWall(walls, "North", new Vector3(0f, WallHeight / 2f, ArenaHalfSize),
-                new Vector3(ArenaHalfSize * 2f + 2f, WallHeight, 2f), wallMat);
-            CreateWall(walls, "South", new Vector3(0f, WallHeight / 2f, -ArenaHalfSize),
-                new Vector3(ArenaHalfSize * 2f + 2f, WallHeight, 2f), wallMat);
-            CreateWall(walls, "East", new Vector3(ArenaHalfSize, WallHeight / 2f, 0f),
-                new Vector3(2f, WallHeight, ArenaHalfSize * 2f + 2f), wallMat);
-            CreateWall(walls, "West", new Vector3(-ArenaHalfSize, WallHeight / 2f, 0f),
-                new Vector3(2f, WallHeight, ArenaHalfSize * 2f + 2f), wallMat);
-
-            // Every layout is built and all but one switched off at runtime. The builder
-            // generates the scene once and cannot know which arena a future run wants.
-            var layoutRoots = new Object[ArenaLayouts.Length];
-
-            for (int i = 0; i < ArenaLayouts.Length; i++)
-            {
-                var layout = ArenaLayouts[i];
-
-                var root = new GameObject(layout.Name).transform;
-                root.SetParent(env, false);
-
-                foreach (var placement in layout.Placements)
-                    PlaceBuilding(root, placement, wallMat);
-
-                layoutRoots[i] = root.gameObject;
-            }
-
+            var layout = new GameObject("Military Base");
+            layout.transform.SetParent(env, false);
             var selector = env.gameObject.AddComponent<ArenaSelector>();
             using (var f = new Fields(selector))
-            {
-                f.Arr("layouts", layoutRoots).I("forcedIndex", -1);
-            }
-        }
-
-        static void CreateWall(Transform parent, string name, Vector3 position, Vector3 size, Material mat)
-        {
-            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            wall.name = name;
-            wall.transform.SetParent(parent, false);
-            wall.transform.localPosition = position;
-            wall.transform.localScale = size;
-            wall.GetComponent<MeshRenderer>().sharedMaterial = mat;
-        }
-
-        /// <summary>Prefabs built by Tools > Zombie Shooter > Install Detailed Buildings.</summary>
-        const string BuildingPrefabDir = "Assets/_Project/Prefabs/Buildings";
-
-        /// <summary>
-        /// Drops one authored building into a layout at its own size.
-        /// <para>
-        /// No scaling and no collider work. The prefab already carries a BoxCollider fitted
-        /// to its wall shell and is already marked static, so the builder's job here is
-        /// position and yaw and nothing else. What this replaced measured wall bounds out of
-        /// mesh vertices, stretched the model non-uniformly to fill a rectangle, and rebuilt
-        /// the collider on every run - all of which the prefab now settles once, at authoring
-        /// time, where it can be inspected.
-        /// </para>
-        /// </summary>
-        static void PlaceBuilding(Transform parent, Placement placement, Material fallbackMat)
-        {
-            string path = $"{BuildingPrefabDir}/{placement.Building}.prefab";
-            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-
-            if (asset == null)
-            {
-                // Keep the menu item useful before the buildings have been installed.
-                CreateWall(parent, $"MissingBuilding_{placement.Building}",
-                           new Vector3(placement.X, 2.5f, placement.Z),
-                           new Vector3(8f, 5f, 8f), fallbackMat);
-                Debug.LogWarning($"ArenaBuilder: no building prefab at {path}; using a block. " +
-                                 "Run Tools > Zombie Shooter > Install Detailed Buildings.");
-                return;
-            }
-
-            var building = PrefabUtility.InstantiatePrefab(asset, parent) as GameObject;
-            if (building == null) return;
-
-            building.name = $"{placement.Building}_{Mathf.RoundToInt(placement.X)}_{Mathf.RoundToInt(placement.Z)}";
-            building.transform.localPosition = new Vector3(placement.X, 0f, placement.Z);
-            building.transform.localRotation = Quaternion.Euler(0f, placement.Yaw, 0f);
-            building.transform.localScale = Vector3.one;
+                f.Arr("layouts", new Object[] { layout }).I("forcedIndex", -1);
         }
 
         /// <summary>
@@ -720,6 +505,7 @@ namespace ZombieShooter.EditorTools
             cam.fieldOfView = 55f;
             cam.nearClipPlane = 0.3f;
             cam.farClipPlane = 200f;
+            ArenaLightingSetup.ConfigureCamera(cam);
 
             var shake = go.AddComponent<CameraShake>();
             using (var f = new Fields(shake))
@@ -1637,67 +1423,9 @@ namespace ZombieShooter.EditorTools
 
         /// <summary>Damage a shot keeps when it caught a limb rather than the body.</summary>
         const float LimbDamageScale = 0.6f;
-
-        /// <summary>
-        /// Half-width of the authored zombie across the chest, measured off the mesh rather
-        /// than guessed: 0.57m to each side at the 1.0m height shots travel at, rising to
-        /// 0.60m just above it, against a 0.42m walking capsule. A quarter of the visible
-        /// zombie was not there to be hit, and it was the quarter the arms occupy.
-        /// </summary>
-        const float ZombieLimbRadius = 0.60f;
-
         const string LimbHitboxName = "Hitbox_Limbs";
 
-        /// <summary>
-        /// Wraps a body in a trigger capsule that matches what the player can see, so shots
-        /// that clearly connect do damage instead of passing through an arm.
-        /// <para>
-        /// Deliberately a capsule rather than a box shaped to the arms. A capsule is the same
-        /// width from every angle, so it cannot be authored facing the wrong way - and on a
-        /// top-down camera the player aims left and right, which is the axis this fixes.
-        /// The walking capsule is still in the mask underneath, so a shot through the middle
-        /// reaches both and the delivery pays out the better of the two.
-        /// </para>
-        /// </summary>
-        /// <summary>
-        /// Hit zones on the actual bones, so a shot connects with the body the player can see
-        /// rather than with a shape drawn near it.
-        /// <para>
-        /// The first version was one fat capsule around the whole torso. It fixed the arms
-        /// being unhittable and introduced the opposite complaint from play: a 0.60m radius
-        /// is round, the zombie's torso is barely 0.30m across, and the difference is air
-        /// that registered as a hit. Bone-mounted spheres follow the animation instead, so
-        /// reach forward and the reach is what gets shot.
-        /// </para>
-        /// <para>
-        /// Spheres rather than capsules on purpose. A capsule needs its direction to match
-        /// the bone's length axis, which differs per rig and per exporter, and a wrong guess
-        /// leaves every limb wearing a collider across it instead of along it. A sphere has
-        /// no orientation to get wrong.
-        /// </para>
-        /// <para>
-        /// Only the chest band is covered, because that is the only band a shot can be in:
-        /// the hit ray leaves the player's centre at PlayerRayHeight and travels flat.
-        /// </para>
-        /// </summary>
-        /// <summary>
-        /// Hit zones along the actual bones, so a shot connects with the body the player can
-        /// see rather than with a shape drawn near it.
-        /// <para>
-        /// Three versions of this now. One fat capsule around the torso fixed the arms being
-        /// unhittable and made shots register in mid-air. Spheres pinned to each bone's head
-        /// fixed that and left the arms 40% covered - a 0.14m ball on a 0.35m upper arm,
-        /// nothing at all on the hand - so bullets went through the limb between the joints.
-        /// This covers each SEGMENT, joint to joint.
-        /// </para>
-        /// <para>
-        /// A capsule needs its direction to match the bone's length axis, which is why the
-        /// last version avoided them. It is not a guess though: the child joint's position
-        /// measured in the parent's local space IS the axis, so the builder reads it off the
-        /// rig and only falls back to a string of spheres when no axis is dominant enough to
-        /// trust. Rigs that behave cost one collider per limb; strange ones still get covered.
-        /// </para>
-        /// </summary>
+        /// <summary>Bone-mounted hit volumes cover the torso, shoulders and full arm segments.</summary>
         internal static void AddHitZones(GameObject root, Transform model)
         {
             if (root.transform.Find(LimbHitboxName) != null) return;
@@ -1705,36 +1433,29 @@ namespace ZombieShooter.EditorTools
             var zones = new GameObject(LimbHitboxName);
             zones.transform.SetParent(root.transform, false);
 
-            // joint, next joint along (null = a tip), radius, length if a tip, damage.
-            //
-            // Every radius here was MEASURED, not chosen: each vertex is assigned to the
-            // bone that actually skins it, and the radius is the 99th percentile distance
-            // from that bone's segment across the Chase cycle. The previous set was picked
-            // by eye from the build script and left up to 15cm of mesh outside any zone -
-            // which is exactly the arm and shoulder that shots were passing through.
-            //
-            // Head and hands are capsules along their own bone rather than balls at the
-            // joint. A ball big enough to reach the top of the skull is 0.40m and swallows
-            // the chest with it; a 0.34m capsule of radius 0.24 covers the same skull and
-            // stops where the neck does.
-            //
-            // The pelvis is in the list because the hit ray leaves the player at 1.0m and
-            // travels flat, which is WAIST height on a zombie - not chest. Leaving it out on
-            // the grounds that "no shot is ever at ankle height" skipped the one band every
-            // shot actually passes through.
+            // Shoulder bridges close the gap between chest and upper-arm joints.
+            // Arm radii include a small tolerance for the animated mesh silhouette.
             var segments = new (string from, string to, float radius, float tip, float multiplier)[]
             {
                 ("Pelvis",     "Spine",     0.265f, 0f,     1f),
                 ("Spine",      "Chest",     0.275f, 0f,     1f),
                 ("Chest",      "Neck",      0.320f, 0f,     1f),
                 ("Head",       null,        0.240f, 0.34f,  1f),
-                ("UpperArm.L", "Forearm.L", 0.150f, 0f,     LimbDamageScale),
-                ("UpperArm.R", "Forearm.R", 0.150f, 0f,     LimbDamageScale),
-                ("Forearm.L",  "Hand.L",    0.115f, 0f,     LimbDamageScale),
-                ("Forearm.R",  "Hand.R",    0.115f, 0f,     LimbDamageScale),
+                ("UpperArm.L", "Forearm.L", 0.175f, 0f,     LimbDamageScale),
+                ("UpperArm.R", "Forearm.R", 0.175f, 0f,     LimbDamageScale),
+                ("Forearm.L",  "Hand.L",    0.135f, 0f,     LimbDamageScale),
+                ("Forearm.R",  "Hand.R",    0.135f, 0f,     LimbDamageScale),
                 ("Hand.L",     null,        0.125f, 0.22f,  LimbDamageScale),
                 ("Hand.R",     null,        0.125f, 0.22f,  LimbDamageScale),
             };
+
+            var chest = model != null ? FindDeep(model, "Chest") : null;
+            if (chest != null)
+                foreach (string side in new[] { "L", "R" })
+                {
+                    var arm = FindDeep(model, "UpperArm." + side);
+                    if (arm != null) MountHitZone(chest, arm, 0.18f, 0f, LimbDamageScale, "Shoulder." + side);
+                }
 
             int made = 0, colliders = 0;
             foreach (var (from, to, radius, tip, multiplier) in segments)
