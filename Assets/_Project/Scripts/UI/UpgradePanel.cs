@@ -43,6 +43,13 @@ namespace ZombieShooter
         static readonly Color RuleLocked = new(0.34f, 0.16f, 0.16f, 0.9f);
         static readonly Color Future = new(0.18f, 0.19f, 0.22f, 0.85f);
 
+        /// <summary>
+        /// Whether <see cref="Subscribe"/> actually attached. Tracked rather than assumed,
+        /// because the failure it guards against is silent: a missed subscription leaves a
+        /// panel that draws once, never updates, and still takes clicks.
+        /// </summary>
+        bool subscribed;
+
         void Awake()
         {
             for (int i = 0; i < tierButtons.Length; i++)
@@ -59,16 +66,50 @@ namespace ZombieShooter
             if (root != null) root.SetActive(false);
         }
 
-        void OnEnable()
-        {
-            if (UpgradeManager.Instance != null) UpgradeManager.Instance.Changed += Refresh;
-            if (GameManager.Instance != null) GameManager.Instance.GoldChanged += OnGoldChanged;
-        }
+        // Start, not OnEnable. This component lives on ArmoryUI's root, which is never
+        // toggled, so OnEnable fires exactly once during scene load - and OnEnable is not
+        // ordered against other objects' Awake, where both singletons are assigned. When it
+        // lost that race the null checks skipped the subscription and nothing said so: the
+        // tree bought tiers and never redrew, so tier one stayed the only live button while
+        // every purchase behind it landed. Start is the earliest hook guaranteed to run
+        // after every Awake in the scene, which is why ArmoryUI - same GameObject, same
+        // managers, working - has always used it.
+        void Start() => Subscribe();
 
-        void OnDisable()
+        void OnDestroy()
         {
+            if (!subscribed) return;
+
             if (UpgradeManager.Instance != null) UpgradeManager.Instance.Changed -= Refresh;
             if (GameManager.Instance != null) GameManager.Instance.GoldChanged -= OnGoldChanged;
+            subscribed = false;
+        }
+
+        /// <summary>
+        /// Idempotent, so <see cref="Show"/> can retry it. If the managers genuinely are not
+        /// there yet, opening the panel gets another attempt rather than leaving a dead UI.
+        /// </summary>
+        void Subscribe()
+        {
+            if (subscribed) return;
+
+            var manager = UpgradeManager.Instance;
+            var game = GameManager.Instance;
+
+            if (manager == null || game == null)
+            {
+                Debug.LogError(
+                    "UpgradePanel: no " +
+                    (manager == null ? "UpgradeManager" : "GameManager") +
+                    " in the scene, so the tree cannot redraw after a purchase. Buying will " +
+                    "still work and the panel will look frozen - re-run the arena builder.",
+                    this);
+                return;
+            }
+
+            manager.Changed += Refresh;
+            game.GoldChanged += OnGoldChanged;
+            subscribed = true;
         }
 
         void OnGoldChanged(int _) => Refresh();
@@ -78,7 +119,12 @@ namespace ZombieShooter
             if (root == null) return;
 
             root.SetActive(visible);
-            if (visible) Refresh();
+
+            if (visible)
+            {
+                Subscribe();
+                Refresh();
+            }
         }
 
         void Buy(int path)
@@ -148,7 +194,7 @@ namespace ZombieShooter
             if (tier == null)
             {
                 button.interactable = false;
-                if (image != null) image.color = Future;
+                Paint(button, image, Future);
                 if (label != null) label.text = string.Empty;
                 return;
             }
@@ -191,8 +237,35 @@ namespace ZombieShooter
                 text = $"{tier.title}\n${tier.cost}";
             }
 
-            if (image != null) image.color = colour;
+            Paint(button, image, colour);
             if (label != null) label.text = text;
+        }
+
+        /// <summary>
+        /// Applies a tier's state colour through the Button's own ColorBlock as well as the
+        /// Image.
+        /// <para>
+        /// Setting <c>image.color</c> alone does not survive: Selectable drives its target
+        /// graphic from <see cref="Selectable.colors"/> on every state change, so a
+        /// non-interactable button snapped back to one disabled grey. That flattened
+        /// purchased, rule-locked, unaffordable and not-yet-reachable into a single swatch -
+        /// erasing exactly the distinction this panel exists to draw - and left the live
+        /// button showing the grey baked in at build time rather than the "available" amber.
+        /// </para>
+        /// </summary>
+        static void Paint(Button button, Image image, Color colour)
+        {
+            if (image != null) image.color = colour;
+
+            var colors = button.colors;
+            colors.normalColor = colour;
+            colors.highlightedColor = colour * 1.25f;
+            colors.pressedColor = colour * 0.75f;
+            colors.selectedColor = colour;
+            // The state colour already says why a tier cannot be bought, so the disabled
+            // tint must not overwrite it with grey.
+            colors.disabledColor = colour;
+            button.colors = colors;
         }
     }
 }
